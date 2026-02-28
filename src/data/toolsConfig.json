@@ -1,0 +1,32 @@
+[
+  {
+    "id": "SCAN",
+    "label": "SCAN",
+    "description": "Probe target defenses. Moderate trace risk.",
+    "baseCooldown": 3,
+    "baseEffect": {
+      "firewallDamage": 5,
+      "traceGain": 8
+    }
+  },
+  {
+    "id": "BYPASS",
+    "label": "BYPASS",
+    "description": "Direct firewall breach. Surgical, low trace.",
+    "baseCooldown": 6,
+    "baseEffect": {
+      "firewallDamage": 20,
+      "traceGain": 3
+    }
+  },
+  {
+    "id": "PULSE",
+    "label": "PULSE",
+    "description": "Scramble trace signatures. Purely defensive.",
+    "baseCooldown": 10,
+    "baseEffect": {
+      "firewallDamage": 0,
+      "traceGain": -20
+    }
+  }
+]

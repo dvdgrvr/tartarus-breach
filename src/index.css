@@ -1,68 +1,74 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+@import "tailwindcss";
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* ─── Base Reset & Cyber Foundation ──────────────────────────────────────────── */
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
   }
-  a:hover {
-    color: #747bff;
+
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-color: #09090b; /* zinc-950 — OLED pitch black */
+    color: #a1a1aa;            /* zinc-400 */
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+      'Liberation Mono', 'Courier New', monospace;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
   }
+
   button {
-    background-color: #f9f9f9;
+    all: unset;
+    cursor: pointer;
+    box-sizing: border-box;
   }
+
+  /* Thin, barely-visible custom scrollbar */
+  ::-webkit-scrollbar       { width: 2px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
+}
+
+/* ─── Utility Components ──────────────────────────────────────────────────────── */
+@layer components {
+  /* Glassmorphism panel — the core "Modern Cyber-Rebel" card style */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  /* Neon glow button accents */
+  .glow-green {
+    box-shadow: 0 0 12px rgba(74, 222, 128, 0.12);
+  }
+  .glow-green:hover {
+    box-shadow: 0 0 20px rgba(74, 222, 128, 0.22);
+  }
+
+  .glow-violet {
+    box-shadow: 0 0 12px rgba(167, 139, 250, 0.12);
+  }
+  .glow-violet:hover {
+    box-shadow: 0 0 20px rgba(167, 139, 250, 0.22);
+  }
+}
+
+/* ─── Keyframe Animations ────────────────────────────────────────────────────── */
+
+/* Subtle glitch — fires on danger elements via Tailwind animate-[glitch] */
+@keyframes glitch {
+  0%, 88%, 100% { transform: translate(0); filter: none; }
+  90%  { transform: translate(-2px,  1px); filter: hue-rotate(90deg); }
+  92%  { transform: translate( 2px, -1px); }
+  94%  { transform: translate(-1px,  0);   filter: hue-rotate(-90deg); }
+  96%  { transform: translate(0); filter: none; }
+}
+
+/* Neon pulse — used on [!] danger indicators */
+@keyframes neon-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.55; }
 }
