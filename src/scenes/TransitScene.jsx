@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import useGameStore from '../store/useGameStore';
 import upgradesConfig from '../data/upgradesConfig.json';
+import storyFragments from '../data/storyFragments.json';
 
-// ─── Helper ───────────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function calcUpgradeCost(cfg, currentLevel) {
   return Math.floor(cfg.baseCost * Math.pow(cfg.costScaling, currentLevel));
@@ -10,9 +12,9 @@ function calcUpgradeCost(cfg, currentLevel) {
 // ─── Session Summary ──────────────────────────────────────────────────────────
 
 function SessionSummary() {
-  const earned    = useGameStore(s => s.sessionCreditsEarned);
-  const heat      = useGameStore(s => s.packUpHeat);
-  const trace     = useGameStore(s => s.packUpTrace);
+  const earned = useGameStore(s => s.sessionIntelEarned);
+  const heat   = useGameStore(s => s.packUpHeat);
+  const trace  = useGameStore(s => s.packUpTrace);
 
   return (
     <div className="glass-panel rounded-lg p-4 mb-5">
@@ -21,9 +23,9 @@ function SessionSummary() {
       </p>
       <div className="space-y-2.5">
         <div className="flex justify-between items-center">
-          <span className="font-mono text-xs text-zinc-500">Credits Harvested</span>
+          <span className="font-mono text-xs text-zinc-500">Intel Harvested</span>
           <span className="font-mono text-sm font-bold text-green-400">
-            +{earned} <span className="text-green-400/50 text-[10px]">CR</span>
+            +{earned} <span className="text-green-400/50 text-[10px]">IF</span>
           </span>
         </div>
         <div className="flex justify-between items-center">
@@ -63,15 +65,14 @@ function LevelPips({ current, max }) {
 // ─── Upgrade Card ─────────────────────────────────────────────────────────────
 
 function UpgradeCard({ cfg }) {
-  const credits         = useGameStore(s => s.credits);
+  const intelFragments  = useGameStore(s => s.intelFragments);
   const level           = useGameStore(s => s.upgrades[cfg.id]?.level ?? 0);
   const purchaseUpgrade = useGameStore(s => s.purchaseUpgrade);
 
-  const isMaxed    = level >= cfg.maxLevel;
-  const cost       = isMaxed ? null : calcUpgradeCost(cfg, level);
-  const canAfford  = !isMaxed && credits >= cost;
+  const isMaxed   = level >= cfg.maxLevel;
+  const cost      = isMaxed ? null : calcUpgradeCost(cfg, level);
+  const canAfford = !isMaxed && intelFragments >= cost;
 
-  // Border and background shift based on state
   const cardClass = isMaxed
     ? 'border-green-500/25 bg-green-500/5'
     : canAfford
@@ -80,7 +81,6 @@ function UpgradeCard({ cfg }) {
 
   return (
     <div className={`glass-panel rounded-lg p-4 border transition-colors duration-200 ${cardClass}`}>
-      {/* Header row */}
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="flex items-center gap-2.5">
           <span className="text-xl leading-none">{cfg.icon}</span>
@@ -95,12 +95,10 @@ function UpgradeCard({ cfg }) {
         </div>
       </div>
 
-      {/* Description */}
       <p className="font-mono text-[10px] text-zinc-600 leading-relaxed mb-3">
         {cfg.description}
       </p>
 
-      {/* Buy row */}
       <div className="flex items-center justify-between">
         {isMaxed ? (
           <span className="font-mono text-xs text-green-400 uppercase tracking-widest">
@@ -109,7 +107,7 @@ function UpgradeCard({ cfg }) {
         ) : (
           <>
             <span className={`font-mono text-sm font-bold tabular-nums ${canAfford ? 'text-cyan-400' : 'text-zinc-700'}`}>
-              {cost} <span className={`text-[10px] ${canAfford ? 'text-cyan-400/50' : 'text-zinc-700'}`}>CR</span>
+              {cost} <span className={`text-[10px] ${canAfford ? 'text-cyan-400/50' : 'text-zinc-700'}`}>IF</span>
             </span>
             <button
               onClick={() => purchaseUpgrade(cfg.id)}
@@ -131,7 +129,7 @@ function UpgradeCard({ cfg }) {
   );
 }
 
-// ─── Black Market Section ─────────────────────────────────────────────────────
+// ─── Black Market ─────────────────────────────────────────────────────────────
 
 function BlackMarket() {
   return (
@@ -148,10 +146,117 @@ function BlackMarket() {
   );
 }
 
+// ─── Narrative Archive ────────────────────────────────────────────────────────
+
+function NarrativeArchive() {
+  const storyArchive = useGameStore(s => s.storyArchive);
+  const total        = storyFragments.length;
+  const collected    = storyArchive.length;
+
+  // Render in narrative order (ascending fragment index)
+  const sortedIndices = [...storyArchive].sort((a, b) => a - b);
+
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-3">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-green-400/60">
+          // Narrative Archive
+        </p>
+        <span className="font-mono text-[10px] text-zinc-600">
+          {collected}/{total} FRAGS
+        </span>
+      </div>
+
+      {collected === 0 ? (
+        <div className="glass-panel rounded-lg p-5 text-center border border-zinc-800/50">
+          <p className="font-mono text-[10px] text-zinc-600 leading-relaxed">
+            No fragments decoded yet.
+          </p>
+          <p className="font-mono text-[10px] text-zinc-700 mt-1">
+            Successfully breach a node to extract data.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {sortedIndices.map(idx => (
+            <div key={idx} className="glass-panel rounded-lg p-4 border border-green-500/10 bg-green-500/[0.02]">
+              <p className="font-mono text-[9px] uppercase tracking-widest text-green-400/40 mb-2">
+                Fragment #{String(idx + 1).padStart(3, '0')} — Decoded
+              </p>
+              <p className="font-mono text-[11px] text-zinc-300 leading-relaxed">
+                {storyFragments[idx]}
+              </p>
+            </div>
+          ))}
+
+          {/* Remaining count hint */}
+          {collected < total && (
+            <div className="rounded-lg p-3 border border-zinc-800/50 text-center">
+              <p className="font-mono text-[10px] text-zinc-700">
+                {total - collected} fragment{total - collected !== 1 ? 's' : ''} still encrypted.
+              </p>
+              <p className="font-mono text-[10px] text-zinc-800 mt-0.5">Keep hacking.</p>
+            </div>
+          )}
+
+          {/* Completion state */}
+          {collected === total && (
+            <div className="glass-panel rounded-lg p-4 border border-green-500/30 bg-green-500/5 text-center">
+              <p className="font-mono text-xs text-green-400 font-bold uppercase tracking-widest">
+                Archive Complete
+              </p>
+              <p className="font-mono text-[10px] text-green-400/60 mt-1">
+                You have the full picture. What you do next is your choice.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Tab Bar ──────────────────────────────────────────────────────────────────
+
+function TabBar({ active, onChange }) {
+  const collected = useGameStore(s => s.storyArchive.length);
+
+  const tabs = [
+    { id: 'debrief', label: 'DEBRIEF' },
+    { id: 'archive', label: 'ARCHIVE', showDot: collected > 0 },
+  ];
+
+  return (
+    <div className="flex border-b border-zinc-800 shrink-0">
+      {tabs.map(tab => (
+        <button
+          key={tab.id}
+          onClick={() => onChange(tab.id)}
+          className={[
+            'flex-1 relative py-2.5 font-mono text-[10px] uppercase tracking-widest',
+            'transition-colors duration-150',
+            active === tab.id
+              ? 'text-green-400 border-b-2 border-green-500 -mb-px'
+              : 'text-zinc-600 hover:text-zinc-400',
+          ].join(' ')}
+        >
+          {tab.label}
+          {/* Green dot on ARCHIVE tab when frags exist and tab is inactive */}
+          {tab.showDot && active !== tab.id && (
+            <span className="absolute top-2 right-[calc(50%-18px)] w-1.5 h-1.5 rounded-full bg-green-400" />
+          )}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ─── Transit Scene (main) ─────────────────────────────────────────────────────
 
 export default function TransitScene() {
-  const credits        = useGameStore(s => s.credits);
+  const [activeTab, setActiveTab] = useState('debrief');
+
+  const intelFragments  = useGameStore(s => s.intelFragments);
   const startNewSession = useGameStore(s => s.startNewSession);
 
   return (
@@ -168,16 +273,25 @@ export default function TransitScene() {
           </h2>
           <div className="flex items-baseline gap-1.5">
             <span className="font-mono text-[10px] text-cyan-400/50 uppercase tracking-widest">Balance</span>
-            <span className="font-mono text-xl font-bold text-cyan-400 tabular-nums">{credits}</span>
-            <span className="font-mono text-[10px] text-cyan-400/50 uppercase">CR</span>
+            <span className="font-mono text-xl font-bold text-cyan-400 tabular-nums">{intelFragments}</span>
+            <span className="font-mono text-[10px] text-cyan-400/50 uppercase">IF</span>
           </div>
         </div>
       </div>
 
+      {/* ── Tab navigation ── */}
+      <TabBar active={activeTab} onChange={setActiveTab} />
+
       {/* ── Scrollable body ── */}
       <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin">
-        <SessionSummary />
-        <BlackMarket />
+        {activeTab === 'debrief' ? (
+          <>
+            <SessionSummary />
+            <BlackMarket />
+          </>
+        ) : (
+          <NarrativeArchive />
+        )}
       </div>
 
       {/* ── Footer CTA ── */}

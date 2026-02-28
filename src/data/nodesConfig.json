@@ -1,0 +1,44 @@
+[
+  {
+    "id": "CORP_RELAY_01",
+    "name": "Meridian Corp. Relay",
+    "description": "Mid-tier corporate node. No special defenses detected.",
+    "specialDefense": null,
+    "firewallHP": 100
+  },
+  {
+    "id": "AXIOM_HUB_01",
+    "name": "Axiom Financial Hub",
+    "description": "Standard banking node with automated monitoring.",
+    "specialDefense": null,
+    "firewallHP": 120
+  },
+  {
+    "id": "VAULT_ARCHIVE_01",
+    "name": "Vault-7 Archive",
+    "description": "Classified data store. All firewall metrics have been encrypted.",
+    "specialDefense": "ENCRYPTED_LOGS",
+    "firewallHP": 80
+  },
+  {
+    "id": "HELIX_BLACKSITE_01",
+    "name": "Helix Black Site",
+    "description": "High-value target. All defense metrics are obfuscated by design.",
+    "specialDefense": "ENCRYPTED_LOGS",
+    "firewallHP": 100
+  },
+  {
+    "id": "NEXUS_RELAY_01",
+    "name": "Nexus Relay Station",
+    "description": "High-speed relay hub. Advanced trace detection algorithms online.",
+    "specialDefense": "TRACE_ACCELERATOR",
+    "firewallHP": 100
+  },
+  {
+    "id": "DARKNET_GW_01",
+    "name": "DarkNet Gateway",
+    "description": "Hardened gateway node. Trace escalation protocols are fully active.",
+    "specialDefense": "TRACE_ACCELERATOR",
+    "firewallHP": 130
+  }
+]

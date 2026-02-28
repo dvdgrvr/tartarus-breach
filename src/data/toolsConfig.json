@@ -3,30 +3,32 @@
     "id": "SCAN",
     "label": "SCAN",
     "description": "Probe target defenses. Moderate trace risk.",
+    "color": "green",
     "baseCooldown": 3,
-    "baseEffect": {
-      "firewallDamage": 5,
-      "traceGain": 8
-    }
+    "baseEffect": { "firewallDamage": 5,  "traceGain": 8,   "heatGain": 0 }
   },
   {
     "id": "BYPASS",
     "label": "BYPASS",
     "description": "Direct firewall breach. Surgical, low trace.",
+    "color": "green",
     "baseCooldown": 6,
-    "baseEffect": {
-      "firewallDamage": 20,
-      "traceGain": 3
-    }
+    "baseEffect": { "firewallDamage": 20, "traceGain": 3,   "heatGain": 0 }
   },
   {
     "id": "PULSE",
     "label": "PULSE",
-    "description": "Scramble trace signatures. Purely defensive.",
-    "baseCooldown": 10,
-    "baseEffect": {
-      "firewallDamage": 0,
-      "traceGain": -20
-    }
+    "description": "Scramble trace signatures. Defensive. Long cooldown — use strategically.",
+    "color": "blue",
+    "baseCooldown": 18,
+    "baseEffect": { "firewallDamage": 0,  "traceGain": -20, "heatGain": 0 }
+  },
+  {
+    "id": "DECRYPT",
+    "label": "DECRYPT",
+    "description": "Crack encrypted node logs. Reveals hidden firewall health on ENCRYPTED nodes — but bursts physical heat by 20%.",
+    "color": "amber",
+    "baseCooldown": 20,
+    "baseEffect": { "firewallDamage": 0,  "traceGain": 5,   "heatGain": 20 }
   }
 ]
