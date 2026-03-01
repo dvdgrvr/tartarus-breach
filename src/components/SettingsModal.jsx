@@ -33,8 +33,10 @@ function Toggle({ label, description, value, onChange }) {
 // ─── Settings Modal ────────────────────────────────────────────────────────────
 
 export default function SettingsModal({ onClose }) {
-  const settings       = useGameStore(s => s.settings);
-  const updateSettings = useGameStore(s => s.updateSettings);
+  const settings         = useGameStore(s => s.settings);
+  const updateSettings   = useGameStore(s => s.updateSettings);
+  const toggleCyberdelia = useGameStore(s => s.toggleCyberdelia);
+  const resetGame        = useGameStore(s => s.resetGame);
 
   const volumePct = Math.round((settings?.masterVolume ?? 0.8) * 100);
 
@@ -137,16 +139,36 @@ export default function SettingsModal({ onClose }) {
               value={settings?.crtEnabled ?? true}
               onChange={(v) => updateSettings({ crtEnabled: v })}
             />
+            <Toggle
+              label="1995 CYBERDELIA MODE"
+              description="// WARNING: HIGH VOLTAGE ANALOG OVERRIDE."
+              value={settings?.cyberdeliaMode ?? false}
+              onChange={() => toggleCyberdelia()}
+            />
           </div>
         </div>
 
       </div>
 
       {/* ── Footer ── */}
-      <div className="px-4 py-3 border-t border-zinc-800 shrink-0">
+      <div className="px-4 py-3 border-t border-zinc-800 shrink-0 space-y-3">
         <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-700 text-center">
           Settings saved automatically
         </p>
+        <button
+          onClick={() => {
+            const confirmed = window.confirm(
+              'RESTART CAMPAIGN\n\nThis will wipe your intel bank, upgrades, and consumables.\n\nYour high score and global unlocks will be preserved.\n\nProceed?'
+            );
+            if (confirmed) {
+              resetGame();
+              onClose();
+            }
+          }}
+          className="w-full py-2 rounded border border-red-900/50 text-red-700 font-mono text-[10px] uppercase tracking-widest hover:bg-red-900/20 hover:text-red-500 hover:border-red-700/50 transition-all duration-150"
+        >
+          Restart Campaign
+        </button>
       </div>
 
     </div>

@@ -10,6 +10,7 @@ import {
   BASE_TRACE_HIGH,
   TRACE_ACCEL_THRESHOLD,
   TRACE_ACCEL_MULTIPLIER,
+  FIREWALL_INITIAL_HP,
   SKIM_INTEL_MIN,
   SKIM_INTEL_MAX,
   PRIORITY_INTEL_MIN,
@@ -87,6 +88,16 @@ const pickPriorityNode = (archiveLen) =>
 const appendLog = (log, entry) =>
   [...log, entry].slice(-MAX_LOG_ENTRIES);
 
+// Dynamic FW scaling — 1.15× curve from the base 100 HP.
+// level is 1-based (fragment 1 = level 1 = FW 100).
+// Formula: Math.floor(FIREWALL_INITIAL_HP * 1.15^(level-1))
+//   Level 1  →  100 HP   Level 5  →  175 HP   Level  9  →  305 HP
+//   Level 2  →  115 HP   Level 6  →  201 HP   Level 10  →  351 HP
+//   Level 3  →  132 HP   Level 7  →  231 HP   Level 11  →  404 HP
+//   Level 4  →  152 HP   Level 8  →  266 HP   Level 12  →  465 HP
+const calcScaledFW = (level) =>
+  Math.floor(FIREWALL_INITIAL_HP * Math.pow(1.15, level - 1));
+
 const nodeBootLog = (node) => {
   const lines = [
     '// SIGNAL REROUTED. NEW LOCATION ACQUIRED.',
@@ -130,8 +141,8 @@ const useGameStore = create(
       storyArchive: [],
 
       // ── Session state ────────────────────────────────────────────────────
-      status:               'hacking',  // 'hacking' | 'transit' | 'victory' | 'game_over'
-      transitOutcome:       'escaped',  // 'success' | 'escaped' | 'trace_busted' | 'heat_busted'
+      status:               'transit',  // 'hacking' | 'transit' | 'victory' | 'game_over'
+      transitOutcome:       'initial',  // 'initial' | 'success' | 'escaped' | 'trace_busted' | 'heat_busted'
       currentJobType:       'skim',     // 'skim' | 'priority' | 'tartarus'
       digitalTrace:         0,
       physicalHeat:         0,
@@ -144,15 +155,29 @@ const useGameStore = create(
       // ── Safehouse ────────────────────────────────────────────────────────
       currentSafehouse: SAFEHOUSE_ROSTER[0],
 
+      // ── Endless mode ──────────────────────────────────────────────────────
+      hasBeatenGame:     false,  // global unlock — never wiped by resetGame
+      tartarusBeaten:    false,  // per-run flag, reset on new campaign
+      darknetTier:       1,
+      highestDarknetTier: 1,     // all-time best — never wiped by resetGame
+      consumables:       { zeroDay: 0, coolant: 0 },
+
       // ── User settings ─────────────────────────────────────────────────────
       settings: {
-        masterVolume:     0.8,
-        sfxEnabled:       true,
-        ambienceEnabled:  true,
-        hapticsEnabled:   true,
-        shakeEnabled:     true,
-        crtEnabled:       true,
+        masterVolume:    0.8,
+        sfxEnabled:      true,
+        ambienceEnabled: true,
+        hapticsEnabled:  true,
+        shakeEnabled:    true,
+        crtEnabled:      true,
+        cyberdeliaMode:  false,  // global 1995 Cyberdelia visual override
       },
+
+      // ── Narrative modal ───────────────────────────────────────────────────
+      // Set to the fragment index when a new fragment is first unlocked; null otherwise.
+      // isReplay suppresses the modal entirely for grind runs.
+      pendingFragmentIdx: null,
+      isReplay:           false,
 
       // ── Current node ─────────────────────────────────────────────────────
       currentNode:      _initialNode,
@@ -174,9 +199,11 @@ const useGameStore = create(
         const heatMultiplier = Math.max(0, 1 - signalLevel * 0.10);
         const heatGain       = BASE_HEAT_PER_TICK * heatMultiplier;
 
-        // Digital Trace — TRACE_ACCELERATOR node multiplies passive rate
+        // Digital Trace — node may supply its own traceMultiplier (darknet tiers);
+        // otherwise fall back to the TRACE_ACCELERATOR constant or 1.
         const isTraceAccel    = s.currentNode?.specialDefense === 'TRACE_ACCELERATOR';
-        const traceMultiplier = isTraceAccel ? TRACE_ACCEL_MULTIPLIER : 1;
+        const traceMultiplier = s.currentNode?.traceMultiplier
+          ?? (isTraceAccel ? TRACE_ACCEL_MULTIPLIER : 1);
         const traceGain =
           (s.digitalTrace >= TRACE_ACCEL_THRESHOLD ? BASE_TRACE_HIGH : BASE_TRACE_LOW)
           * traceMultiplier;
@@ -270,15 +297,20 @@ const useGameStore = create(
         if (breached) {
           const intelEarned = s.sessionPotentialIntel;
           const isTartarus  = s.currentJobType === 'tartarus';
+          const isDarknet   = s.currentJobType === 'darknet';
           const isPriority  = s.currentJobType === 'priority' || isTartarus;
 
-          // Sequential fragment — only for priority/tartarus missions
+          // Sequential fragment — priority/tartarus only; never on replay runs
           let newArchive  = s.storyArchive;
           let fragmentIdx = null;
-          if (isPriority && s.storyArchive.length < storyFragments.length) {
+          if (isPriority && !s.isReplay && s.storyArchive.length < storyFragments.length) {
             fragmentIdx = s.storyArchive.length;
             newArchive  = [...s.storyArchive, fragmentIdx];
           }
+
+          // Darknet: tier up on successful breach
+          const newDarknetTier = isDarknet ? s.darknetTier + 1 : s.darknetTier;
+          const newHighestTier = Math.max(s.highestDarknetTier, newDarknetTier);
 
           let log = appendLog(s.terminalLog,
             `> ${toolId} // FW: 0 | TRACE: ${newTrace.toFixed(0)}%`);
@@ -288,22 +320,27 @@ const useGameStore = create(
               `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
           }
           log = appendLog(log,
-            isTartarus
-              ? '// TARTARUS BREACHED. EXECUTING CELL RELEASE...'
-              : '// NODE BREACHED. EXTRACTING AND RELOCATING...');
+            isTartarus ? '// TARTARUS BREACHED. EXECUTING CELL RELEASE...' :
+            isDarknet  ? `// DARKNET T${s.darknetTier} CLEARED. TIER ${newDarknetTier} UNLOCKED.` :
+                         '// NODE BREACHED. EXTRACTING AND RELOCATING...');
 
           set({
-            status:               isTartarus ? 'victory' : 'transit',
-            transitOutcome:       'success',
-            physicalHeat:         0,
-            packUpHeat:           s.physicalHeat,
-            packUpTrace:          s.digitalTrace,
-            firewallHealth:       0,
-            digitalTrace:         newTrace,
-            intelFragments:       s.intelFragments + intelEarned,
-            sessionIntelEarned:   intelEarned,
-            storyArchive:         newArchive,
-            terminalLog:          log,
+            status:             isTartarus ? 'victory' : 'transit',
+            transitOutcome:     'success',
+            physicalHeat:       0,
+            packUpHeat:         s.physicalHeat,
+            packUpTrace:        s.digitalTrace,
+            firewallHealth:     0,
+            digitalTrace:       newTrace,
+            intelFragments:     s.intelFragments + intelEarned,
+            sessionIntelEarned: intelEarned,
+            storyArchive:       newArchive,
+            hasBeatenGame:      s.hasBeatenGame || isTartarus,
+            tartarusBeaten:     s.tartarusBeaten || isTartarus,
+            darknetTier:        newDarknetTier,
+            highestDarknetTier: newHighestTier,
+            pendingFragmentIdx: s.isReplay ? null : fragmentIdx,  // suppress modal on replay runs
+            terminalLog:        log,
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
           });
           return;
@@ -356,6 +393,10 @@ const useGameStore = create(
         // TARTARUS bust (not voluntary escape) → game over
         const nextStatus = (isTartarus && cause !== 'escaped') ? 'game_over' : 'transit';
 
+        // Darknet bust: streak resets (escaped preserves tier)
+        const isDarknet       = s.currentJobType === 'darknet';
+        const nextDarknetTier = (isDarknet && cause !== 'escaped') ? 1 : s.darknetTier;
+
         // On HEAT_BUSTED: rotate to a random different safehouse
         let nextSafehouse = s.currentSafehouse;
         if (cause === 'heat_busted') {
@@ -372,39 +413,87 @@ const useGameStore = create(
           intelFragments:     newBank,
           sessionIntelEarned: intelEarned,
           currentSafehouse:   nextSafehouse,
+          darknetTier:        nextDarknetTier,
           terminalLog:        appendLog(s.terminalLog, logMsg),
         });
       },
 
       // ─── START NEW SESSION ────────────────────────────────────────────
-      // jobType: 'skim' | 'priority' | 'tartarus'
-      startNewSession: (jobType = 'skim') => {
+      // jobType:     'skim' | 'priority' | 'tartarus' | 'darknet'
+      // isReplay:    when true, halve intel and suppress the narrative modal
+      // replayLevel: 1-based fragment level for replay runs (sets FW difficulty
+      //              to that archived mission's level rather than the frontier)
+      startNewSession: (jobType = 'skim', isReplay = false, replayLevel = null) => {
         const s = get();
 
+        // Current story frontier (1-based): the level the *next* fragment sits at.
+        // All dynamic FW calculations use this as the baseline for live runs.
+        const frontierLevel = s.storyArchive.length + 1;
+
         let nextNode;
+        let firewallHP;
+
         if (jobType === 'tartarus') {
-          nextNode = TARTARUS_NODE_DEF;
+          // Tartarus is a fixed-difficulty endgame node — not subject to curve scaling.
+          nextNode    = TARTARUS_NODE_DEF;
+          firewallHP  = TARTARUS_NODE_DEF.firewallHP;
+
+        } else if (jobType === 'darknet') {
+          // Darknet has its own tier-based scaling independent of the story curve.
+          const tier = s.darknetTier;
+          nextNode   = {
+            id:              `DARKNET_T${tier}`,
+            name:            `Darknet Router — Tier ${tier}`,
+            specialDefense:  'DARKNET',
+            firewallHP:      150 + tier * 50,
+            traceMultiplier: 2 + tier * 0.5,
+          };
+          firewallHP = nextNode.firewallHP;
+
         } else if (jobType === 'priority') {
-          nextNode = pickPriorityNode(s.storyArchive.length);
+          // Priority Lead: use the 1.15× curve.
+          // - First-time run → frontier level (next fragment to unlock).
+          // - Archive replay  → the specific fragment's original level, so older
+          //   missions stay at their recorded difficulty, not the current frontier.
+          const level = (isReplay && replayLevel !== null) ? replayLevel : frontierLevel;
+          nextNode   = pickPriorityNode(s.storyArchive.length);
+          firewallHP = calcScaledFW(level);
+
         } else {
-          nextNode = pickSkimNode();
+          // Data Skim: scaled to frontier but with a 30% discount so low-sec
+          // targets are always mathematically easier than the current Priority Lead.
+          nextNode   = pickSkimNode();
+          firewallHP = Math.floor(calcScaledFW(frontierLevel) * 0.70);
         }
 
-        const potentialIntel = calcPotentialIntel(jobType);
+        // Darknet intel scales with tier; others use config ranges.
+        const basePotential = jobType === 'darknet'
+          ? 100 + s.darknetTier * 25
+          : calcPotentialIntel(jobType);
+
+        // Replay penalty: 50% intel to prevent archive-grind exploits.
+        const potentialIntel = isReplay
+          ? Math.floor(basePotential * 0.5)
+          : basePotential;
+
+        // Sync firewallHP back onto the node object so any reader of
+        // currentNode.firewallHP gets the correct dynamic value.
+        const sessionNode = { ...nextNode, firewallHP };
 
         set({
           status:                'hacking',
           currentJobType:        jobType,
+          isReplay,
           digitalTrace:          0,
           physicalHeat:          0,
-          firewallHealth:        nextNode.firewallHP,
-          currentNode:           nextNode,
+          firewallHealth:        firewallHP,
+          currentNode:           sessionNode,
           firewallRevealed:      false,
           sessionIntelEarned:    0,
           sessionPotentialIntel: potentialIntel,
           packUpHeat:            0,
           packUpTrace:           0,
-          terminalLog:           nodeBootLog(nextNode),
+          terminalLog:           nodeBootLog(sessionNode),
           toolState:             buildInitialToolState(),
         });
       },
@@ -414,7 +503,8 @@ const useGameStore = create(
       resetGame: () => {
         const freshNode = pickSkimNode();
         set({
-          status:                'hacking',
+          status:                'transit',
+          transitOutcome:        'initial',
           intelFragments:        0,
           upgrades:              buildInitialUpgradeState(),
           storyArchive:          [],
@@ -428,16 +518,132 @@ const useGameStore = create(
           sessionPotentialIntel: 0,
           packUpHeat:            0,
           packUpTrace:           0,
-          transitOutcome:        'escaped',
+          tartarusBeaten:        false,      // per-run flag — reset each campaign
+          darknetTier:           1,          // streak resets; highestDarknetTier + hasBeatenGame persist
+          consumables:           { zeroDay: 0, coolant: 0 },
+          pendingFragmentIdx:    null,
+          isReplay:              false,
+          // NOTE: hasBeatenGame / highestDarknetTier / settings intentionally omitted — preserved via shallow merge
           terminalLog:           nodeBootLog(freshNode),
           toolState:             buildInitialToolState(),
         });
       },
 
+      // ─── ENTER DARKNET ────────────────────────────────────────────────
+      // Transitions from the victory screen directly into the transit hub
+      // so the player can access the Darknet Router without a full reset.
+      enterDarknet: () => set({ status: 'transit' }),
+
+      // ─── DISMISS FRAGMENT MODAL ───────────────────────────────────────
+      dismissFragmentModal: () => set({ pendingFragmentIdx: null }),
+
+      // ─── TOGGLE CYBERDELIA MODE ───────────────────────────────────────
+      toggleCyberdelia: () => set((s) => ({
+        settings: { ...s.settings, cyberdeliaMode: !s.settings?.cyberdeliaMode },
+      })),
+
       // ─── UPDATE SETTINGS ──────────────────────────────────────────────
       updateSettings: (patch) => set((state) => ({
         settings: { ...state.settings, ...patch },
       })),
+
+      // ─── BUY CONSUMABLE ───────────────────────────────────────────────
+      // itemId: 'zeroDay' | 'coolant'
+      buyConsumable: (itemId, cost) => {
+        const s = get();
+        if (s.intelFragments < cost) return;
+        set({
+          intelFragments: s.intelFragments - cost,
+          consumables: {
+            ...s.consumables,
+            [itemId]: (s.consumables[itemId] ?? 0) + 1,
+          },
+        });
+      },
+
+      // ─── USE CONSUMABLE ───────────────────────────────────────────────
+      // Applies the item effect immediately; if zeroDay breaches the
+      // firewall the full breach path runs (mirrors executeCommand breach).
+      useConsumable: (itemId) => {
+        const s = get();
+        if (s.status !== 'hacking') return;
+        if ((s.consumables[itemId] ?? 0) <= 0) return;
+
+        if (s.settings?.hapticsEnabled) haptic(15);
+        AudioManager.playSFX('thock');
+
+        const newConsumables = {
+          ...s.consumables,
+          [itemId]: s.consumables[itemId] - 1,
+        };
+
+        // ── COOLANT: reduce heat ──────────────────────────────────────
+        if (itemId === 'coolant') {
+          const newHeat = Math.max(0, s.physicalHeat - 30);
+          set({
+            physicalHeat: newHeat,
+            consumables:  newConsumables,
+            terminalLog:  appendLog(s.terminalLog, `>> COOLANT FLUSH — HEAT: ${newHeat.toFixed(0)}%`),
+          });
+          return;
+        }
+
+        // ── ZERO-DAY: deal 50 FW damage; may breach ──────────────────
+        if (itemId === 'zeroDay') {
+          const newFirewall = Math.max(0, s.firewallHealth - 50);
+          const baseLog     = appendLog(s.terminalLog, `>> ZER0-DAY PAYLOAD — FW: ${Math.ceil(newFirewall)}`);
+
+          if (newFirewall > 0) {
+            set({ firewallHealth: newFirewall, consumables: newConsumables, terminalLog: baseLog });
+            return;
+          }
+
+          // Firewall breached — mirrors executeCommand breach path
+          const intelEarned  = s.sessionPotentialIntel;
+          const isTartarus   = s.currentJobType === 'tartarus';
+          const isDarknet    = s.currentJobType === 'darknet';
+          const isPriority   = s.currentJobType === 'priority' || isTartarus;
+
+          let newArchive  = s.storyArchive;
+          let fragmentIdx = null;
+          if (isPriority && !s.isReplay && s.storyArchive.length < storyFragments.length) {
+            fragmentIdx = s.storyArchive.length;
+            newArchive  = [...s.storyArchive, fragmentIdx];
+          }
+
+          const newDarknetTier = isDarknet ? s.darknetTier + 1 : s.darknetTier;
+          const newHighestTier = Math.max(s.highestDarknetTier, newDarknetTier);
+
+          let log = appendLog(baseLog, `>> [ACCESS GRANTED] +${intelEarned} FRAGS`);
+          if (fragmentIdx !== null) {
+            log = appendLog(log,
+              `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
+          }
+          log = appendLog(log,
+            isTartarus ? '// TARTARUS BREACHED. EXECUTING CELL RELEASE...' :
+            isDarknet  ? `// DARKNET T${s.darknetTier} CLEARED. TIER ${newDarknetTier} UNLOCKED.` :
+                         '// NODE BREACHED. EXTRACTING AND RELOCATING...');
+
+          set({
+            status:             isTartarus ? 'victory' : 'transit',
+            transitOutcome:     'success',
+            physicalHeat:       0,
+            packUpHeat:         s.physicalHeat,
+            packUpTrace:        s.digitalTrace,
+            firewallHealth:     0,
+            intelFragments:     s.intelFragments + intelEarned,
+            sessionIntelEarned: intelEarned,
+            storyArchive:       newArchive,
+            hasBeatenGame:      s.hasBeatenGame || isTartarus,
+            tartarusBeaten:     s.tartarusBeaten || isTartarus,
+            darknetTier:        newDarknetTier,
+            highestDarknetTier: newHighestTier,
+            pendingFragmentIdx: s.isReplay ? null : fragmentIdx,  // suppress modal on replay runs
+            consumables:        newConsumables,
+            terminalLog:        log,
+          });
+        }
+      },
 
       // ─── PURCHASE UPGRADE ─────────────────────────────────────────────
       purchaseUpgrade: (upgradeId) => {
@@ -494,6 +700,30 @@ const useGameStore = create(
             currentJobType:        state.currentJobType        ?? 'skim',
             sessionPotentialIntel: state.sessionPotentialIntel ?? 0,
             transitOutcome:        outcomeMap[state.transitOutcome] ?? state.transitOutcome ?? 'escaped',
+          };
+        }
+
+        if (version < 5) {
+          state = {
+            ...state,
+            pendingFragmentIdx: null,
+            settings: {
+              ...state.settings,
+              cyberdeliaEnabled: state.settings?.cyberdeliaEnabled ?? false,
+            },
+          };
+        }
+
+        if (version < 6) {
+          // Rename cyberdeliaEnabled → cyberdeliaMode; add isReplay
+          const { cyberdeliaEnabled, ...otherSettings } = state.settings ?? {};
+          state = {
+            ...state,
+            isReplay: false,
+            settings: {
+              ...otherSettings,
+              cyberdeliaMode: cyberdeliaEnabled ?? false,
+            },
           };
         }
 

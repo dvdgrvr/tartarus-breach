@@ -1,7 +1,7 @@
 [
   {
     "id": "FRAG_01",
-    "text": "[ERR_RST] Connection dropped. PCAP analysis confirms external sever. Someone cut the cord on Banshee's dive. This wasn't hostile ICE. It was an inside job."
+    "text": "[ERR_RST] Connection dropped. PCAP analysis confirms external sever. Someone cut the cord on Banshee's dive. This wasn't hostile DAEMON. It was an inside job."
   },
   {
     "id": "FRAG_02",
@@ -21,7 +21,7 @@
   },
   {
     "id": "FRAG_06",
-    "text": "Memo - ICE Protocol Update. \"Once a hostile trace hits 80%, the system now auto-accelerates. The window to disconnect closes to seconds. If they don't pack up before 80, we own them.\""
+    "text": "Memo - DAEMON Protocol Update. \"Once a hostile trace hits 80%, the system now auto-accelerates. The window to disconnect closes to seconds. If they don't pack up before 80, we own them.\""
   },
   {
     "id": "FRAG_07",

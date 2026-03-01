@@ -7,8 +7,9 @@ import useGameStore from '../store/useGameStore';
 // Thin persistent header showing target name and active special defense badge.
 
 const DEFENSE_BADGE = {
-  ENCRYPTED_LOGS:    { label: 'ENCRYPTED',  color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
-  TRACE_ACCELERATOR: { label: 'TRACE x2',   color: 'text-red-400   border-red-500/30   bg-red-500/10'   },
+  ENCRYPTED_LOGS:    { label: 'ENCRYPTED',  color: 'text-amber-400  border-amber-500/30  bg-amber-500/10'  },
+  TRACE_ACCELERATOR: { label: 'TRACE x2',   color: 'text-red-400    border-red-500/30    bg-red-500/10'    },
+  DARKNET:           { label: 'DARKNET',     color: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10' },
 };
 
 function NodeStatusStrip() {
@@ -92,7 +93,8 @@ function TraceRow() {
   const trace         = useGameStore(s => s.digitalTrace);
   const node          = useGameStore(s => s.currentNode);
   const shakeEnabled  = useGameStore(s => s.settings?.shakeEnabled ?? true);
-  const isAccelerated = node?.specialDefense === 'TRACE_ACCELERATOR';
+  const isAccelerated = node?.specialDefense === 'TRACE_ACCELERATOR'
+                     || node?.specialDefense === 'DARKNET';
 
   const isDanger  = trace >= 80;
   const isWarning = trace >= 50;
@@ -113,6 +115,46 @@ function TraceRow() {
       <span className={`font-mono text-[10px] tabular-nums w-7 text-right ${labelColor}`}>
         {trace.toFixed(0)}%
       </span>
+    </div>
+  );
+}
+
+// ─── Consumable Bar ───────────────────────────────────────────────────────────
+// Sits between the gauge rows and the command bar.
+// Always rendered; buttons are disabled (greyed) when count is 0.
+
+function ConsumableBar() {
+  const consumables   = useGameStore(s => s.consumables);
+  const useConsumable = useGameStore(s => s.useConsumable);
+  const zeroDay       = consumables?.zeroDay ?? 0;
+  const coolant       = consumables?.coolant ?? 0;
+
+  return (
+    <div className="flex gap-2 px-3 py-1.5 border-t border-zinc-800/40">
+      <button
+        onClick={() => useConsumable('zeroDay')}
+        disabled={zeroDay === 0}
+        className={[
+          'flex-1 py-1 rounded border font-mono text-[10px] uppercase tracking-widest transition-all duration-150',
+          zeroDay > 0
+            ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10 active:scale-95'
+            : 'border-zinc-800 text-zinc-700 cursor-not-allowed',
+        ].join(' ')}
+      >
+        ZER0-DAY [×{zeroDay}]
+      </button>
+      <button
+        onClick={() => useConsumable('coolant')}
+        disabled={coolant === 0}
+        className={[
+          'flex-1 py-1 rounded border font-mono text-[10px] uppercase tracking-widest transition-all duration-150',
+          coolant > 0
+            ? 'border-blue-500/40 text-blue-400 hover:bg-blue-500/10 active:scale-95'
+            : 'border-zinc-800 text-zinc-700 cursor-not-allowed',
+        ].join(' ')}
+      >
+        COOLANT [×{coolant}]
+      </button>
     </div>
   );
 }
@@ -146,6 +188,8 @@ export default function HackingScene() {
           <FirewallRow />
           <TraceRow />
         </div>
+
+        <ConsumableBar />
 
         <CommandBar />
       </div>

@@ -12,6 +12,7 @@ function calcUpgradeCost(cfg, currentLevel) {
 // ─── Session Summary ──────────────────────────────────────────────────────────
 
 const OUTCOME_BADGE = {
+  initial:      { label: 'SYSTEM ONLINE',                className: 'text-cyan-400  border-cyan-500/40  bg-cyan-500/10'     },
   success:      { label: 'SYSTEM BREACHED',              className: 'text-green-400 border-green-500/40 bg-green-500/10'    },
   escaped:      { label: 'TACTICAL RETREAT',             className: 'text-amber-400 border-amber-500/40 bg-amber-500/10'    },
   trace_busted: { label: 'CONNECTION SEVERED. 0 INTEL.', className: 'text-red-400   border-red-500/40   bg-red-500/10'      },
@@ -144,9 +145,47 @@ function UpgradeCard({ cfg }) {
   );
 }
 
+// ─── Consumable Item ──────────────────────────────────────────────────────────
+
+function ConsumableItem({ itemId, label, description, cost }) {
+  const intelFragments = useGameStore(s => s.intelFragments);
+  const count          = useGameStore(s => s.consumables?.[itemId] ?? 0);
+  const buyConsumable  = useGameStore(s => s.buyConsumable);
+  const canAfford      = intelFragments >= cost;
+
+  return (
+    <div className="glass-panel rounded-lg p-4 border border-zinc-800/50 flex items-center justify-between gap-3">
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="font-mono text-xs font-bold text-zinc-100">{label}</p>
+          <span className="font-mono text-[10px] text-violet-400/70 tabular-nums shrink-0">×{count}</span>
+        </div>
+        <p className="font-mono text-[10px] text-zinc-600 truncate">{description}</p>
+      </div>
+      <button
+        onClick={() => buyConsumable(itemId, cost)}
+        disabled={!canAfford}
+        className={[
+          'shrink-0 px-4 py-1.5 rounded border font-mono text-xs uppercase tracking-widest',
+          'transition-all duration-150 active:scale-95',
+          canAfford
+            ? 'border-violet-500/50 text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 hover:border-violet-400'
+            : 'border-zinc-800 text-zinc-700 cursor-not-allowed',
+        ].join(' ')}
+      >
+        {cost} IF
+      </button>
+    </div>
+  );
+}
+
 // ─── Black Market ─────────────────────────────────────────────────────────────
 
 function BlackMarket() {
+  const hasBeatenGame = useGameStore(s => s.hasBeatenGame);
+  const archiveLen    = useGameStore(s => s.storyArchive.length);
+  const showConsumables = hasBeatenGame || archiveLen >= 12;
+
   return (
     <div className="mb-4">
       <p className="font-mono text-[10px] uppercase tracking-widest text-violet-400/60 mb-3">
@@ -157,6 +196,29 @@ function BlackMarket() {
           <UpgradeCard key={cfg.id} cfg={cfg} />
         ))}
       </div>
+
+      {/* Consumables — locked until Tartarus is beaten at least once */}
+      {showConsumables && (
+        <div className="mt-5">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-violet-400/40 mb-3">
+            // Consumables
+          </p>
+          <div className="space-y-2">
+            <ConsumableItem
+              itemId="zeroDay"
+              label="ZER0-DAY PAYLOAD"
+              description="Instant −50 FW damage on use"
+              cost={200}
+            />
+            <ConsumableItem
+              itemId="coolant"
+              label="COOLANT FLUSH"
+              description="Instant −30% Physical Heat on use"
+              cost={200}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -164,9 +226,10 @@ function BlackMarket() {
 // ─── Narrative Archive ────────────────────────────────────────────────────────
 
 function NarrativeArchive() {
-  const storyArchive = useGameStore(s => s.storyArchive);
-  const total        = storyFragments.length;
-  const collected    = storyArchive.length;
+  const storyArchive    = useGameStore(s => s.storyArchive);
+  const startNewSession = useGameStore(s => s.startNewSession);
+  const total           = storyFragments.length;
+  const collected       = storyArchive.length;
 
   // Render in narrative order (ascending fragment index)
   const sortedIndices = [...storyArchive].sort((a, b) => a - b);
@@ -195,9 +258,18 @@ function NarrativeArchive() {
         <div className="space-y-3">
           {sortedIndices.map(idx => (
             <div key={idx} className="glass-panel rounded-lg p-4 border border-green-500/10 bg-green-500/[0.02]">
-              <p className="font-mono text-[9px] uppercase tracking-widest text-green-400/40 mb-2">
-                Fragment #{String(idx + 1).padStart(3, '0')} — Decoded
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="font-mono text-[9px] uppercase tracking-widest text-green-400/40">
+                  Fragment #{String(idx + 1).padStart(3, '0')} — Decoded
+                </p>
+                <button
+                  onClick={() => startNewSession('priority', true, idx + 1)}
+                  className="font-mono text-[8px] uppercase tracking-widest text-zinc-600 hover:text-amber-400 border border-zinc-800 hover:border-amber-500/40 px-2 py-0.5 rounded transition-all duration-150 shrink-0 ml-2"
+                  title={`Replay at original difficulty (FW: ${Math.floor(100 * Math.pow(1.15, idx))} HP) · 50% intel`}
+                >
+                  Re-Run
+                </button>
+              </div>
               <p className="font-mono text-[11px] text-zinc-300 leading-relaxed">
                 {storyFragments[idx].text}
               </p>
@@ -271,14 +343,22 @@ function TabBar({ active, onChange }) {
 function JobFooter() {
   const startNewSession = useGameStore(s => s.startNewSession);
   const archiveLen      = useGameStore(s => s.storyArchive.length);
+  const hasBeatenGame   = useGameStore(s => s.hasBeatenGame);
+  const darknetTier     = useGameStore(s => s.darknetTier);
+
   const isTartarusReady = archiveLen === 11;
+  // Once Tartarus is beaten globally, DARKNET replaces TARTARUS permanently
+  const showTartarus    = isTartarusReady && !hasBeatenGame;
+  const showDarknet     = hasBeatenGame;
+  // PRIORITY is hidden only while TARTARUS is showing
+  const showPriority    = !showTartarus;
 
   return (
     <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2">
       {/* DATA SKIM — always visible */}
       <button
         onClick={() => startNewSession('skim')}
-        className="w-full py-2.5 rounded-lg border border-green-500/40 text-green-400 font-mono text-xs font-bold uppercase tracking-widest hover:bg-green-500/10 hover:border-green-400 transition-all duration-200 active:scale-[0.99] glow-green"
+        className="w-full py-2.5 rounded-lg border border-green-500/40 text-green-400 font-mono text-xs font-bold uppercase tracking-widest hover:bg-green-500/10 hover:border-green-400 transition-all duration-200 active:scale-[0.99] glow-green game-button"
       >
         Initiate Data Skim
         <span className="block text-[9px] font-normal text-green-400/40 mt-0.5 normal-case tracking-normal">
@@ -286,11 +366,11 @@ function JobFooter() {
         </span>
       </button>
 
-      {/* PRIORITY LEAD — visible until 11 fragments collected */}
-      {!isTartarusReady && (
+      {/* PRIORITY LEAD — hidden only when TARTARUS is showing */}
+      {showPriority && (
         <button
           onClick={() => startNewSession('priority')}
-          className="w-full py-2.5 rounded-lg border border-violet-500/40 text-violet-300 font-mono text-xs font-bold uppercase tracking-widest hover:bg-violet-500/10 hover:border-violet-400 transition-all duration-200 active:scale-[0.99] glow-violet"
+          className="w-full py-2.5 rounded-lg border border-violet-500/40 text-violet-300 font-mono text-xs font-bold uppercase tracking-widest hover:bg-violet-500/10 hover:border-violet-400 transition-all duration-200 active:scale-[0.99] glow-violet game-button"
         >
           Pursue Priority Lead
           <span className="block text-[9px] font-normal text-violet-400/40 mt-0.5 normal-case tracking-normal">
@@ -299,15 +379,28 @@ function JobFooter() {
         </button>
       )}
 
-      {/* ASSAULT TARTARUS — replaces Priority Lead when 11 fragments collected */}
-      {isTartarusReady && (
+      {/* ASSAULT TARTARUS — shows at 11 frags, before Tartarus is beaten */}
+      {showTartarus && (
         <button
           onClick={() => startNewSession('tartarus')}
-          className="w-full py-2.5 rounded-lg border border-red-500/60 text-red-400 font-mono text-xs font-bold uppercase tracking-widest bg-red-500/5 hover:bg-red-500/15 hover:border-red-400 transition-all duration-200 active:scale-[0.99] animate-pulse"
+          className="w-full py-2.5 rounded-lg border border-red-500/60 text-red-400 font-mono text-xs font-bold uppercase tracking-widest bg-red-500/5 hover:bg-red-500/15 hover:border-red-400 transition-all duration-200 active:scale-[0.99] animate-pulse game-button"
         >
           Assault Tartarus Node
           <span className="block text-[9px] font-normal text-red-400/50 mt-0.5 normal-case tracking-normal">
             400 HP · TRACE_ACCELERATOR · One chance. No retreat.
+          </span>
+        </button>
+      )}
+
+      {/* ACCESS DARKNET — replaces Tartarus once it's been beaten */}
+      {showDarknet && (
+        <button
+          onClick={() => startNewSession('darknet')}
+          className="w-full py-2.5 rounded-lg border border-fuchsia-500/50 text-fuchsia-300 font-mono text-xs font-bold uppercase tracking-widest bg-fuchsia-500/5 hover:bg-fuchsia-500/15 hover:border-fuchsia-400 transition-all duration-200 active:scale-[0.99] game-button"
+        >
+          Access Darknet Router
+          <span className="block text-[9px] font-normal text-fuchsia-400/40 mt-0.5 normal-case tracking-normal">
+            Tier {darknetTier} · {150 + darknetTier * 50} HP · Severe trace rate · Endless
           </span>
         </button>
       )}
@@ -320,9 +413,12 @@ function JobFooter() {
 export default function TransitScene() {
   const [activeTab, setActiveTab] = useState('debrief');
 
-  const intelFragments   = useGameStore(s => s.intelFragments);
-  const archiveLen       = useGameStore(s => s.storyArchive.length);
-  const currentSafehouse = useGameStore(s => s.currentSafehouse);
+  const intelFragments     = useGameStore(s => s.intelFragments);
+  const archiveLen         = useGameStore(s => s.storyArchive.length);
+  const currentSafehouse   = useGameStore(s => s.currentSafehouse);
+  const hasBeatenGame      = useGameStore(s => s.hasBeatenGame);
+  const darknetTier        = useGameStore(s => s.darknetTier);
+  const highestDarknetTier = useGameStore(s => s.highestDarknetTier);
 
   // Escalation phase: 0 = normal, 1 = flicker, 2 = warning, 3 = alarm
   const phase = archiveLen >= 11 ? 3 : archiveLen >= 8 ? 2 : archiveLen >= 4 ? 1 : 0;
@@ -350,9 +446,16 @@ export default function TransitScene() {
           {statusText}
         </p>
         <div className="flex items-center justify-between mt-1">
-          <h2 className={`font-mono text-sm font-bold uppercase tracking-widest ${headerColor} ${headerAnim}`}>
-            Safe House // {currentSafehouse?.id ?? 'ALPHA'}
-          </h2>
+          <div>
+            <h2 className={`font-mono text-sm font-bold uppercase tracking-widest ${headerColor} ${headerAnim}`}>
+              Safe House // {currentSafehouse?.id ?? 'ALPHA'}
+            </h2>
+            {hasBeatenGame && (
+              <p className="font-mono text-[9px] uppercase tracking-widest text-fuchsia-400/50 mt-0.5">
+                // Darknet Tier: {darknetTier} (Best: {highestDarknetTier})
+              </p>
+            )}
+          </div>
           <div className="flex items-baseline gap-1.5">
             <span className="font-mono text-[10px] text-cyan-400/50 uppercase tracking-widest">Balance</span>
             <span className="font-mono text-xl font-bold text-cyan-400 tabular-nums">{intelFragments}</span>

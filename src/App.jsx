@@ -3,6 +3,7 @@ import useGameStore from './store/useGameStore';
 import HackingScene from './scenes/HackingScene';
 import TransitScene from './scenes/TransitScene';
 import SettingsModal from './components/SettingsModal';
+import FragmentModal from './components/FragmentModal';
 import storyFragments from './data/storyFragments.json';
 import { TICK_INTERVAL_MS } from './config/constants';
 
@@ -10,6 +11,7 @@ import { TICK_INTERVAL_MS } from './config/constants';
 
 function VictoryScene() {
   const resetGame      = useGameStore(s => s.resetGame);
+  const enterDarknet   = useGameStore(s => s.enterDarknet);
   const intelFragments = useGameStore(s => s.intelFragments);
   const finalFragment  = storyFragments[storyFragments.length - 1];
 
@@ -39,7 +41,7 @@ function VictoryScene() {
         </div>
 
         {/* Stats */}
-        <div className="glass-panel rounded-lg p-4 border border-zinc-800/50 mb-8">
+        <div className="glass-panel rounded-lg p-4 border border-zinc-800/50 mb-6">
           <div className="flex justify-between items-center">
             <span className="font-mono text-xs text-zinc-500">Intel Banked</span>
             <span className="font-mono text-sm font-bold text-cyan-400 tabular-nums">
@@ -54,15 +56,40 @@ function VictoryScene() {
           </div>
         </div>
 
+        {/* Narrative bridge to Endless Mode */}
+        <div className="glass-panel rounded-lg p-4 border border-fuchsia-500/20 bg-fuchsia-500/[0.03] mb-8">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-fuchsia-400/50 mb-1">
+            // Override Complete
+          </p>
+          <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
+            Tartarus override complete. Global DAEMON deployed. The conspiracy is exposed — but the war is not over.
+            Escape into the Darknet.
+          </p>
+        </div>
+
       </div>
 
-      {/* New game */}
-      <button
-        onClick={resetGame}
-        className="w-full py-3 rounded-lg border border-green-500/40 text-green-400 font-mono text-sm font-bold uppercase tracking-widest hover:bg-green-500/10 hover:border-green-400 transition-all duration-200 active:scale-[0.99] glow-green"
-      >
-        New Game
-      </button>
+      {/* Post-game actions */}
+      <div className="space-y-2">
+        <button
+          onClick={enterDarknet}
+          className="w-full py-3 rounded-lg border border-fuchsia-500/60 text-fuchsia-300 font-mono text-sm font-bold uppercase tracking-widest bg-fuchsia-500/10 hover:bg-fuchsia-500/20 hover:border-fuchsia-400 transition-all duration-200 active:scale-[0.99]"
+        >
+          Enter the Darknet
+          <span className="block text-[9px] font-normal text-fuchsia-400/40 mt-0.5 normal-case tracking-normal">
+            Keep your intel · Access Darknet Router · Endless mode
+          </span>
+        </button>
+        <button
+          onClick={resetGame}
+          className="w-full py-2 rounded-lg border border-zinc-700/60 text-zinc-500 font-mono text-xs uppercase tracking-widest hover:bg-zinc-800/40 hover:text-zinc-400 transition-all duration-200 active:scale-[0.99]"
+        >
+          Start New Campaign
+          <span className="block text-[9px] font-normal text-zinc-700 mt-0.5 normal-case tracking-normal">
+            Wipes bank and upgrades · High score preserved
+          </span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -121,18 +148,25 @@ const SAFEHOUSE_GLOW = {
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
-const containerClass = 'h-[100svh] w-screen max-w-sm mx-auto flex flex-col overflow-hidden relative';
+const CONTAINER_BASE = 'h-[100svh] w-screen max-w-sm mx-auto flex flex-col overflow-hidden relative';
 
 export default function App() {
-  const status           = useGameStore(s => s.status);
-  const tick             = useGameStore(s => s.tick);
-  const currentSafehouse = useGameStore(s => s.currentSafehouse);
-  const settings         = useGameStore(s => s.settings);
+  const status             = useGameStore(s => s.status);
+  const tick               = useGameStore(s => s.tick);
+  const currentSafehouse   = useGameStore(s => s.currentSafehouse);
+  const settings           = useGameStore(s => s.settings);
+  const pendingFragmentIdx = useGameStore(s => s.pendingFragmentIdx);
 
   const [showSettings, setShowSettings] = useState(false);
 
+  const cyberdeliaMode = settings?.cyberdeliaMode ?? false;
+  const containerClass = cyberdeliaMode
+    ? `${CONTAINER_BASE} cyberdelia-vibe`
+    : CONTAINER_BASE;
+
   const glowStyle = {
     boxShadow: SAFEHOUSE_GLOW[currentSafehouse?.color] ?? SAFEHOUSE_GLOW.cyan,
+    ...(cyberdeliaMode && { background: '#0D0221' }),
   };
 
   // Global heartbeat — the single timer driving all time-based game events.
@@ -155,8 +189,10 @@ export default function App() {
   if (status === 'victory') return (
     <div className={containerClass} style={glowStyle}>
       {settings?.crtEnabled && <div className="crt-scanlines" />}
+      {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
       {settingsButton}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {pendingFragmentIdx !== null && <FragmentModal />}
       <VictoryScene />
     </div>
   );
@@ -164,6 +200,7 @@ export default function App() {
   if (status === 'game_over') return (
     <div className={containerClass} style={glowStyle}>
       {settings?.crtEnabled && <div className="crt-scanlines" />}
+      {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
       {settingsButton}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       <GameOverScene />
@@ -173,8 +210,10 @@ export default function App() {
   return (
     <div className={containerClass} style={glowStyle}>
       {settings?.crtEnabled && <div className="crt-scanlines" />}
+      {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
       {settingsButton}
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {pendingFragmentIdx !== null && <FragmentModal />}
       {status === 'hacking' ? <HackingScene /> : <TransitScene />}
     </div>
   );
