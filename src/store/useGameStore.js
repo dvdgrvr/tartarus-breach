@@ -454,7 +454,7 @@ const useGameStore = create(
         // Perfect Sync: SCAN during pulse window negates and doubles the trace cost
         const isPerfectSync = toolId === 'SCAN' && s.pulseActive;
         const finalTrace    = isPerfectSync
-          ? Math.max(0, s.digitalTrace - (traceGain * 2))
+          ? Math.max(0, s.digitalTrace + (traceGain * 2))
           : newTrace;
 
         if (isPerfectSync && s.settings?.hapticsEnabled) haptic([30, 50, 30]);
