@@ -18,6 +18,8 @@ import {
   TARTARUS_INTEL,
   MAX_LOG_ENTRIES,
   SAVE_VERSION,
+  PULSE_INTERVAL_TICKS,
+  PULSE_WINDOW_TICKS,
 } from '../config/constants';
 
 // ─── Node Pools ───────────────────────────────────────────────────────────────
@@ -150,11 +152,15 @@ const useGameStore = create(
       // ── Narrative archive ─────────────────────────────────────────────────
       storyArchive: [],
 
+      // ── Pulse mechanic ───────────────────────────────────────────────────
+      tickCount:            0,         // persistent counter driving the pulse window
+
       // ── Session state ────────────────────────────────────────────────────
       status:               'transit',  // 'hacking' | 'transit' | 'victory' | 'game_over'
       isBreaching:          false,
       isPerfectBreach:      false,
       isPaused:             false,
+      pulseActive:          false,
       transitOutcome:       'initial',  // 'initial' | 'success' | 'escaped' | 'trace_busted' | 'heat_busted'
       currentJobType:       'skim',     // 'skim' | 'priority' | 'tartarus'
       digitalTrace:         0,
@@ -260,7 +266,10 @@ const useGameStore = create(
         const newHeat  = Math.min(100, s.physicalHeat  + heatGain);
         const newTrace = Math.min(100, s.digitalTrace + traceGain);
 
-        set({ physicalHeat: newHeat, digitalTrace: newTrace, toolState: newToolState });
+        const newTickCount = s.tickCount + 1;
+        const isPulse      = (newTickCount % PULSE_INTERVAL_TICKS) < PULSE_WINDOW_TICKS;
+
+        set({ physicalHeat: newHeat, digitalTrace: newTrace, toolState: newToolState, tickCount: newTickCount, pulseActive: isPulse });
 
         // ── Hardware Alerts — one-shot stealth tutorial messages ───────────
         if (newTrace > 70 && !s.tutorialFlags.traceWarning) {
@@ -442,12 +451,23 @@ const useGameStore = create(
         const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
         const fwDisplay   = (isEncrypted && !s.firewallRevealed) ? '???' : `${Math.ceil(newFirewall)}`;
 
+        // Perfect Sync: SCAN during pulse window negates and doubles the trace cost
+        const isPerfectSync = toolId === 'SCAN' && s.pulseActive;
+        const finalTrace    = isPerfectSync
+          ? Math.max(0, s.digitalTrace - (traceGain * 2))
+          : newTrace;
+
+        if (isPerfectSync && s.settings?.hapticsEnabled) haptic([30, 50, 30]);
+
         let log = appendLog(s.terminalLog,
-          `> ${toolId} // FW: ${fwDisplay} | TRACE: ${newTrace.toFixed(0)}%`);
+          `> ${toolId} // FW: ${fwDisplay} | TRACE: ${finalTrace.toFixed(0)}%`);
+        if (isPerfectSync) {
+          log = appendLog(log, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
+        }
 
         set({
           firewallHealth: newFirewall,
-          digitalTrace:   newTrace,
+          digitalTrace:   finalTrace,
           physicalHeat:   newHeat,
           terminalLog:    log,
           toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
@@ -866,6 +886,10 @@ const useGameStore = create(
             isFirstBoot:    false,  // existing players skip the intro
             hasFirstBypass: true,   // existing players skip the first-BYPASS flavor
           };
+        }
+
+        if (version < 9) {
+          state = { ...state, tickCount: 0 };
         }
 
         return state;

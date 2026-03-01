@@ -28,5 +28,9 @@ export const MAX_LOG_ENTRIES = 25;
 // Firewall
 export const FIREWALL_INITIAL_HP = 100;
 
+// Pulse Mechanic — SCAN "perfect timing" window
+export const PULSE_INTERVAL_TICKS = 4; // ticks between pulse windows
+export const PULSE_WINDOW_TICKS   = 1; // how many ticks the pulse is active
+
 // Persist versioning — bump when adding new save-state fields
-export const SAVE_VERSION = 8; // v8: isFirstBoot, hasFirstBypass narrative flags
+export const SAVE_VERSION = 9; // v9: tickCount for pulse mechanic

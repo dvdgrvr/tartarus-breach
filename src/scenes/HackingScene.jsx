@@ -143,39 +143,50 @@ function FirewallRow() {
 function TraceRow() {
   const trace         = useGameStore(s => s.digitalTrace);
   const node          = useGameStore(s => s.currentNode);
+  const pulseActive   = useGameStore(s => s.pulseActive);
   const shakeEnabled  = useGameStore(s => s.settings?.shakeEnabled ?? true);
   const isAccelerated = node?.specialDefense === 'TRACE_ACCELERATOR'
                      || node?.specialDefense === 'DARKNET';
 
   const isDanger  = trace >= 80;
   const isWarning = trace >= 50;
-  
-  const labelColor = isDanger ? 'text-red-400' : isWarning ? 'text-orange-400' : 'text-zinc-500';
-  
+
+  const labelColor = isDanger
+    ? 'text-red-400'
+    : pulseActive
+      ? 'text-cyan-300'
+      : isWarning
+        ? 'text-orange-400'
+        : 'text-zinc-500';
+
   // Instead of flat backgrounds, we use gradients to give Trace a "fluid/digital" feel
-  const barGradient = isDanger 
-    ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]'   
-    : isWarning 
-      ? 'bg-gradient-to-r from-orange-600 to-orange-400'   
-      : 'bg-gradient-to-r from-blue-700 to-blue-500';
+  const barGradient = isDanger
+    ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]'
+    : isWarning
+      ? 'bg-gradient-to-r from-orange-600 to-orange-400'
+      : pulseActive
+        ? 'bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]'
+        : 'bg-gradient-to-r from-blue-700 to-blue-500';
 
   return (
     <div className={`flex items-center gap-2 px-3 py-1.5 ${isDanger && shakeEnabled ? 'danger-shake' : ''}`}>
-      <span className={`font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${isDanger ? 'animate-pulse' : ''}`}>
-        {isDanger ? '[!]TR' : isAccelerated ? 'TR x2' : 'TRACE'}
+      <span className={`font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${isDanger || pulseActive ? 'animate-pulse' : ''}`}>
+        {isDanger ? '[!]TR' : pulseActive ? 'SYNC' : isAccelerated ? 'TR x2' : 'TRACE'}
       </span>
-      
+
       {/* Container with an inset shadow to look like a hardware groove */}
-      <div className="flex-1 h-2.5 bg-black rounded-full overflow-hidden border border-zinc-800 shadow-inner relative">
+      <div className={`flex-1 h-2.5 bg-black rounded-full overflow-hidden border shadow-inner relative transition-all duration-150 ${
+        pulseActive ? 'border-cyan-500/60 shadow-[0_0_6px_rgba(34,211,238,0.3)]' : 'border-zinc-800'
+      }`}>
         {/* Subtle CRT scanline overlay inside the empty bar */}
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
-        
+
         <div
-          className={`h-full rounded-full transition-all duration-300 ${barGradient} ${isAccelerated && !isDanger ? 'opacity-80 animate-pulse' : ''}`}
+          className={`h-full rounded-full transition-all duration-300 ${barGradient} ${isAccelerated && !isDanger && !pulseActive ? 'opacity-80 animate-pulse' : ''}`}
           style={{ width: `${Math.min(100, trace)}%` }}
         />
       </div>
-      
+
       <span className={`font-mono text-[10px] tabular-nums w-8 text-right font-bold shrink-0 ${labelColor}`}>
         {trace.toFixed(0)}%
       </span>
