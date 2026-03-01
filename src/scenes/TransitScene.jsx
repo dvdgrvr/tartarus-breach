@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useGameStore from '../store/useGameStore';
 import upgradesConfig from '../data/upgradesConfig.json';
 import storyFragments from '../data/storyFragments.json';
@@ -349,7 +349,7 @@ function TabBar({ active, onChange }) {
 
 // ─── Job Selection Footer ─────────────────────────────────────────────────────
 
-function JobFooter() {
+function JobFooter({ isLocked }) {
   const startNewSession = useGameStore(s => s.startNewSession);
   const archiveLen      = useGameStore(s => s.storyArchive.length);
   const hasBeatenGame   = useGameStore(s => s.hasBeatenGame);
@@ -360,12 +360,15 @@ function JobFooter() {
   const showDarknet     = hasBeatenGame;
   const showPriority    = !showTartarus;
 
+  const lockClass = isLocked ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'active:border-b active:translate-y-[2px]';
+
   return (
     <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2 pb-4">
       {/* DATA SKIM — always visible */}
       <button
         onClick={() => startNewSession('skim')}
-        className="w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button"
+        disabled={isLocked}
+        className={`w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button ${lockClass}`}
       >
         Initiate Data Skim
         <span className="block px-2 text-[9px] font-normal text-green-400/50 mt-0.5 normal-case tracking-normal">
@@ -377,7 +380,8 @@ function JobFooter() {
       {showPriority && (
         <button
           onClick={() => startNewSession('priority')}
-          className="w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button"
+          disabled={isLocked}
+          className={`w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button ${lockClass}`}
         >
           Pursue Priority Lead
           <span className="block px-2 text-[9px] font-normal text-violet-400/50 mt-0.5 normal-case tracking-normal">
@@ -390,7 +394,8 @@ function JobFooter() {
       {showTartarus && (
         <button
           onClick={() => startNewSession('tartarus')}
-          className="w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button"
+          disabled={isLocked}
+          className={`w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button ${lockClass}`}
         >
           Assault Tartarus Node
           <span className="block px-2 text-[9px] font-normal text-red-400/70 mt-0.5 normal-case tracking-normal">
@@ -403,7 +408,8 @@ function JobFooter() {
       {showDarknet && (
         <button
           onClick={() => startNewSession('darknet')}
-          className="w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button"
+          disabled={isLocked}
+          className={`w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button ${lockClass}`}
         >
           Access Darknet Router
           <span className="block px-2 text-[9px] font-normal text-fuchsia-400/50 mt-0.5 normal-case tracking-normal">
@@ -419,6 +425,12 @@ function JobFooter() {
 
 export default function TransitScene() {
   const [activeTab, setActiveTab] = useState('debrief');
+  const [isLocked, setIsLocked]   = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLocked(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const intelFragments     = useGameStore(s => s.intelFragments);
   const archiveLen         = useGameStore(s => s.storyArchive.length);
@@ -506,7 +518,7 @@ export default function TransitScene() {
       </div>
 
       {/* ── Job selection footer ── */}
-      <JobFooter />
+      <JobFooter isLocked={isLocked} />
     </div>
   );
 }
