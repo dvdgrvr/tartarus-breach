@@ -451,8 +451,8 @@ const useGameStore = create(
         const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
         const fwDisplay   = (isEncrypted && !s.firewallRevealed) ? '???' : `${Math.ceil(newFirewall)}`;
 
-        // Perfect Sync: SCAN during pulse window negates and doubles the trace cost
-        const isPerfectSync = toolId === 'SCAN' && s.pulseActive;
+        // Perfect Sync: PULSE during pulse window negates and doubles the trace cost
+        const isPerfectSync = toolId === 'PULSE' && s.pulseActive;
         const finalTrace    = isPerfectSync
           ? Math.max(0, s.digitalTrace + (traceGain * 2))
           : newTrace;
