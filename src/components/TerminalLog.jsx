@@ -34,6 +34,7 @@ export default function TerminalLog({ className = '' }) {
         const colorClass = line.startsWith('>>') ? 'text-green-400' :
                            line.startsWith('!!') ? 'text-red-400 font-bold' :
                            line.startsWith('[!]') ? 'text-amber-400 font-bold' :
+                           line.startsWith('// MEMO') ? 'text-purple-400 italic font-medium' :
                            line.startsWith('//') ? 'text-cyan-400/60' :
                            'text-zinc-400';
                            

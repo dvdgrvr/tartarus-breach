@@ -98,6 +98,15 @@ const appendLog = (log, entry) =>
 const calcScaledFW = (level) =>
   Math.floor(FIREWALL_INITIAL_HP * Math.pow(1.15, level - 1));
 
+const AMBIENT_DETAILS = [
+  '// AMBIENT: Safehouse ALPHA is currently 12ms from the nearest patrol.',
+  '// AMBIENT: Cooling fans at 80% to mask thermal signature.',
+  '// AMBIENT: Last operator through this node was 3 hours ago.',
+  '// AMBIENT: Municipal grid is under light surveillance. Window is open.',
+  '// AMBIENT: Rain interference masking our signal. Good timing.',
+  '// AMBIENT: Masha says the night shift logs slower. Work the gap.',
+];
+
 const nodeBootLog = (node) => {
   const lines = [
     '// SIGNAL REROUTED. NEW LOCATION ACQUIRED.',
@@ -112,6 +121,7 @@ const nodeBootLog = (node) => {
   } else {
     lines.push('// STANDARD DEFENSES. AWAITING COMMANDS.');
   }
+  lines.push(AMBIENT_DETAILS[Math.floor(Math.random() * AMBIENT_DETAILS.length)]);
   return lines;
 };
 
@@ -186,6 +196,10 @@ const useGameStore = create(
         decryptWarning: false,
       },
 
+      // ── Narrative flags — one-shot story moments ──────────────────────────
+      isFirstBoot:    true,   // triggers the intro transmission on first load
+      hasFirstBypass: false,  // triggers operator flavor line on first BYPASS use
+
       // ── Narrative modal ───────────────────────────────────────────────────
       // Set to the fragment index when a new fragment is first unlocked; null otherwise.
       // isReplay suppresses the modal entirely for grind runs.
@@ -204,6 +218,16 @@ const useGameStore = create(
 
       // ─── TICK ─────────────────────────────────────────────────────────
       setPaused: (paused) => set({ isPaused: paused }),
+
+      triggerFirstBoot: () => {
+        set(cur => {
+          let log = appendLog(cur.terminalLog, '// KERNEL_INITIALIZED: Safehouse ALPHA online.');
+          log = appendLog(log, '// ENCRYPTION_ACTIVE: Signal routed through Belgrade Node.');
+          log = appendLog(log, "// MEMO_FROM_MASHA: 'Operator, you're clear. The Tartarus Node is dark, but municipal servers are vulnerable. We need fragments to map the breach.'");
+          log = appendLog(log, '// OBJECTIVE: Skim local servers to recover fragmented keys.');
+          return { terminalLog: log, isFirstBoot: false };
+        });
+      },
 
       tick: () => {
         const s = get();
@@ -290,6 +314,14 @@ const useGameStore = create(
             set(cur => ({
               terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics are hidden. Run DECRYPT to reveal FW health.'),
               tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true },
+            }));
+          }
+
+          // Narrative flavor — fires once on the player's very first BYPASS
+          if (!s.hasFirstBypass) {
+            set(cur => ({
+              terminalLog:    appendLog(cur.terminalLog, '// OPERATOR: First breach established. The grid is watching. Move fast.'),
+              hasFirstBypass: true,
             }));
           }
         }
@@ -802,6 +834,14 @@ const useGameStore = create(
               heatWarning:    false,
               decryptWarning: false,
             },
+          };
+        }
+
+        if (version < 8) {
+          state = {
+            ...state,
+            isFirstBoot:    false,  // existing players skip the intro
+            hasFirstBypass: true,   // existing players skip the first-BYPASS flavor
           };
         }
 

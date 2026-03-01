@@ -164,7 +164,9 @@ export default function App() {
   const physicalHeat       = useGameStore(s => s.physicalHeat);
   const digitalTrace       = useGameStore(s => s.digitalTrace);
 
-  const setPaused = useGameStore(s => s.setPaused);
+  const setPaused         = useGameStore(s => s.setPaused);
+  const isFirstBoot       = useGameStore(s => s.isFirstBoot);
+  const triggerFirstBoot  = useGameStore(s => s.triggerFirstBoot);
 
   // Use the new global state instead of local useState
   const isSettingsModalOpen = useGameStore(s => s.isSettingsModalOpen);
@@ -204,6 +206,13 @@ export default function App() {
     const id = setInterval(tick, TICK_INTERVAL_MS);
     return () => clearInterval(id);
   }, [tick]);
+
+  // First boot — inject the intro transmission once, on the transit screen only.
+  useEffect(() => {
+    if (status === 'transit' && isFirstBoot) {
+      triggerFirstBoot();
+    }
+  }, [status, isFirstBoot, triggerFirstBoot]);
 
   if (status === 'victory') return (
     <div className={roomClass}>
