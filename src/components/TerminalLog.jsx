@@ -33,6 +33,7 @@ export default function TerminalLog({ className = '' }) {
       {terminalLog.map((line, i) => {
         const colorClass = line.startsWith('>>') ? 'text-green-400' :
                            line.startsWith('!!') ? 'text-red-400 font-bold' :
+                           line.startsWith('[!]') ? 'text-amber-400 font-bold' :
                            line.startsWith('//') ? 'text-cyan-400/60' :
                            'text-zinc-400';
                            

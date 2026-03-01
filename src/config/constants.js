@@ -29,4 +29,4 @@ export const MAX_LOG_ENTRIES = 25;
 export const FIREWALL_INITIAL_HP = 100;
 
 // Persist versioning — bump when adding new save-state fields
-export const SAVE_VERSION = 6; // v6: cyberdeliaMode (renamed), isReplay flag
+export const SAVE_VERSION = 7; // v7: tutorialFlags added

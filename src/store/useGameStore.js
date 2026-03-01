@@ -178,6 +178,14 @@ const useGameStore = create(
       isSettingsModalOpen: false,
       toggleSettingsModal: (isOpen) => set({ isSettingsModalOpen: isOpen }),
 
+      // ── Tutorial flags — one-shot hardware alerts ─────────────────────────
+      // Each flag fires once and is then persisted so it never repeats.
+      tutorialFlags: {
+        traceWarning:   false,
+        heatWarning:    false,
+        decryptWarning: false,
+      },
+
       // ── Narrative modal ───────────────────────────────────────────────────
       // Set to the fragment index when a new fragment is first unlocked; null otherwise.
       // isReplay suppresses the modal entirely for grind runs.
@@ -228,6 +236,20 @@ const useGameStore = create(
 
         set({ physicalHeat: newHeat, digitalTrace: newTrace, toolState: newToolState });
 
+        // ── Hardware Alerts — one-shot stealth tutorial messages ───────────
+        if (newTrace > 70 && !s.tutorialFlags.traceWarning) {
+          set(cur => ({
+            terminalLog:  appendLog(cur.terminalLog, '[!] STROBE_DETECTION: Firewall is mapping your IP. Use SCAN to recalibrate.'),
+            tutorialFlags: { ...cur.tutorialFlags, traceWarning: true },
+          }));
+        }
+        if (newHeat > 70 && !s.tutorialFlags.heatWarning) {
+          set(cur => ({
+            terminalLog:  appendLog(cur.terminalLog, '[!] THERMAL_FLARE: Safehouse emission levels critical. Prepare to PACK UP.'),
+            tutorialFlags: { ...cur.tutorialFlags, heatWarning: true },
+          }));
+        }
+
         // Heat bust is more severe (bank wipe) — check first
         if (newHeat  >= 100) { get().packUp('heat_busted');  return; }
         if (newTrace >= 100) { get().packUp('trace_busted'); return; }
@@ -262,6 +284,14 @@ const useGameStore = create(
         if (toolId === 'BYPASS') {
           const bsLevel = s.upgrades['BYPASS_STRENGTH']?.level ?? 0;
           firewallDamage += bsLevel * 10;
+
+          // Hardware Alert — warn once if FW is hidden and player hasn't run DECRYPT
+          if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
+            set(cur => ({
+              terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics are hidden. Run DECRYPT to reveal FW health.'),
+              tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true },
+            }));
+          }
         }
 
         // Compute resulting values
@@ -760,6 +790,17 @@ const useGameStore = create(
             settings: {
               ...otherSettings,
               cyberdeliaMode: cyberdeliaEnabled ?? false,
+            },
+          };
+        }
+
+        if (version < 7) {
+          state = {
+            ...state,
+            tutorialFlags: {
+              traceWarning:   false,
+              heatWarning:    false,
+              decryptWarning: false,
             },
           };
         }
