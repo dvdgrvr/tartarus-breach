@@ -12,28 +12,47 @@ const DEFENSE_BADGE = {
   DARKNET:           { label: 'DARKNET',     color: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10' },
 };
 
+const SAFEHOUSE_TRAIT_COLOR = {
+  cyan:    'text-cyan-400    border-cyan-500/30    bg-cyan-500/10',
+  amber:   'text-amber-400   border-amber-500/30   bg-amber-500/10',
+  emerald: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
+  slate:   'text-slate-400   border-slate-500/30   bg-slate-500/10',
+  fuchsia: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10',
+};
+
 function NodeStatusStrip() {
-  const node            = useGameStore(s => s.currentNode);
+  const node             = useGameStore(s => s.currentNode);
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
-  const heat            = useGameStore(s => s.physicalHeat); // Pull in Heat data
+  const heat             = useGameStore(s => s.physicalHeat);
+  const safehouse        = useGameStore(s => s.currentSafehouse);
 
   if (!node) return null;
 
   const badge = node.specialDefense ? DEFENSE_BADGE[node.specialDefense] : null;
   const showDecryptedBadge = badge && node.specialDefense === 'ENCRYPTED_LOGS' && firewallRevealed;
 
-  // Calculate Heat Warnings
-  const isHeatWarning = heat >= 50;
+  const isHeatWarning  = heat >= 50;
   const isHeatCritical = heat >= 80;
+
+  const traitColor = SAFEHOUSE_TRAIT_COLOR[safehouse?.color] ?? SAFEHOUSE_TRAIT_COLOR.cyan;
+  const showTrait  = safehouse?.trait && safehouse.trait !== 'Standard';
 
   return (
     <div className="px-3 py-1.5 border-b border-zinc-800/50 flex items-center justify-between gap-2 bg-zinc-900/40">
       <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest truncate">
         // {node.name}
       </span>
-      
-      <div className="flex items-center gap-2">
-        {/* Subtle Heat Warning that appears mid-screen only when dangerous */}
+
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Safehouse trait — hidden for Standard (ALPHA) to avoid clutter */}
+        {showTrait && (
+          <span className={`font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded border ${traitColor}`}
+                title={safehouse.desc}>
+            {safehouse.trait}
+          </span>
+        )}
+
+        {/* Heat warning */}
         {isHeatWarning && (
           <span className={`font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded ${
             isHeatCritical ? 'text-red-400 bg-red-500/10 animate-pulse' : 'text-orange-400 bg-orange-500/10'
@@ -42,9 +61,9 @@ function NodeStatusStrip() {
           </span>
         )}
 
-        {/* Existing Defense Badge */}
+        {/* Defense badge */}
         {badge && (
-          <span className={`font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded border shrink-0 ${
+          <span className={`font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded border ${
             showDecryptedBadge
               ? 'text-green-400 border-green-500/30 bg-green-500/10'
               : badge.color
@@ -216,32 +235,48 @@ export default function HackingScene() {
   const trace = useGameStore(s => s.digitalTrace);
   const heat  = useGameStore(s => s.physicalHeat);
   
-  // Grab our new state!
-  const isBreaching = useGameStore(s => s.isBreaching);
+  const isBreaching     = useGameStore(s => s.isBreaching);
+  const isPerfectBreach = useGameStore(s => s.isPerfectBreach);
 
   const isTraceDanger = trace >= 80;
   const isHeatDanger  = heat  >= 80;
 
-  // The brutal CSS filters that create the "Tear" effect
-  const breachTearClass = isBreaching 
-    ? "invert brightness-150 contrast-200 hue-rotate-90 skew-x-[-4deg] scale-105 transition-none" 
+  // CSS filter class during breach animation — golden glitch for Perfect, standard for normal
+  const breachTearClass = isBreaching
+    ? isPerfectBreach
+      ? "brightness-150 contrast-150 saturate-200 hue-rotate-[25deg] skew-x-[-4deg] scale-105 transition-none"
+      : "invert brightness-150 contrast-200 hue-rotate-90 skew-x-[-4deg] scale-105 transition-none"
     : "transition-all duration-300 ease-in";
 
   return (
     // We apply the breachTearClass right to the main wrapper
     <div className={`flex flex-col h-full bg-zinc-950 relative ${breachTearClass}`}>
 
-      {/* ── NEW: Massive Success Overlay ── */}
+      {/* ── Breach Success Overlay — golden for Perfect, green for standard ── */}
       {isBreaching && (
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="border-y-4 border-green-500 w-full py-6 bg-green-500/10 flex flex-col items-center shadow-[0_0_30px_rgba(34,197,94,0.3)]">
-            <h1 className="font-mono text-4xl font-black text-green-400 uppercase tracking-[0.3em] drop-shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-pulse">
-              BREACHED
-            </h1>
-            <p className="font-mono text-xs text-green-300/80 tracking-widest mt-2 uppercase">
-              Extracting payload...
-            </p>
-          </div>
+          {isPerfectBreach ? (
+            <div className="border-y-4 border-yellow-400 w-full py-6 bg-yellow-500/10 flex flex-col items-center shadow-[0_0_40px_rgba(234,179,8,0.5)]">
+              <h1 className="font-mono text-4xl font-black text-yellow-400 uppercase tracking-[0.3em] drop-shadow-[0_0_12px_rgba(234,179,8,0.9)] animate-pulse">
+                PERFECT
+              </h1>
+              <p className="font-mono text-sm font-bold text-yellow-300/90 tracking-[0.2em] uppercase mt-1">
+                BREACH
+              </p>
+              <p className="font-mono text-xs text-yellow-300/60 tracking-widest mt-2 uppercase">
+                +25% Intel · Extracting payload...
+              </p>
+            </div>
+          ) : (
+            <div className="border-y-4 border-green-500 w-full py-6 bg-green-500/10 flex flex-col items-center shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+              <h1 className="font-mono text-4xl font-black text-green-400 uppercase tracking-[0.3em] drop-shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-pulse">
+                BREACHED
+              </h1>
+              <p className="font-mono text-xs text-green-300/80 tracking-widest mt-2 uppercase">
+                Extracting payload...
+              </p>
+            </div>
+          )}
         </div>
       )}
 

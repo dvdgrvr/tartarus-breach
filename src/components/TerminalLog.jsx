@@ -31,7 +31,8 @@ export default function TerminalLog({ className = '' }) {
   return (
     <div className={`flex-1 overflow-y-auto px-3 py-2 scrollbar-thin ${className}`}>
       {terminalLog.map((line, i) => {
-        const colorClass = line.startsWith('>>') ? 'text-green-400' :
+        const colorClass = line.startsWith('>> PERFECT BREACH') ? 'text-yellow-400 font-bold animate-pulse' :
+                           line.startsWith('>>') ? 'text-green-400' :
                            line.startsWith('!!') ? 'text-red-400 font-bold' :
                            line.startsWith('[!]') ? 'text-amber-400 font-bold' :
                            line.startsWith('// MEMO') ? 'text-purple-400 italic font-medium' :

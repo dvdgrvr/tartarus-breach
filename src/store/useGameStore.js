@@ -54,11 +54,11 @@ const TARTARUS_NODE_DEF = {
 // this roster, excluding the current safehouse.
 
 const SAFEHOUSE_ROSTER = [
-  { id: 'ALPHA',  color: 'cyan'    },
-  { id: 'TANGO',  color: 'amber'   },
-  { id: 'ECHO',   color: 'emerald' },
-  { id: 'GHOST',  color: 'slate'   },
-  { id: 'WRAITH', color: 'fuchsia' },
+  { id: 'ALPHA',  color: 'cyan',    trait: 'Standard',    desc: 'No buffs or debuffs.'                                       },
+  { id: 'TANGO',  color: 'amber',   trait: 'Shielded',    desc: '-20% Heat generation, +10% RAM cooldowns.', heatMod: 0.8,  ramMod: 1.1  },
+  { id: 'ECHO',   color: 'emerald', trait: 'Ghost',       desc: '-20% Trace generation, -10% FW damage.',    traceMod: 0.8, dmgMod: 0.9  },
+  { id: 'GHOST',  color: 'slate',   trait: 'Efficient',   desc: '+20% Intel earned, +15% Heat generation.',  intelMod: 1.2, heatMod: 1.15 },
+  { id: 'WRAITH', color: 'fuchsia', trait: 'Overclocked', desc: '+20% FW damage, +15% Trace generation.',    dmgMod: 1.2,   traceMod: 1.15 },
 ];
 
 // ─── Haptics ──────────────────────────────────────────────────────────────────
@@ -153,6 +153,7 @@ const useGameStore = create(
       // ── Session state ────────────────────────────────────────────────────
       status:               'transit',  // 'hacking' | 'transit' | 'victory' | 'game_over'
       isBreaching:          false,
+      isPerfectBreach:      false,
       isPaused:             false,
       transitOutcome:       'initial',  // 'initial' | 'success' | 'escaped' | 'trace_busted' | 'heat_busted'
       currentJobType:       'skim',     // 'skim' | 'priority' | 'tartarus'
@@ -236,7 +237,7 @@ const useGameStore = create(
         // Physical Heat — SIGNAL upgrade reduces rate by 10% per level
         const signalLevel    = s.upgrades['SIGNAL']?.level ?? 0;
         const heatMultiplier = Math.max(0, 1 - signalLevel * 0.10);
-        const heatGain       = BASE_HEAT_PER_TICK * heatMultiplier;
+        const heatGain       = BASE_HEAT_PER_TICK * heatMultiplier * (s.currentSafehouse?.heatMod ?? 1);
 
         // Digital Trace — node may supply its own traceMultiplier (darknet tiers);
         // otherwise fall back to the TRACE_ACCELERATOR constant or 1.
@@ -245,7 +246,8 @@ const useGameStore = create(
           ?? (isTraceAccel ? TRACE_ACCEL_MULTIPLIER : 1);
         const traceGain =
           (s.digitalTrace >= TRACE_ACCEL_THRESHOLD ? BASE_TRACE_HIGH : BASE_TRACE_LOW)
-          * traceMultiplier;
+          * traceMultiplier
+          * (s.currentSafehouse?.traceMod ?? 1);
 
         // Decrement all tool cooldowns
         const newToolState = Object.fromEntries(
@@ -292,11 +294,11 @@ const useGameStore = create(
         AudioManager.playSFX('thock');
         if (s.settings?.hapticsEnabled) haptic(15);
 
-        // RAM upgrade reduces cooldown by 10% per level
+        // RAM upgrade reduces cooldown by 10% per level; TANGO safehouse adds 10%
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
         const actualCooldown = Math.max(
           1,
-          Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10))
+          Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (s.currentSafehouse?.ramMod ?? 1))
         );
 
         // Base effects from config
@@ -325,6 +327,9 @@ const useGameStore = create(
             }));
           }
         }
+
+        // Safehouse damage modifier (ECHO: −10%, WRAITH: +20%)
+        firewallDamage = Math.floor(firewallDamage * (s.currentSafehouse?.dmgMod ?? 1));
 
         // Compute resulting values
         const prevFirewall = s.firewallHealth;
@@ -370,12 +375,15 @@ const useGameStore = create(
           }
 
           // 2. Freeze the UI at 0 HP and trigger the 'isBreaching' state
-          set({ firewallHealth: 0, digitalTrace: newTrace, isBreaching: true });
+          set({ firewallHealth: 0, digitalTrace: newTrace, isBreaching: true, isPerfectBreach: newTrace >= 90 });
 
           // 3. Wait 1500ms for the visual tear to play, then execute the transition
           setTimeout(() => {
             const currentState = useGameStore.getState();
-            const intelEarned  = currentState.sessionPotentialIntel;
+            const isPerfect    = currentState.digitalTrace >= 90;
+            const intelEarned  = isPerfect
+              ? Math.floor(currentState.sessionPotentialIntel * 1.25)
+              : currentState.sessionPotentialIntel;
             const isTartarus   = currentState.currentJobType === 'tartarus';
             const isDarknet    = currentState.currentJobType === 'darknet';
             const isPriority   = currentState.currentJobType === 'priority' || isTartarus;
@@ -393,6 +401,9 @@ const useGameStore = create(
             let log = appendLog(currentState.terminalLog,
               `> ${toolId} // FW: 0 | TRACE: ${newTrace.toFixed(0)}%`);
             log = appendLog(log, `>> [ACCESS GRANTED] +${intelEarned} FRAGS`);
+            if (isPerfect) {
+              log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
+            }
             if (fragmentIdx !== null) {
               log = appendLog(log,
                 `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
@@ -420,7 +431,8 @@ const useGameStore = create(
               pendingFragmentIdx: currentState.isReplay ? null : fragmentIdx,
               terminalLog:        log,
               toolState: { ...currentState.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
-              isBreaching:        false, // reset the flag!
+              isBreaching:        false,
+              isPerfectBreach:    false,
             });
           }, 1500); // 1500ms delay for the glitch
           return;
@@ -455,7 +467,7 @@ const useGameStore = create(
         let intelEarned = 0;
         let newBank     = s.intelFragments;
         if (cause === 'escaped') {
-          intelEarned = Math.floor(s.sessionPotentialIntel * 0.5);
+          intelEarned = Math.floor(s.sessionPotentialIntel * 0.5 * (s.currentSafehouse?.intelMod ?? 1));
           newBank     = s.intelFragments + intelEarned;
         } else if (cause === 'heat_busted') {
           newBank = 0; // bank wipe
@@ -573,7 +585,10 @@ const useGameStore = create(
           sessionPotentialIntel: potentialIntel,
           packUpHeat:            0,
           packUpTrace:           0,
-          terminalLog:           nodeBootLog(sessionNode),
+          terminalLog:           appendLog(
+            nodeBootLog(sessionNode),
+            `// SAFEHOUSE ${s.currentSafehouse?.id ?? 'ALPHA'} ACTIVE: ${(s.currentSafehouse?.trait ?? 'Standard').toUpperCase()} PROTOCOLS ENGAGED.`
+          ),
           toolState:             buildInitialToolState(),
         });
       },
@@ -687,17 +702,21 @@ const useGameStore = create(
           }
 
           // 2. Freeze UI at 0 HP and trigger 'isBreaching'
-          set({ 
-            firewallHealth: 0, 
-            isBreaching: true, 
-            consumables: newConsumables, 
-            terminalLog: baseLog 
+          set({
+            firewallHealth:  0,
+            isBreaching:     true,
+            isPerfectBreach: s.digitalTrace >= 90,
+            consumables:     newConsumables,
+            terminalLog:     baseLog
           });
 
           // 3. Wait 1.5s for the visual tear to play, then transition
           setTimeout(() => {
             const currentState = useGameStore.getState();
-            const intelEarned  = currentState.sessionPotentialIntel;
+            const isPerfect    = currentState.digitalTrace >= 90;
+            const intelEarned  = isPerfect
+              ? Math.floor(currentState.sessionPotentialIntel * 1.25)
+              : currentState.sessionPotentialIntel;
             const isTartarus   = currentState.currentJobType === 'tartarus';
             const isDarknet    = currentState.currentJobType === 'darknet';
             const isPriority   = currentState.currentJobType === 'priority' || isTartarus;
@@ -713,6 +732,9 @@ const useGameStore = create(
             const newHighestTier = Math.max(currentState.highestDarknetTier, newDarknetTier);
 
             let log = appendLog(baseLog, `>> [ACCESS GRANTED] +${intelEarned} FRAGS`);
+            if (isPerfect) {
+              log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
+            }
             if (fragmentIdx !== null) {
               log = appendLog(log,
                 `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
@@ -738,7 +760,8 @@ const useGameStore = create(
               highestDarknetTier: newHighestTier,
               pendingFragmentIdx: currentState.isReplay ? null : fragmentIdx,
               terminalLog:        log,
-              isBreaching:        false, // reset the flag!
+              isBreaching:        false,
+              isPerfectBreach:    false,
             });
           }, 1500);
         }
