@@ -142,6 +142,7 @@ const useGameStore = create(
 
       // ── Session state ────────────────────────────────────────────────────
       status:               'transit',  // 'hacking' | 'transit' | 'victory' | 'game_over'
+      isBreaching:          false,
       isPaused:             false,
       transitOutcome:       'initial',  // 'initial' | 'success' | 'escaped' | 'trace_busted' | 'heat_busted'
       currentJobType:       'skim',     // 'skim' | 'priority' | 'tartarus'
@@ -173,6 +174,9 @@ const useGameStore = create(
         crtEnabled:      true,
         cyberdeliaMode:  false,  // global 1995 Cyberdelia visual override
       },
+
+      isSettingsModalOpen: false,
+      toggleSettingsModal: (isOpen) => set({ isSettingsModalOpen: isOpen }),
 
       // ── Narrative modal ───────────────────────────────────────────────────
       // Set to the fragment index when a new fragment is first unlocked; null otherwise.
@@ -298,54 +302,65 @@ const useGameStore = create(
         const breached = prevFirewall > 0 && newFirewall <= 0;
 
         if (breached) {
-          const intelEarned = s.sessionPotentialIntel;
-          const isTartarus  = s.currentJobType === 'tartarus';
-          const isDarknet   = s.currentJobType === 'darknet';
-          const isPriority  = s.currentJobType === 'priority' || isTartarus;
-
-          // Sequential fragment — priority/tartarus only; never on replay runs
-          let newArchive  = s.storyArchive;
-          let fragmentIdx = null;
-          if (isPriority && !s.isReplay && s.storyArchive.length < storyFragments.length) {
-            fragmentIdx = s.storyArchive.length;
-            newArchive  = [...s.storyArchive, fragmentIdx];
+          // 1. Violent haptic shockwave for the breach
+          if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
+             navigator.vibrate([100, 50, 150]);
           }
 
-          // Darknet: tier up on successful breach
-          const newDarknetTier = isDarknet ? s.darknetTier + 1 : s.darknetTier;
-          const newHighestTier = Math.max(s.highestDarknetTier, newDarknetTier);
+          // 2. Freeze the UI at 0 HP and trigger the 'isBreaching' state
+          set({ firewallHealth: 0, digitalTrace: newTrace, isBreaching: true });
 
-          let log = appendLog(s.terminalLog,
-            `> ${toolId} // FW: 0 | TRACE: ${newTrace.toFixed(0)}%`);
-          log = appendLog(log, `>> [ACCESS GRANTED] +${intelEarned} FRAGS`);
-          if (fragmentIdx !== null) {
+          // 3. Wait 1500ms for the visual tear to play, then execute the transition
+          setTimeout(() => {
+            const currentState = useGameStore.getState();
+            const intelEarned  = currentState.sessionPotentialIntel;
+            const isTartarus   = currentState.currentJobType === 'tartarus';
+            const isDarknet    = currentState.currentJobType === 'darknet';
+            const isPriority   = currentState.currentJobType === 'priority' || isTartarus;
+
+            let newArchive  = currentState.storyArchive;
+            let fragmentIdx = null;
+            if (isPriority && !currentState.isReplay && currentState.storyArchive.length < storyFragments.length) {
+              fragmentIdx = currentState.storyArchive.length;
+              newArchive  = [...currentState.storyArchive, fragmentIdx];
+            }
+
+            const newDarknetTier = isDarknet ? currentState.darknetTier + 1 : currentState.darknetTier;
+            const newHighestTier = Math.max(currentState.highestDarknetTier, newDarknetTier);
+
+            let log = appendLog(currentState.terminalLog,
+              `> ${toolId} // FW: 0 | TRACE: ${newTrace.toFixed(0)}%`);
+            log = appendLog(log, `>> [ACCESS GRANTED] +${intelEarned} FRAGS`);
+            if (fragmentIdx !== null) {
+              log = appendLog(log,
+                `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
+            }
             log = appendLog(log,
-              `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
-          }
-          log = appendLog(log,
-            isTartarus ? '// TARTARUS BREACHED. EXECUTING CELL RELEASE...' :
-            isDarknet  ? `// DARKNET T${s.darknetTier} CLEARED. TIER ${newDarknetTier} UNLOCKED.` :
-                         '// NODE BREACHED. EXTRACTING AND RELOCATING...');
+              isTartarus ? '// TARTARUS BREACHED. EXECUTING CELL RELEASE...' :
+              isDarknet  ? `// DARKNET T${currentState.darknetTier} CLEARED. TIER ${newDarknetTier} UNLOCKED.` :
+                           '// NODE BREACHED. EXTRACTING AND RELOCATING...');
 
-          set({
-            status:             isTartarus ? 'victory' : 'transit',
-            transitOutcome:     'success',
-            physicalHeat:       0,
-            packUpHeat:         s.physicalHeat,
-            packUpTrace:        s.digitalTrace,
-            firewallHealth:     0,
-            digitalTrace:       newTrace,
-            intelFragments:     s.intelFragments + intelEarned,
-            sessionIntelEarned: intelEarned,
-            storyArchive:       newArchive,
-            hasBeatenGame:      s.hasBeatenGame || isTartarus,
-            tartarusBeaten:     s.tartarusBeaten || isTartarus,
-            darknetTier:        newDarknetTier,
-            highestDarknetTier: newHighestTier,
-            pendingFragmentIdx: s.isReplay ? null : fragmentIdx,  // suppress modal on replay runs
-            terminalLog:        log,
-            toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
-          });
+            useGameStore.setState({
+              status:             isTartarus ? 'victory' : 'transit',
+              transitOutcome:     'success',
+              physicalHeat:       0,
+              packUpHeat:         currentState.physicalHeat,
+              packUpTrace:        currentState.digitalTrace,
+              firewallHealth:     0,
+              digitalTrace:       newTrace,
+              intelFragments:     currentState.intelFragments + intelEarned,
+              sessionIntelEarned: intelEarned,
+              storyArchive:       newArchive,
+              hasBeatenGame:      currentState.hasBeatenGame || isTartarus,
+              tartarusBeaten:     currentState.tartarusBeaten || isTartarus,
+              darknetTier:        newDarknetTier,
+              highestDarknetTier: newHighestTier,
+              pendingFragmentIdx: currentState.isReplay ? null : fragmentIdx,
+              terminalLog:        log,
+              toolState: { ...currentState.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
+              isBreaching:        false, // reset the flag!
+            });
+          }, 1500); // 1500ms delay for the glitch
           return;
         }
 
@@ -507,6 +522,7 @@ const useGameStore = create(
         const freshNode = pickSkimNode();
         set({
           status:                'transit',
+          isBreaching:           false,
           transitOutcome:        'initial',
           intelFragments:        0,
           upgrades:              buildInitialUpgradeState(),
@@ -601,50 +617,68 @@ const useGameStore = create(
             return;
           }
 
-          // Firewall breached — mirrors executeCommand breach path
-          const intelEarned  = s.sessionPotentialIntel;
-          const isTartarus   = s.currentJobType === 'tartarus';
-          const isDarknet    = s.currentJobType === 'darknet';
-          const isPriority   = s.currentJobType === 'priority' || isTartarus;
-
-          let newArchive  = s.storyArchive;
-          let fragmentIdx = null;
-          if (isPriority && !s.isReplay && s.storyArchive.length < storyFragments.length) {
-            fragmentIdx = s.storyArchive.length;
-            newArchive  = [...s.storyArchive, fragmentIdx];
+          // ── Firewall breached via Consumable ──
+          
+          // 1. Violent haptic shockwave
+          if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
+             navigator.vibrate([100, 50, 150]);
           }
 
-          const newDarknetTier = isDarknet ? s.darknetTier + 1 : s.darknetTier;
-          const newHighestTier = Math.max(s.highestDarknetTier, newDarknetTier);
-
-          let log = appendLog(baseLog, `>> [ACCESS GRANTED] +${intelEarned} FRAGS`);
-          if (fragmentIdx !== null) {
-            log = appendLog(log,
-              `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
-          }
-          log = appendLog(log,
-            isTartarus ? '// TARTARUS BREACHED. EXECUTING CELL RELEASE...' :
-            isDarknet  ? `// DARKNET T${s.darknetTier} CLEARED. TIER ${newDarknetTier} UNLOCKED.` :
-                         '// NODE BREACHED. EXTRACTING AND RELOCATING...');
-
-          set({
-            status:             isTartarus ? 'victory' : 'transit',
-            transitOutcome:     'success',
-            physicalHeat:       0,
-            packUpHeat:         s.physicalHeat,
-            packUpTrace:        s.digitalTrace,
-            firewallHealth:     0,
-            intelFragments:     s.intelFragments + intelEarned,
-            sessionIntelEarned: intelEarned,
-            storyArchive:       newArchive,
-            hasBeatenGame:      s.hasBeatenGame || isTartarus,
-            tartarusBeaten:     s.tartarusBeaten || isTartarus,
-            darknetTier:        newDarknetTier,
-            highestDarknetTier: newHighestTier,
-            pendingFragmentIdx: s.isReplay ? null : fragmentIdx,  // suppress modal on replay runs
-            consumables:        newConsumables,
-            terminalLog:        log,
+          // 2. Freeze UI at 0 HP and trigger 'isBreaching'
+          set({ 
+            firewallHealth: 0, 
+            isBreaching: true, 
+            consumables: newConsumables, 
+            terminalLog: baseLog 
           });
+
+          // 3. Wait 1.5s for the visual tear to play, then transition
+          setTimeout(() => {
+            const currentState = useGameStore.getState();
+            const intelEarned  = currentState.sessionPotentialIntel;
+            const isTartarus   = currentState.currentJobType === 'tartarus';
+            const isDarknet    = currentState.currentJobType === 'darknet';
+            const isPriority   = currentState.currentJobType === 'priority' || isTartarus;
+
+            let newArchive  = currentState.storyArchive;
+            let fragmentIdx = null;
+            if (isPriority && !currentState.isReplay && currentState.storyArchive.length < storyFragments.length) {
+              fragmentIdx = currentState.storyArchive.length;
+              newArchive  = [...currentState.storyArchive, fragmentIdx];
+            }
+
+            const newDarknetTier = isDarknet ? currentState.darknetTier + 1 : currentState.darknetTier;
+            const newHighestTier = Math.max(currentState.highestDarknetTier, newDarknetTier);
+
+            let log = appendLog(baseLog, `>> [ACCESS GRANTED] +${intelEarned} FRAGS`);
+            if (fragmentIdx !== null) {
+              log = appendLog(log,
+                `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
+            }
+            log = appendLog(log,
+              isTartarus ? '// TARTARUS BREACHED. EXECUTING CELL RELEASE...' :
+              isDarknet  ? `// DARKNET T${currentState.darknetTier} CLEARED. TIER ${newDarknetTier} UNLOCKED.` :
+                           '// NODE BREACHED. EXTRACTING AND RELOCATING...');
+
+            useGameStore.setState({
+              status:             isTartarus ? 'victory' : 'transit',
+              transitOutcome:     'success',
+              physicalHeat:       0,
+              packUpHeat:         currentState.physicalHeat,
+              packUpTrace:        currentState.digitalTrace,
+              firewallHealth:     0,
+              intelFragments:     currentState.intelFragments + intelEarned,
+              sessionIntelEarned: intelEarned,
+              storyArchive:       newArchive,
+              hasBeatenGame:      currentState.hasBeatenGame || isTartarus,
+              tartarusBeaten:     currentState.tartarusBeaten || isTartarus,
+              darknetTier:        newDarknetTier,
+              highestDarknetTier: newHighestTier,
+              pendingFragmentIdx: currentState.isReplay ? null : fragmentIdx,
+              terminalLog:        log,
+              isBreaching:        false, // reset the flag!
+            });
+          }, 1500);
         }
       },
 

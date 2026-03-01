@@ -246,12 +246,19 @@ function NarrativeArchive() {
       </div>
 
       {collected === 0 ? (
-        <div className="glass-panel rounded-lg p-5 text-center border border-zinc-800/50">
-          <p className="font-mono text-[10px] text-zinc-600 leading-relaxed">
-            No fragments decoded yet.
+        <div className="glass-panel rounded-lg p-5 text-center border border-red-900/30 bg-red-950/20 relative overflow-hidden">
+          <p className="font-mono text-xs text-red-500/80 font-bold uppercase tracking-widest mb-2">
+            [ SEC_CORRUPTED ]
           </p>
-          <p className="font-mono text-[10px] text-zinc-700 mt-1">
-            Breach a Priority Lead to extract data.
+          <p className="font-mono text-[10px] text-red-400/60 leading-relaxed mb-1">
+            0x000F4A: Drive completely fragmented.
+          </p>
+          {/* Animated "Scanning" bar */}
+          <div className="w-full bg-red-950/50 h-2 rounded mt-3 mb-2 overflow-hidden border border-red-900/50">
+             <div className="w-1/3 h-full bg-red-500/30 animate-pulse" />
+          </div>
+          <p className="font-mono text-[9px] text-zinc-500 mt-2">
+            Breach a Priority Lead to rebuild sector index.
           </p>
         </div>
       ) : (
@@ -340,6 +347,8 @@ function TabBar({ active, onChange }) {
 
 // ─── Job Selection Footer ─────────────────────────────────────────────────────
 
+// ─── Job Selection Footer ─────────────────────────────────────────────────────
+
 function JobFooter() {
   const startNewSession = useGameStore(s => s.startNewSession);
   const archiveLen      = useGameStore(s => s.storyArchive.length);
@@ -347,60 +356,58 @@ function JobFooter() {
   const darknetTier     = useGameStore(s => s.darknetTier);
 
   const isTartarusReady = archiveLen === 11;
-  // Once Tartarus is beaten globally, DARKNET replaces TARTARUS permanently
   const showTartarus    = isTartarusReady && !hasBeatenGame;
   const showDarknet     = hasBeatenGame;
-  // PRIORITY is hidden only while TARTARUS is showing
   const showPriority    = !showTartarus;
 
   return (
-    <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2">
+    <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2 pb-4">
       {/* DATA SKIM — always visible */}
       <button
         onClick={() => startNewSession('skim')}
-        className="w-full py-2.5 px-6 rounded-lg border border-green-500/40 text-green-400 font-mono text-xs font-bold uppercase tracking-widest hover:bg-green-500/10 hover:border-green-400 transition-all duration-200 active:scale-[0.99] glow-green game-button"
+        className="w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button"
       >
         Initiate Data Skim
-        <span className="block px-2 text-[9px] font-normal text-green-400/40 mt-0.5 normal-case tracking-normal">
+        <span className="block px-2 text-[9px] font-normal text-green-400/50 mt-0.5 normal-case tracking-normal">
           Low-sec target · Low intel · No story data
         </span>
       </button>
 
-      {/* PRIORITY LEAD — hidden only when TARTARUS is showing */}
+      {/* PRIORITY LEAD */}
       {showPriority && (
         <button
           onClick={() => startNewSession('priority')}
-          className="w-full py-2.5 px-6 rounded-lg border border-violet-500/40 text-violet-300 font-mono text-xs font-bold uppercase tracking-widest hover:bg-violet-500/10 hover:border-violet-400 transition-all duration-200 active:scale-[0.99] glow-violet game-button"
+          className="w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button"
         >
           Pursue Priority Lead
-          <span className="block px-2 text-[9px] font-normal text-violet-400/40 mt-0.5 normal-case tracking-normal">
+          <span className="block px-2 text-[9px] font-normal text-violet-400/50 mt-0.5 normal-case tracking-normal">
             Secure target · Higher intel · Unlocks story fragment
           </span>
         </button>
       )}
 
-      {/* ASSAULT TARTARUS — shows at 11 frags, before Tartarus is beaten */}
+      {/* ASSAULT TARTARUS */}
       {showTartarus && (
         <button
           onClick={() => startNewSession('tartarus')}
-          className="w-full py-2.5 px-6 rounded-lg border border-red-500/60 text-red-400 font-mono text-xs font-bold uppercase tracking-widest bg-red-500/5 hover:bg-red-500/15 hover:border-red-400 transition-all duration-200 active:scale-[0.99] animate-pulse game-button"
+          className="w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button"
         >
           Assault Tartarus Node
-          <span className="block px-2 text-[9px] font-normal text-red-400/50 mt-0.5 normal-case tracking-normal">
+          <span className="block px-2 text-[9px] font-normal text-red-400/70 mt-0.5 normal-case tracking-normal">
             400 HP · TRACE_ACCELERATOR · One chance. No retreat.
           </span>
         </button>
       )}
 
-      {/* ACCESS DARKNET — replaces Tartarus once it's been beaten */}
+      {/* ACCESS DARKNET */}
       {showDarknet && (
         <button
           onClick={() => startNewSession('darknet')}
-          className="w-full py-2.5 px-6 rounded-lg border border-fuchsia-500/50 text-fuchsia-300 font-mono text-xs font-bold uppercase tracking-widest bg-fuchsia-500/5 hover:bg-fuchsia-500/15 hover:border-fuchsia-400 transition-all duration-200 active:scale-[0.99] game-button"
+          className="w-full py-2.5 px-6 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button"
         >
           Access Darknet Router
-          <span className="block px-2 text-[9px] font-normal text-fuchsia-400/40 mt-0.5 normal-case tracking-normal">
-            Tier {darknetTier} · {150 + darknetTier * 50} HP · Severe trace rate · Endless
+          <span className="block px-2 text-[9px] font-normal text-fuchsia-400/50 mt-0.5 normal-case tracking-normal">
+            Tier {darknetTier} · {150 + darknetTier * 50} HP · Severe trace rate
           </span>
         </button>
       )}
@@ -419,6 +426,8 @@ export default function TransitScene() {
   const hasBeatenGame      = useGameStore(s => s.hasBeatenGame);
   const darknetTier        = useGameStore(s => s.darknetTier);
   const highestDarknetTier = useGameStore(s => s.highestDarknetTier);
+  const setPaused           = useGameStore(s => s.setPaused);
+  const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
 
   // Escalation phase: 0 = normal, 1 = flicker, 2 = warning, 3 = alarm
   const phase = archiveLen >= 11 ? 3 : archiveLen >= 8 ? 2 : archiveLen >= 4 ? 1 : 0;
@@ -440,7 +449,7 @@ export default function TransitScene() {
   return (
     <div className={containerClass} style={containerBg}>
 
-      {/* ── Header ── */}
+    {/* ── Header ── */}
       <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0">
         <p className={`font-mono text-[10px] uppercase tracking-widest ${statusClass}`}>
           {statusText}
@@ -456,11 +465,28 @@ export default function TransitScene() {
               </p>
             )}
           </div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-mono text-[10px] text-cyan-400/50 uppercase tracking-widest">Balance</span>
-            <span className="font-mono text-xl font-bold text-cyan-400 tabular-nums">{intelFragments}</span>
-            <span className="font-mono text-[10px] text-cyan-400/50 uppercase">IF</span>
+          
+          {/* We wrap the Balance and SYS button together here */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-baseline gap-1.5">
+              <span className="font-mono text-[10px] text-cyan-400/50 uppercase tracking-widest">Balance</span>
+              <span className="font-mono text-xl font-bold text-cyan-400 tabular-nums">{intelFragments}</span>
+              <span className="font-mono text-[10px] text-cyan-400/50 uppercase">IF</span>
+            </div>
+
+            {/* The High-Visibility Settings Button */}
+            <button
+              onClick={() => {
+                toggleSettingsModal(true);
+                setPaused(true);
+              }}
+              className="shrink-0 px-2.5 py-1.5 rounded bg-zinc-800/80 border border-zinc-600 border-b-[2px] active:border-b active:translate-y-[1px] text-zinc-300 hover:text-white hover:bg-zinc-700 transition-all flex items-center gap-1.5 select-none"
+            >
+              <span className="text-[12px] leading-none">⚙</span>
+              <span className="font-mono text-[9px] font-bold uppercase tracking-widest">SYS</span>
+            </button>
           </div>
+          
         </div>
       </div>
 

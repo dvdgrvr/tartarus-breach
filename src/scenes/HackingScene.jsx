@@ -15,27 +15,44 @@ const DEFENSE_BADGE = {
 function NodeStatusStrip() {
   const node            = useGameStore(s => s.currentNode);
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
+  const heat            = useGameStore(s => s.physicalHeat); // Pull in Heat data
 
   if (!node) return null;
 
   const badge = node.specialDefense ? DEFENSE_BADGE[node.specialDefense] : null;
-  // Show a "DECRYPTED" override badge once the player has used DECRYPT
   const showDecryptedBadge = badge && node.specialDefense === 'ENCRYPTED_LOGS' && firewallRevealed;
 
+  // Calculate Heat Warnings
+  const isHeatWarning = heat >= 50;
+  const isHeatCritical = heat >= 80;
+
   return (
-    <div className="px-3 py-1.5 border-b border-zinc-800/50 flex items-center justify-between gap-2">
-      <span className="font-mono text-[10px] text-zinc-600 uppercase tracking-widest truncate">
+    <div className="px-3 py-1.5 border-b border-zinc-800/50 flex items-center justify-between gap-2 bg-zinc-900/40">
+      <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest truncate">
         // {node.name}
       </span>
-      {badge && (
-        <span className={`font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded border shrink-0 ${
-          showDecryptedBadge
-            ? 'text-green-400 border-green-500/30 bg-green-500/10'
-            : badge.color
-        }`}>
-          {showDecryptedBadge ? 'DECRYPTED' : badge.label}
-        </span>
-      )}
+      
+      <div className="flex items-center gap-2">
+        {/* Subtle Heat Warning that appears mid-screen only when dangerous */}
+        {isHeatWarning && (
+          <span className={`font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded ${
+            isHeatCritical ? 'text-red-400 bg-red-500/10 animate-pulse' : 'text-orange-400 bg-orange-500/10'
+          }`}>
+            HEAT: {heat.toFixed(0)}%
+          </span>
+        )}
+
+        {/* Existing Defense Badge */}
+        {badge && (
+          <span className={`font-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded border shrink-0 ${
+            showDecryptedBadge
+              ? 'text-green-400 border-green-500/30 bg-green-500/10'
+              : badge.color
+          }`}>
+            {showDecryptedBadge ? 'DECRYPTED' : badge.label}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -44,6 +61,9 @@ function NodeStatusStrip() {
 // When the node has ENCRYPTED_LOGS and DECRYPT hasn't been used yet,
 // show an obfuscated bar instead of the real percentage.
 
+// ─── Firewall Row ─────────────────────────────────────────────────────────────
+// Updated: Uses a 10-segment "Armor Block" UI to differentiate from the smooth Trace bar.
+
 function FirewallRow() {
   const firewallHealth   = useGameStore(s => s.firewallHealth);
   const node             = useGameStore(s => s.currentNode);
@@ -51,43 +71,55 @@ function FirewallRow() {
 
   const isHidden = node?.specialDefense === 'ENCRYPTED_LOGS' && !firewallRevealed;
   const maxHP    = node?.firewallHP ?? 100;
-  const barWidth = Math.min(100, (firewallHealth / maxHP) * 100);
+  
+  // Calculate how many of the 10 blocks should be lit up
+  const totalBlocks = 10;
+  const hpPercentage = Math.max(0, firewallHealth / maxHP);
+  const activeBlocks = Math.ceil(hpPercentage * totalBlocks);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-0.5">
-      <span className="font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 text-zinc-500">
-        FW
+    <div className="flex items-center gap-2 px-3 py-1.5">
+      <span className="font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 text-zinc-500 font-bold">
+        FW_HP
       </span>
 
       {isHidden ? (
-        // Encrypted display — static amber fill instead of a real bar
-        <>
-          <div className="flex-1 h-3 bg-zinc-800 rounded-full overflow-hidden">
-            <div className="h-full w-full bg-amber-500/40 rounded-full" />
-          </div>
-          <span className="font-mono text-[10px] tabular-nums w-7 text-right text-amber-500/60">
+        // Encrypted display — Glitchy static amber block
+        <div className="flex-1 flex gap-0.5 h-3">
+          <div className="h-full w-full bg-amber-500/40 opacity-80 animate-pulse border border-amber-500/50" />
+          <span className="font-mono text-[10px] tabular-nums w-7 text-right text-amber-500/60 ml-2">
             ??
           </span>
-        </>
+        </div>
       ) : (
-        // Normal display — raw HP integer, no %
-        <>
-          <div className="flex-1 h-3 bg-zinc-800 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full bg-violet-500 transition-all duration-300"
-              style={{ width: `${barWidth}%` }}
-            />
-          </div>
-          <span className="font-mono text-[10px] tabular-nums w-7 text-right text-zinc-500">
+        // Segmented Armor Blocks display
+        <div className="flex-1 flex gap-0.5 h-3">
+          {Array.from({ length: totalBlocks }).map((_, i) => {
+            const isActive = i < activeBlocks;
+            return (
+              <div
+                key={i}
+                className={`flex-1 h-full transition-all duration-150 ${
+                  isActive 
+                    ? 'bg-violet-500 border-y border-violet-400 shadow-[0_0_5px_rgba(139,92,246,0.3)]' 
+                    : 'bg-zinc-800/50 border-y border-zinc-800'
+                }`}
+              />
+            );
+          })}
+          <span className="font-mono text-[10px] tabular-nums w-8 text-right text-zinc-400 font-bold ml-1 shrink-0">
             {Math.ceil(firewallHealth)}
           </span>
-        </>
+        </div>
       )}
     </div>
   );
 }
 
 // ─── Trace Row ────────────────────────────────────────────────────────────────
+
+// ─── Trace Row ────────────────────────────────────────────────────────────────
+// Updated: Smooth, continuous bar with aggressive gradient styling for critical states.
 
 function TraceRow() {
   const trace         = useGameStore(s => s.digitalTrace);
@@ -98,21 +130,34 @@ function TraceRow() {
 
   const isDanger  = trace >= 80;
   const isWarning = trace >= 50;
+  
   const labelColor = isDanger ? 'text-red-400' : isWarning ? 'text-orange-400' : 'text-zinc-500';
-  const barColor   = isDanger ? 'bg-red-500'   : isWarning ? 'bg-orange-500'   : 'bg-blue-500';
+  
+  // Instead of flat backgrounds, we use gradients to give Trace a "fluid/digital" feel
+  const barGradient = isDanger 
+    ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]'   
+    : isWarning 
+      ? 'bg-gradient-to-r from-orange-600 to-orange-400'   
+      : 'bg-gradient-to-r from-blue-700 to-blue-500';
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-0.5 ${isDanger && shakeEnabled ? 'danger-shake' : ''}`}>
-      <span className={`font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 ${labelColor} ${isDanger ? 'animate-pulse' : ''}`}>
+    <div className={`flex items-center gap-2 px-3 py-1.5 ${isDanger && shakeEnabled ? 'danger-shake' : ''}`}>
+      <span className={`font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${isDanger ? 'animate-pulse' : ''}`}>
         {isDanger ? '[!]TR' : isAccelerated ? 'TR x2' : 'TRACE'}
       </span>
-      <div className="flex-1 h-3 bg-zinc-800 rounded-full overflow-hidden">
+      
+      {/* Container with an inset shadow to look like a hardware groove */}
+      <div className="flex-1 h-2.5 bg-black rounded-full overflow-hidden border border-zinc-800 shadow-inner relative">
+        {/* Subtle CRT scanline overlay inside the empty bar */}
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+        
         <div
-          className={`h-full rounded-full transition-all duration-300 ${barColor} ${isAccelerated && !isDanger ? 'opacity-80' : ''}`}
+          className={`h-full rounded-full transition-all duration-300 ${barGradient} ${isAccelerated && !isDanger ? 'opacity-80 animate-pulse' : ''}`}
           style={{ width: `${Math.min(100, trace)}%` }}
         />
       </div>
-      <span className={`font-mono text-[10px] tabular-nums w-7 text-right ${labelColor}`}>
+      
+      <span className={`font-mono text-[10px] tabular-nums w-8 text-right font-bold shrink-0 ${labelColor}`}>
         {trace.toFixed(0)}%
       </span>
     </div>
@@ -122,6 +167,8 @@ function TraceRow() {
 // ─── Consumable Bar ───────────────────────────────────────────────────────────
 // Sits between the gauge rows and the command bar.
 // Always rendered; buttons are disabled (greyed) when count is 0.
+
+// ─── Consumable Bar ───────────────────────────────────────────────────────────
 
 function ConsumableBar() {
   const consumables    = useGameStore(s => s.consumables);
@@ -134,15 +181,15 @@ function ConsumableBar() {
   if (!hasBeatenGame || (intelFragments < 50 && zeroDay === 0 && coolant === 0)) return null;
 
   return (
-    <div className="flex gap-2 px-3 py-1.5 border-t border-zinc-800/40">
+    <div className="flex gap-2 px-3 py-2 border-t border-zinc-800/40 pb-3">
       <button
         onClick={() => useConsumable('zeroDay')}
         disabled={zeroDay === 0}
         className={[
-          'flex-1 py-3 px-4 rounded border font-mono text-xs uppercase tracking-widest transition-all duration-150',
+          'flex-1 py-3 px-4 rounded font-mono text-[10px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
           zeroDay > 0
-            ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10 active:scale-95'
-            : 'border-zinc-800 text-zinc-700 cursor-not-allowed',
+            ? 'border-amber-500/60 border-b-amber-700 text-amber-400 bg-amber-500/5 hover:bg-amber-500/15'
+            : 'border-zinc-800 border-b-zinc-900 text-zinc-700 cursor-not-allowed',
         ].join(' ')}
       >
         ZER0-DAY [×{zeroDay}]
@@ -151,10 +198,10 @@ function ConsumableBar() {
         onClick={() => useConsumable('coolant')}
         disabled={coolant === 0}
         className={[
-          'flex-1 py-3 px-4 rounded border font-mono text-xs uppercase tracking-widest transition-all duration-150',
+          'flex-1 py-3 px-4 rounded font-mono text-[10px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
           coolant > 0
-            ? 'border-blue-500/40 text-blue-400 hover:bg-blue-500/10 active:scale-95'
-            : 'border-zinc-800 text-zinc-700 cursor-not-allowed',
+            ? 'border-blue-500/60 border-b-blue-700 text-blue-400 bg-blue-500/5 hover:bg-blue-500/15'
+            : 'border-zinc-800 border-b-zinc-900 text-zinc-700 cursor-not-allowed',
         ].join(' ')}
       >
         COOLANT [×{coolant}]
@@ -168,12 +215,35 @@ function ConsumableBar() {
 export default function HackingScene() {
   const trace = useGameStore(s => s.digitalTrace);
   const heat  = useGameStore(s => s.physicalHeat);
+  
+  // Grab our new state!
+  const isBreaching = useGameStore(s => s.isBreaching);
 
   const isTraceDanger = trace >= 80;
   const isHeatDanger  = heat  >= 80;
 
+  // The brutal CSS filters that create the "Tear" effect
+  const breachTearClass = isBreaching 
+    ? "invert brightness-150 contrast-200 hue-rotate-90 skew-x-[-4deg] scale-105 transition-none" 
+    : "transition-all duration-300 ease-in";
+
   return (
-    <div className="flex flex-col h-full bg-zinc-950 relative">
+    // We apply the breachTearClass right to the main wrapper
+    <div className={`flex flex-col h-full bg-zinc-950 relative ${breachTearClass}`}>
+
+      {/* ── NEW: Massive Success Overlay ── */}
+      {isBreaching && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="border-y-4 border-green-500 w-full py-6 bg-green-500/10 flex flex-col items-center shadow-[0_0_30px_rgba(34,197,94,0.3)]">
+            <h1 className="font-mono text-4xl font-black text-green-400 uppercase tracking-[0.3em] drop-shadow-[0_0_10px_rgba(34,197,94,0.8)] animate-pulse">
+              BREACHED
+            </h1>
+            <p className="font-mono text-xs text-green-300/80 tracking-widest mt-2 uppercase">
+              Extracting payload...
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Siren vignette — pointer-events-none, pulses when heat is critical */}
       {isHeatDanger && <div className="siren-vignette" />}

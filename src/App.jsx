@@ -166,7 +166,9 @@ export default function App() {
 
   const setPaused = useGameStore(s => s.setPaused);
 
-  const [showSettings, setShowSettings] = useState(false);
+  // Use the new global state instead of local useState
+  const isSettingsModalOpen = useGameStore(s => s.isSettingsModalOpen);
+  const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
 
   const cyberdeliaMode = settings?.cyberdeliaMode ?? false;
 
@@ -203,23 +205,13 @@ export default function App() {
     return () => clearInterval(id);
   }, [tick]);
 
-  const settingsButton = (
-    <button
-      onClick={() => { setShowSettings(true); setPaused(true); }}
-      title="System Configuration"
-      className="absolute top-2 right-2 z-40 font-mono text-[10px] uppercase tracking-widest text-zinc-700 hover:text-zinc-400 border border-transparent hover:border-zinc-700/60 px-1.5 py-0.5 rounded transition-all duration-150"
-    >
-      [SYS]
-    </button>
-  );
-
   if (status === 'victory') return (
     <div className={roomClass}>
       <div className={containerClass} style={glowStyle}>
         {settings?.crtEnabled && <div className="crt-scanlines" />}
         {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-        {settingsButton}
-        {showSettings && <SettingsModal onClose={() => { setShowSettings(false); setPaused(false); }} />}
+        {/* settingsButton deleted from here! */}
+        {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
         {pendingFragmentIdx !== null && <FragmentModal />}
         <VictoryScene />
       </div>
@@ -231,8 +223,8 @@ export default function App() {
       <div className={containerClass} style={glowStyle}>
         {settings?.crtEnabled && <div className="crt-scanlines" />}
         {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-        {settingsButton}
-        {showSettings && <SettingsModal onClose={() => { setShowSettings(false); setPaused(false); }} />}
+        {/* settingsButton deleted from here! */}
+        {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
         <GameOverScene />
       </div>
     </div>
@@ -243,8 +235,8 @@ export default function App() {
       <div className={containerClass} style={glowStyle}>
         {settings?.crtEnabled && <div className="crt-scanlines" />}
         {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-        {settingsButton}
-        {showSettings && <SettingsModal onClose={() => { setShowSettings(false); setPaused(false); }} />}
+        {/* settingsButton deleted from here! */}
+        {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
         {pendingFragmentIdx !== null && <FragmentModal />}
         {status === 'hacking' ? <HackingScene /> : <TransitScene />}
       </div>

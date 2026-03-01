@@ -17,20 +17,41 @@ export function TopBorder() {
   const heat         = useGameStore(s => s.physicalHeat);
   const shakeEnabled = useGameStore(s => s.settings?.shakeEnabled ?? true);
 
+  const setPaused           = useGameStore(s => s.setPaused);
+  const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
+
   const isDanger   = heat >= 80;
   const isWarning  = heat >= 50;
   const colorClass = isDanger ? 'bg-red-500' : isWarning ? 'bg-orange-500' : 'bg-green-500';
   const labelClass = isDanger ? 'text-red-400' : isWarning ? 'text-orange-400' : 'text-zinc-500';
 
   return (
-    <div className="px-4 py-2 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-sm flex items-center gap-3">
-      <span className={`font-mono text-[10px] uppercase tracking-widest w-16 shrink-0 ${labelClass} ${isDanger ? 'animate-pulse' : ''}`}>
-        {isDanger ? '[!] HEAT' : '    HEAT'}
+    <div className="px-3 py-2 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm flex items-center gap-2">
+      {/* 1. Heat Label */}
+      <span className={`font-mono text-[10px] uppercase tracking-widest w-14 shrink-0 font-bold ${labelClass} ${isDanger ? 'animate-pulse' : ''}`}>
+        {isDanger ? '[!] HEAT' : 'HEAT'}
       </span>
+      
+      {/* 2. The Gauge */}
       <GaugeBar value={heat} colorClass={colorClass} className={isDanger && shakeEnabled ? 'danger-shake' : ''} />
-      <span className={`font-mono text-[10px] tabular-nums w-8 text-right ${labelClass}`}>
+      
+      {/* 3. The Percentage */}
+      <span className={`font-mono text-[10px] tabular-nums w-8 text-right font-bold shrink-0 ${labelClass}`}>
         {heat.toFixed(0)}%
       </span>
+
+      {/* 4. The High-Visibility Settings Button */}
+      <button
+        onClick={() => {
+          // It now opens the modal and pauses the game!
+          toggleSettingsModal(true);
+          setPaused(true);
+        }}
+        className="shrink-0 ml-2 px-2.5 py-1.5 rounded bg-zinc-800/80 border border-zinc-600 border-b-[2px] active:border-b active:translate-y-[1px] text-zinc-300 hover:text-white hover:bg-zinc-700 transition-all flex items-center gap-1.5 select-none"
+      >
+        <span className="text-[12px] leading-none">⚙</span>
+        <span className="font-mono text-[9px] font-bold uppercase tracking-widest">SYS</span>
+      </button>
     </div>
   );
 }

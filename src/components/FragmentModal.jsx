@@ -2,9 +2,6 @@ import { useEffect, useState } from 'react';
 import useGameStore from '../store/useGameStore';
 import storyFragments from '../data/storyFragments.json';
 
-// ─── Fragment 12 — Tartarus special script ─────────────────────────────────────
-// Shown instead of the archive text when the Tartarus node is breached.
-
 const TARTARUS_SCRIPT =
 `[SYSTEM]: Trace at 99%. Safety Orange override active.
 [LOG]: This is it, Operator. The Meridian Corp. firewall isn't just cracking—it's dissolving. I can see the core. It's not just data; it's a god-code.
@@ -13,12 +10,8 @@ const TARTARUS_SCRIPT =
 [SYSTEM]: // BREACH INITIALIZED. //
 [LOG]: The Gibson is open. Grab what you can before the room melts. Hack the planet.`;
 
-// ─── Cyberdelia palette (inline — never purged by Tailwind JIT) ───────────────
-
-const CYBER_BG    = '#0d001a';   // deep space purple
-const CYBER_GREEN = '#39FF14';   // acid green
-
-// ─── FragmentModal ────────────────────────────────────────────────────────────
+const CYBER_BG    = '#0d001a';
+const CYBER_GREEN = '#39FF14';
 
 export default function FragmentModal() {
   const pendingFragmentIdx   = useGameStore(s => s.pendingFragmentIdx);
@@ -26,37 +19,58 @@ export default function FragmentModal() {
   const enterDarknet         = useGameStore(s => s.enterDarknet);
   const cyberdelia           = useGameStore(s => s.settings?.cyberdeliaMode ?? false);
 
+  // 3 Phases: 'decrypting' -> 'typing' -> 'done'
+  const [phase, setPhase]         = useState('decrypting');
+  const [scrambled, setScrambled] = useState('');
   const [displayed, setDisplayed] = useState('');
-  const [done,      setDone]      = useState(false);
   const [exiting,   setExiting]   = useState(false);
 
   const isFragment12 = pendingFragmentIdx === 11;
   const fragment     = storyFragments[pendingFragmentIdx];
   const fullText     = isFragment12 ? TARTARUS_SCRIPT : (fragment?.text ?? '');
 
-  // Typewriter — restart whenever the fragment changes
+  // Phase 1: Rapidly scramble hex characters for ~500ms
   useEffect(() => {
     if (pendingFragmentIdx === null) return;
+    setPhase('decrypting');
     setDisplayed('');
-    setDone(false);
     setExiting(false);
+
+    let ticks = 0;
+    const id = setInterval(() => {
+      let s = '';
+      const chars = '0123456789ABCDEF!@#$';
+      for(let i=0; i<250; i++) s += chars[Math.floor(Math.random() * chars.length)];
+      setScrambled(s);
+      
+      ticks++;
+      if (ticks > 15) {
+        clearInterval(id);
+        setPhase('typing');
+      }
+    }, 30);
+    return () => clearInterval(id);
+  }, [pendingFragmentIdx]);
+
+  // Phase 2: Type out the real text
+  useEffect(() => {
+    if (phase !== 'typing') return;
     let i = 0;
     const id = setInterval(() => {
-      i++;
+      i += 3; // Type 3 chars at a time
       setDisplayed(fullText.slice(0, i));
       if (i >= fullText.length) {
         clearInterval(id);
-        setDone(true);
+        setPhase('done');
       }
     }, 16);
     return () => clearInterval(id);
-  }, [pendingFragmentIdx, fullText]);
+  }, [phase, fullText]);
 
   if (pendingFragmentIdx === null) return null;
 
   const handleDismiss = () => {
     if (isFragment12) {
-      // Screen-shake + white flash, then transition straight to Darknet
       setExiting(true);
       setTimeout(() => {
         dismissFragmentModal();
@@ -67,7 +81,6 @@ export default function FragmentModal() {
     }
   };
 
-  // ── Derived style values (inline to bypass JIT purge) ──────────────────────
   const borderCol = cyberdelia ? 'rgba(57,255,20,0.2)'  : 'rgba(63,63,70,0.6)';
   const dimCol    = cyberdelia ? 'rgba(57,255,20,0.4)'  : 'rgba(161,161,170,0.4)';
   const textCol   = cyberdelia ? CYBER_GREEN             : '#d4d4d8';
@@ -75,82 +88,53 @@ export default function FragmentModal() {
 
   return (
     <div
-      className={[
-        'absolute inset-0 z-50 flex flex-col',
-        exiting   ? 'fragment-exit-shake' : '',
-        cyberdelia ? 'cyberdelia-flicker'  : '',
-      ].join(' ')}
+      className={['absolute inset-0 z-50 flex flex-col', exiting ? 'fragment-exit-shake' : '', cyberdelia ? 'cyberdelia-flicker' : ''].join(' ')}
       style={{ background: cyberdelia ? CYBER_BG : 'rgba(9,9,11,0.99)' }}
     >
-      {/* CRT scanlines — always on for cyberdelia */}
       {cyberdelia && <div className="crt-scanlines" />}
-
-      {/* White flash overlay — mounts on Tartarus exit */}
       {exiting && <div className="absolute inset-0 z-20 pointer-events-none white-flash-overlay" />}
 
-      {/* ── Header ── */}
-      <div
-        className="px-4 py-4 border-b shrink-0 relative z-10"
-        style={{ borderColor: borderCol }}
-      >
-        <p
-          className="font-mono text-[9px] uppercase tracking-widest mb-1.5 leading-relaxed"
-          style={{ color: dimCol }}
-        >
-          {isFragment12
-            ? 'TARTARUS_KEYS_VALIDATED // ENCRYPTED_HANDSHAKE_COMPLETE'
-            : `// Fragment #${String(pendingFragmentIdx + 1).padStart(3, '0')} — Decrypted`}
+      <div className="px-4 py-4 border-b shrink-0 relative z-10" style={{ borderColor: borderCol }}>
+        <p className="font-mono text-[9px] uppercase tracking-widest mb-1.5 leading-relaxed" style={{ color: dimCol }}>
+          {phase === 'decrypting' ? '// DECRYPTING SECTOR //' : 
+            isFragment12 ? 'TARTARUS_KEYS_VALIDATED // ENCRYPTED_HANDSHAKE_COMPLETE' : 
+            `// Fragment #${String(pendingFragmentIdx + 1).padStart(3, '0')} — Decrypted`}
         </p>
-        <h2
-          className="font-mono text-sm font-bold uppercase tracking-widest"
-          style={{ color: textCol }}
-        >
-          {isFragment12 ? '// Cell Release Authorized //' : 'Decryption in Progress'}
+        <h2 className="font-mono text-sm font-bold uppercase tracking-widest" style={{ color: textCol }}>
+          {phase === 'decrypting' ? 'BYPASSING ENCRYPTION...' :
+            isFragment12 ? '// Cell Release Authorized //' : 'Decryption Complete'}
         </h2>
       </div>
 
-      {/* ── Scrollable text ── */}
       <div className="flex-1 overflow-y-auto px-4 py-5 relative z-10">
-        <pre
-          className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words"
-          style={{ color: textCol }}
-        >
-          {displayed}
-          {!done && (
-            <span className="animate-pulse" style={{ color: cursorCol }}>█</span>
+        <pre className="font-mono text-[11px] leading-relaxed whitespace-pre-wrap break-words" style={{ color: textCol }}>
+          {phase === 'decrypting' ? (
+            <span className="opacity-40 animate-pulse text-red-500/50">{scrambled}</span>
+          ) : (
+            <>
+              {displayed}
+              {phase === 'typing' && <span className="animate-pulse" style={{ color: cursorCol }}>█</span>}
+            </>
           )}
         </pre>
       </div>
 
-      {/* ── Footer ── */}
-      <div
-        className="px-4 py-4 border-t shrink-0 relative z-10"
-        style={{ borderColor: borderCol }}
-      >
-        {!isFragment12 && (
-          <p
-            className="font-mono text-[9px] uppercase tracking-widest text-center mb-3"
-            style={{ color: dimCol }}
-          >
-            Fragment {pendingFragmentIdx + 1} of {storyFragments.length} in archive
-          </p>
-        )}
-
+      <div className="px-4 py-4 border-t shrink-0 relative z-10" style={{ borderColor: borderCol }}>
         <button
           onClick={handleDismiss}
+          disabled={phase === 'decrypting'}
           className={[
-            'w-full py-3 rounded border font-mono text-xs font-bold uppercase tracking-widest',
-            'transition-all duration-150 active:scale-[0.99]',
-            isFragment12
-              ? 'border-fuchsia-500/60 text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 hover:border-fuchsia-400 animate-pulse'
-              : '',
+            'w-full py-4 rounded font-mono text-xs font-bold uppercase tracking-widest',
+            'transition-all duration-75 border-b-[4px] active:border-b active:translate-y-[2px]',
+            phase === 'decrypting' 
+              ? 'border-zinc-800 border-b-zinc-900 text-zinc-700 bg-transparent cursor-wait'
+              : isFragment12
+                ? 'border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 animate-pulse'
+                : 'border-zinc-600 border-b-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800',
           ].join(' ')}
-          style={!isFragment12 ? {
-            border: `1px solid ${cyberdelia ? 'rgba(57,255,20,0.4)' : 'rgba(113,113,122,0.5)'}`,
-            color: cyberdelia ? CYBER_GREEN : '#a1a1aa',
-          } : undefined}
+          style={!isFragment12 && phase !== 'decrypting' ? { border: `1px solid ${cyberdelia ? 'rgba(57,255,20,0.4)' : ''}`, color: cyberdelia ? CYBER_GREEN : '' } : undefined}
         >
-          {isFragment12 ? '// Enter the Darknet //' : 'Continue to Safe House'}
+          {phase === 'decrypting' ? 'DECRYPTING...' : isFragment12 ? '// Enter the Darknet //' : 'Continue to Safe House'}
         </button>
       </div>
     </div>
