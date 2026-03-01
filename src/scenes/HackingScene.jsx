@@ -139,7 +139,7 @@ function ConsumableBar() {
         onClick={() => useConsumable('zeroDay')}
         disabled={zeroDay === 0}
         className={[
-          'flex-1 py-3 rounded border font-mono text-xs uppercase tracking-widest transition-all duration-150',
+          'flex-1 py-3 px-4 rounded border font-mono text-xs uppercase tracking-widest transition-all duration-150',
           zeroDay > 0
             ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10 active:scale-95'
             : 'border-zinc-800 text-zinc-700 cursor-not-allowed',
@@ -151,7 +151,7 @@ function ConsumableBar() {
         onClick={() => useConsumable('coolant')}
         disabled={coolant === 0}
         className={[
-          'flex-1 py-3 rounded border font-mono text-xs uppercase tracking-widest transition-all duration-150',
+          'flex-1 py-3 px-4 rounded border font-mono text-xs uppercase tracking-widest transition-all duration-150',
           coolant > 0
             ? 'border-blue-500/40 text-blue-400 hover:bg-blue-500/10 active:scale-95'
             : 'border-zinc-800 text-zinc-700 cursor-not-allowed',

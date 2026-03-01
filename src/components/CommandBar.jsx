@@ -38,7 +38,7 @@ export default function CommandBar() {
             disabled={disabled}
             title={tool.description}
             className={[
-              'flex-1 relative min-h-[60px] py-4 px-2 rounded border game-button',
+              'flex-1 relative min-h-[60px] py-4 px-4 rounded border game-button',
               'font-mono text-[10px] font-bold uppercase tracking-widest text-center',
               'transition-all duration-150 active:scale-95',
               disabled ? styles.disabled : styles.active,

@@ -223,7 +223,7 @@
 
   /* ── Game buttons: aggressive parallelogram shear, chromatic aberration ─── */
   .cyberdelia-vibe .game-button {
-    clip-path:     polygon(5% 0%, 100% 0%, 95% 100%, 0% 100%) !important;
+    clip-path:     polygon(3% 0%, 100% 0%, 97% 100%, 0% 100%) !important;
     border-radius: 0 !important;
     filter:
       drop-shadow( 1px 0px 0px rgba(255, 0,   0,   0.35))
