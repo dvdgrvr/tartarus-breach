@@ -24,7 +24,7 @@ export default function CommandBar() {
   const status         = useGameStore(s => s.status);
 
   return (
-    <div className="px-3 py-2 flex gap-1.5">
+    <div className="px-3 py-2 flex gap-3">
       {toolsConfig.map(tool => {
         const cooldown   = toolState[tool.id]?.cooldownRemaining ?? 0;
         const onCooldown = cooldown > 0;
@@ -38,7 +38,7 @@ export default function CommandBar() {
             disabled={disabled}
             title={tool.description}
             className={[
-              'flex-1 relative py-2.5 px-0.5 rounded border game-button',
+              'flex-1 relative min-h-[60px] py-4 px-2 rounded border game-button',
               'font-mono text-[10px] font-bold uppercase tracking-widest text-center',
               'transition-all duration-150 active:scale-95',
               disabled ? styles.disabled : styles.active,

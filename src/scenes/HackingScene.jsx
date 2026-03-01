@@ -62,7 +62,7 @@ function FirewallRow() {
       {isHidden ? (
         // Encrypted display — static amber fill instead of a real bar
         <>
-          <div className="flex-1 h-[3px] bg-zinc-800 rounded-full overflow-hidden">
+          <div className="flex-1 h-3 bg-zinc-800 rounded-full overflow-hidden">
             <div className="h-full w-full bg-amber-500/40 rounded-full" />
           </div>
           <span className="font-mono text-[10px] tabular-nums w-7 text-right text-amber-500/60">
@@ -72,7 +72,7 @@ function FirewallRow() {
       ) : (
         // Normal display — raw HP integer, no %
         <>
-          <div className="flex-1 h-[3px] bg-zinc-800 rounded-full overflow-hidden">
+          <div className="flex-1 h-3 bg-zinc-800 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full bg-violet-500 transition-all duration-300"
               style={{ width: `${barWidth}%` }}
@@ -106,7 +106,7 @@ function TraceRow() {
       <span className={`font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 ${labelColor} ${isDanger ? 'animate-pulse' : ''}`}>
         {isDanger ? '[!]TR' : isAccelerated ? 'TR x2' : 'TRACE'}
       </span>
-      <div className="flex-1 h-[3px] bg-zinc-800 rounded-full overflow-hidden">
+      <div className="flex-1 h-3 bg-zinc-800 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-300 ${barColor} ${isAccelerated && !isDanger ? 'opacity-80' : ''}`}
           style={{ width: `${Math.min(100, trace)}%` }}
@@ -124,10 +124,14 @@ function TraceRow() {
 // Always rendered; buttons are disabled (greyed) when count is 0.
 
 function ConsumableBar() {
-  const consumables   = useGameStore(s => s.consumables);
-  const useConsumable = useGameStore(s => s.useConsumable);
-  const zeroDay       = consumables?.zeroDay ?? 0;
-  const coolant       = consumables?.coolant ?? 0;
+  const consumables    = useGameStore(s => s.consumables);
+  const useConsumable  = useGameStore(s => s.useConsumable);
+  const hasBeatenGame  = useGameStore(s => s.hasBeatenGame);
+  const intelFragments = useGameStore(s => s.intelFragments);
+  const zeroDay        = consumables?.zeroDay ?? 0;
+  const coolant        = consumables?.coolant ?? 0;
+
+  if (!hasBeatenGame || (intelFragments < 50 && zeroDay === 0 && coolant === 0)) return null;
 
   return (
     <div className="flex gap-2 px-3 py-1.5 border-t border-zinc-800/40">
@@ -135,7 +139,7 @@ function ConsumableBar() {
         onClick={() => useConsumable('zeroDay')}
         disabled={zeroDay === 0}
         className={[
-          'flex-1 py-1 rounded border font-mono text-[10px] uppercase tracking-widest transition-all duration-150',
+          'flex-1 py-3 rounded border font-mono text-xs uppercase tracking-widest transition-all duration-150',
           zeroDay > 0
             ? 'border-amber-500/40 text-amber-400 hover:bg-amber-500/10 active:scale-95'
             : 'border-zinc-800 text-zinc-700 cursor-not-allowed',
@@ -147,7 +151,7 @@ function ConsumableBar() {
         onClick={() => useConsumable('coolant')}
         disabled={coolant === 0}
         className={[
-          'flex-1 py-1 rounded border font-mono text-[10px] uppercase tracking-widest transition-all duration-150',
+          'flex-1 py-3 rounded border font-mono text-xs uppercase tracking-widest transition-all duration-150',
           coolant > 0
             ? 'border-blue-500/40 text-blue-400 hover:bg-blue-500/10 active:scale-95'
             : 'border-zinc-800 text-zinc-700 cursor-not-allowed',

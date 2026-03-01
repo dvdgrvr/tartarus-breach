@@ -52,7 +52,7 @@ export function BottomBorder() {
       {status === 'hacking' && (
         <button
           onClick={() => packUp('escaped')}
-          className="px-4 py-1.5 rounded border border-violet-500/40 text-violet-400 font-mono text-xs uppercase tracking-widest hover:bg-violet-500/10 hover:border-violet-400 transition-all duration-150 active:scale-95"
+          className="px-6 py-3 rounded border border-orange-500/50 text-orange-400 font-mono text-sm font-bold uppercase tracking-widest hover:bg-orange-500/10 hover:border-orange-400 transition-all duration-150 active:scale-95"
         >
           Pack Up
         </button>

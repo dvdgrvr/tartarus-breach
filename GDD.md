@@ -1,4 +1,4 @@
-Ghost Protocol - Game Design Document (GDD)
+Tartarus Breach - Game Design Document (GDD)
 Current Stage: Verion I (MVP Foundation)
 Core Genre: Mobile-First Hacking Survival Simulation
 Inspiration: The cinematic, high-stakes energy of Hackers (1995) translated into a modern, tactile mobile experience.

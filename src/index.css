@@ -79,6 +79,7 @@
   }
 
   /* ── Siren vignette — radial red overlay, pulses like a heartbeat ──────── */
+  /* Background alpha capped at 0.15; keyframe peaks at 1.0 → max 15% red.   */
   .siren-vignette {
     position: absolute;
     inset: 0;
@@ -86,7 +87,7 @@
     background: radial-gradient(
       ellipse at center,
       transparent 20%,
-      rgba(239, 68, 68, 0.38) 100%
+      rgba(239, 68, 68, 0.15) 100%
     );
     animation: heartbeat 1.2s ease-in-out infinite;
     z-index: 20;
@@ -228,6 +229,74 @@
       drop-shadow( 1px 0px 0px rgba(255, 0,   0,   0.35))
       drop-shadow(-1px 0px 0px rgba(0,   0,   255, 0.35));
   }
+
+  /* ── CRT Hardware Shell ─────────────────────────────────────────────────── */
+  /* Inset bezel shadow is merged into App.jsx glowStyle (inline) to avoid    */
+  /* box-shadow conflict with the outward desk glow. This class provides the  */
+  /* border-radius (curved glass) and the ::after static glare reflection.    */
+  .crt-hardware {
+    border-radius: 16px;
+  }
+
+  .crt-hardware::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+    z-index: 10;
+  }
+
+  /* ── Physical Room — environment backgrounds behind the terminal ─────────── */
+
+  /* Base: near-black, zero atmosphere */
+  .room-environment {
+    background: #050505;
+  }
+
+  /* Safehouse ALPHA — cheap desk, warm-grey with faint wood-grain crosshatch */
+  .env-alpha {
+    background-color: #0d0b0a;
+    background-image:
+      radial-gradient(ellipse 120% 40% at 50% 110%, rgba(120, 90, 50, 0.06) 0%, transparent 60%),
+      repeating-linear-gradient(  0deg, transparent 0px, transparent 3px, rgba(255, 240, 200, 0.010) 3px, rgba(255, 240, 200, 0.010) 4px),
+      repeating-linear-gradient( 90deg, transparent 0px, transparent 5px, rgba(255, 240, 200, 0.006) 5px, rgba(255, 240, 200, 0.006) 6px);
+  }
+
+  /* Safehouse TANGO — metal desk, cool-grey with brushed-aluminium micro-sheen */
+  .env-tango {
+    background-color: #0a0b0d;
+    background-image:
+      radial-gradient(ellipse 120% 40% at 50% 110%, rgba(50, 80, 120, 0.06) 0%, transparent 60%),
+      repeating-linear-gradient( 22deg, transparent 0px, transparent 2px, rgba(180, 210, 255, 0.012) 2px, rgba(180, 210, 255, 0.012) 3px);
+  }
+
+  /* Safehouse ECHO — industrial surface, emerald tinge */
+  .env-echo {
+    background-color: #090d0a;
+    background-image:
+      radial-gradient(ellipse 120% 40% at 50% 110%, rgba(16, 120, 60, 0.06) 0%, transparent 60%);
+  }
+
+  /* Safehouse GHOST — concrete, slate blue-grey */
+  .env-ghost {
+    background-color: #0a0b0c;
+    background-image:
+      radial-gradient(ellipse 120% 40% at 50% 110%, rgba(60, 80, 120, 0.05) 0%, transparent 60%);
+  }
+
+  /* Safehouse WRAITH — underground, deep fuchsia haze */
+  .env-wraith {
+    background-color: #0d080e;
+    background-image:
+      radial-gradient(ellipse 120% 40% at 50% 110%, rgba(120, 20, 140, 0.07) 0%, transparent 60%);
+  }
+
+  /* Hacking state — pitch black, zero atmosphere */
+  .env-combat {
+    background-color: #050505;
+  }
 }
 
 /* ─── Keyframe Animations ────────────────────────────────────────────────────── */
@@ -248,10 +317,11 @@
 }
 
 /* Siren heartbeat — for .siren-vignette */
+/* With background alpha 0.15, opacity 1.0 = 15% effective red at peak.      */
 @keyframes heartbeat {
-  0%, 100% { opacity: 0.28; }
-  40%       { opacity: 0.68; }
-  60%       { opacity: 0.52; }
+  0%, 100% { opacity: 0.40; }
+  40%       { opacity: 1.00; }
+  60%       { opacity: 0.70; }
 }
 
 /* Digital glitch — chromatic aberration burst every ~3.5s */

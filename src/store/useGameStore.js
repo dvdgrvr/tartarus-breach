@@ -670,7 +670,7 @@ const useGameStore = create(
 
     // ─── Persist ──────────────────────────────────────────────────────────
     {
-      name: 'ghost-protocol-save',
+      name: 'tartarus-save',
       version: SAVE_VERSION,
 
       migrate: (persistedState, version) => {

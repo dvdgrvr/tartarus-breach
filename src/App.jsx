@@ -136,19 +136,24 @@ function GameOverScene() {
 }
 
 // ─── Safehouse ambient glow ───────────────────────────────────────────────────
+// Downward-shifted to simulate monitor light casting onto the desk below.
 // Inline styles (not Tailwind classes) so values are never purged by the scanner.
 
 const SAFEHOUSE_GLOW = {
-  cyan:    '0 0 80px -20px rgba(6,182,212,0.18),   0 0 160px -40px rgba(6,182,212,0.09)',
-  amber:   '0 0 80px -20px rgba(245,158,11,0.18),  0 0 160px -40px rgba(245,158,11,0.09)',
-  emerald: '0 0 80px -20px rgba(16,185,129,0.18),  0 0 160px -40px rgba(16,185,129,0.09)',
-  slate:   '0 0 80px -20px rgba(100,116,139,0.18), 0 0 160px -40px rgba(100,116,139,0.09)',
-  fuchsia: '0 0 80px -20px rgba(217,70,239,0.18),  0 0 160px -40px rgba(217,70,239,0.09)',
+  cyan:    '0 40px 80px -20px rgba(6,182,212,0.25),   0 80px 160px -40px rgba(6,182,212,0.15)',
+  amber:   '0 40px 80px -20px rgba(245,158,11,0.25),  0 80px 160px -40px rgba(245,158,11,0.15)',
+  emerald: '0 40px 80px -20px rgba(16,185,129,0.25),  0 80px 160px -40px rgba(16,185,129,0.15)',
+  slate:   '0 40px 80px -20px rgba(100,116,139,0.25), 0 80px 160px -40px rgba(100,116,139,0.15)',
+  fuchsia: '0 40px 80px -20px rgba(217,70,239,0.25),  0 80px 160px -40px rgba(217,70,239,0.15)',
 };
+
+// Panic override — Safety Orange/Red downward burst when heat or trace exceeds 80%.
+const PANIC_GLOW =
+  '0 40px 80px -20px rgba(239,68,68,0.40), 0 80px 160px -40px rgba(245,158,11,0.25)';
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
-const CONTAINER_BASE = 'h-[100svh] w-screen max-w-sm mx-auto flex flex-col overflow-hidden relative';
+const CONTAINER_BASE = 'h-[95svh] max-w-sm w-full flex flex-col overflow-hidden relative';
 
 export default function App() {
   const status             = useGameStore(s => s.status);
@@ -156,18 +161,38 @@ export default function App() {
   const currentSafehouse   = useGameStore(s => s.currentSafehouse);
   const settings           = useGameStore(s => s.settings);
   const pendingFragmentIdx = useGameStore(s => s.pendingFragmentIdx);
+  const physicalHeat       = useGameStore(s => s.physicalHeat);
+  const digitalTrace       = useGameStore(s => s.digitalTrace);
 
   const [showSettings, setShowSettings] = useState(false);
 
   const cyberdeliaMode = settings?.cyberdeliaMode ?? false;
-  const containerClass = cyberdeliaMode
-    ? `${CONTAINER_BASE} cyberdelia-vibe`
-    : CONTAINER_BASE;
+
+  // CRT bezel: inset shadow merged into boxShadow to avoid CSS property conflict
+  // with the outward desk glow. The border-radius + glass glare live in .crt-hardware.
+  const insetBezel = settings?.crtEnabled
+    ? ', inset 0 0 20px rgba(0,0,0,0.8), inset 0 0 2px rgba(255,255,255,0.1)'
+    : '';
+
+  const isPanic   = status === 'hacking' && (physicalHeat > 80 || digitalTrace > 80);
+  const outerGlow = isPanic
+    ? PANIC_GLOW
+    : (SAFEHOUSE_GLOW[currentSafehouse?.color] ?? SAFEHOUSE_GLOW.cyan);
+
+  const containerClass = [
+    CONTAINER_BASE,
+    cyberdeliaMode         ? 'cyberdelia-vibe' : '',
+    settings?.crtEnabled   ? 'crt-hardware'    : '',
+  ].filter(Boolean).join(' ');
 
   const glowStyle = {
-    boxShadow: SAFEHOUSE_GLOW[currentSafehouse?.color] ?? SAFEHOUSE_GLOW.cyan,
+    boxShadow: outerGlow + insetBezel,
     ...(cyberdeliaMode && { background: '#0D0221' }),
   };
+
+  // Room environment — shows the desk/surface behind the terminal
+  const envId   = status === 'hacking' ? 'combat' : (currentSafehouse?.id?.toLowerCase() ?? 'alpha');
+  const roomClass = `h-[100svh] w-full flex justify-center items-center overflow-hidden room-environment env-${envId}`;
 
   // Global heartbeat — the single timer driving all time-based game events.
   // All logic resolves inside the store's tick(); this component only fires it.
@@ -187,34 +212,40 @@ export default function App() {
   );
 
   if (status === 'victory') return (
-    <div className={containerClass} style={glowStyle}>
-      {settings?.crtEnabled && <div className="crt-scanlines" />}
-      {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-      {settingsButton}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-      {pendingFragmentIdx !== null && <FragmentModal />}
-      <VictoryScene />
+    <div className={roomClass}>
+      <div className={containerClass} style={glowStyle}>
+        {settings?.crtEnabled && <div className="crt-scanlines" />}
+        {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
+        {settingsButton}
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+        {pendingFragmentIdx !== null && <FragmentModal />}
+        <VictoryScene />
+      </div>
     </div>
   );
 
   if (status === 'game_over') return (
-    <div className={containerClass} style={glowStyle}>
-      {settings?.crtEnabled && <div className="crt-scanlines" />}
-      {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-      {settingsButton}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-      <GameOverScene />
+    <div className={roomClass}>
+      <div className={containerClass} style={glowStyle}>
+        {settings?.crtEnabled && <div className="crt-scanlines" />}
+        {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
+        {settingsButton}
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+        <GameOverScene />
+      </div>
     </div>
   );
 
   return (
-    <div className={containerClass} style={glowStyle}>
-      {settings?.crtEnabled && <div className="crt-scanlines" />}
-      {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-      {settingsButton}
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-      {pendingFragmentIdx !== null && <FragmentModal />}
-      {status === 'hacking' ? <HackingScene /> : <TransitScene />}
+    <div className={roomClass}>
+      <div className={containerClass} style={glowStyle}>
+        {settings?.crtEnabled && <div className="crt-scanlines" />}
+        {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
+        {settingsButton}
+        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+        {pendingFragmentIdx !== null && <FragmentModal />}
+        {status === 'hacking' ? <HackingScene /> : <TransitScene />}
+      </div>
     </div>
   );
 }
