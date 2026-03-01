@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import useGameStore from '../store/useGameStore';
 
-export default function TerminalLog() {
+export default function TerminalLog({ className = '' }) {
   const terminalLog = useGameStore(s => s.terminalLog);
   const endRef = useRef(null);
 
@@ -11,7 +11,7 @@ export default function TerminalLog() {
   }, [terminalLog]);
 
   return (
-    <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-thin">
+    <div className={`flex-1 overflow-y-auto px-3 py-2 space-y-0.5 scrollbar-thin ${className}`}>
       {terminalLog.map((line, i) => (
         <p
           key={i}

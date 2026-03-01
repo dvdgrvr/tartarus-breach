@@ -1,8 +1,8 @@
 import useGameStore from '../store/useGameStore';
 
-function GaugeBar({ value, colorClass }) {
+function GaugeBar({ value, colorClass, className = '' }) {
   return (
-    <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+    <div className={`flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden ${className}`}>
       <div
         className={`h-full rounded-full transition-all duration-500 ${colorClass}`}
         style={{ width: `${value}%` }}
@@ -14,7 +14,8 @@ function GaugeBar({ value, colorClass }) {
 // ─── Top peripheral — Physical Heat ───────────────────────────────────────────
 
 export function TopBorder() {
-  const heat = useGameStore(s => s.physicalHeat);
+  const heat         = useGameStore(s => s.physicalHeat);
+  const shakeEnabled = useGameStore(s => s.settings?.shakeEnabled ?? true);
 
   const isDanger   = heat >= 80;
   const isWarning  = heat >= 50;
@@ -26,7 +27,7 @@ export function TopBorder() {
       <span className={`font-mono text-[10px] uppercase tracking-widest w-16 shrink-0 ${labelClass} ${isDanger ? 'animate-pulse' : ''}`}>
         {isDanger ? '[!] HEAT' : '    HEAT'}
       </span>
-      <GaugeBar value={heat} colorClass={colorClass} />
+      <GaugeBar value={heat} colorClass={colorClass} className={isDanger && shakeEnabled ? 'danger-shake' : ''} />
       <span className={`font-mono text-[10px] tabular-nums w-8 text-right ${labelClass}`}>
         {heat.toFixed(0)}%
       </span>
@@ -50,7 +51,7 @@ export function BottomBorder() {
 
       {status === 'hacking' && (
         <button
-          onClick={() => packUp(true)}
+          onClick={() => packUp('escaped')}
           className="px-4 py-1.5 rounded border border-violet-500/40 text-violet-400 font-mono text-xs uppercase tracking-widest hover:bg-violet-500/10 hover:border-violet-400 transition-all duration-150 active:scale-95"
         >
           Pack Up

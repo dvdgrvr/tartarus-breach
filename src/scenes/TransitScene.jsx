@@ -11,16 +11,31 @@ function calcUpgradeCost(cfg, currentLevel) {
 
 // ─── Session Summary ──────────────────────────────────────────────────────────
 
+const OUTCOME_BADGE = {
+  success:      { label: 'SYSTEM BREACHED',              className: 'text-green-400 border-green-500/40 bg-green-500/10'    },
+  escaped:      { label: 'TACTICAL RETREAT',             className: 'text-amber-400 border-amber-500/40 bg-amber-500/10'    },
+  trace_busted: { label: 'CONNECTION SEVERED. 0 INTEL.', className: 'text-red-400   border-red-500/40   bg-red-500/10'      },
+  heat_busted:  { label: 'SAFEHOUSE RAIDED. INTEL LOST.',className: 'text-red-400   border-red-500/40   bg-red-500/10 animate-pulse' },
+};
+
 function SessionSummary() {
-  const earned = useGameStore(s => s.sessionIntelEarned);
-  const heat   = useGameStore(s => s.packUpHeat);
-  const trace  = useGameStore(s => s.packUpTrace);
+  const earned  = useGameStore(s => s.sessionIntelEarned);
+  const heat    = useGameStore(s => s.packUpHeat);
+  const trace   = useGameStore(s => s.packUpTrace);
+  const outcome = useGameStore(s => s.transitOutcome);
+
+  const badge = OUTCOME_BADGE[outcome] ?? OUTCOME_BADGE.escaped;
 
   return (
     <div className="glass-panel rounded-lg p-4 mb-5">
-      <p className="font-mono text-[10px] uppercase tracking-widest text-cyan-400/50 mb-3">
-        // Session Log
-      </p>
+      <div className="flex items-center justify-between mb-3">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-cyan-400/50">
+          // Session Log
+        </p>
+        <span className={`font-mono text-[9px] uppercase tracking-widest px-2 py-0.5 rounded border ${badge.className}`}>
+          {badge.label}
+        </span>
+      </div>
       <div className="space-y-2.5">
         <div className="flex justify-between items-center">
           <span className="font-mono text-xs text-zinc-500">Intel Harvested</span>
@@ -173,7 +188,7 @@ function NarrativeArchive() {
             No fragments decoded yet.
           </p>
           <p className="font-mono text-[10px] text-zinc-700 mt-1">
-            Successfully breach a node to extract data.
+            Breach a Priority Lead to extract data.
           </p>
         </div>
       ) : (
@@ -184,7 +199,7 @@ function NarrativeArchive() {
                 Fragment #{String(idx + 1).padStart(3, '0')} — Decoded
               </p>
               <p className="font-mono text-[11px] text-zinc-300 leading-relaxed">
-                {storyFragments[idx]}
+                {storyFragments[idx].text}
               </p>
             </div>
           ))}
@@ -251,25 +266,92 @@ function TabBar({ active, onChange }) {
   );
 }
 
+// ─── Job Selection Footer ─────────────────────────────────────────────────────
+
+function JobFooter() {
+  const startNewSession = useGameStore(s => s.startNewSession);
+  const archiveLen      = useGameStore(s => s.storyArchive.length);
+  const isTartarusReady = archiveLen === 11;
+
+  return (
+    <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2">
+      {/* DATA SKIM — always visible */}
+      <button
+        onClick={() => startNewSession('skim')}
+        className="w-full py-2.5 rounded-lg border border-green-500/40 text-green-400 font-mono text-xs font-bold uppercase tracking-widest hover:bg-green-500/10 hover:border-green-400 transition-all duration-200 active:scale-[0.99] glow-green"
+      >
+        Initiate Data Skim
+        <span className="block text-[9px] font-normal text-green-400/40 mt-0.5 normal-case tracking-normal">
+          Low-sec target · Low intel · No story data
+        </span>
+      </button>
+
+      {/* PRIORITY LEAD — visible until 11 fragments collected */}
+      {!isTartarusReady && (
+        <button
+          onClick={() => startNewSession('priority')}
+          className="w-full py-2.5 rounded-lg border border-violet-500/40 text-violet-300 font-mono text-xs font-bold uppercase tracking-widest hover:bg-violet-500/10 hover:border-violet-400 transition-all duration-200 active:scale-[0.99] glow-violet"
+        >
+          Pursue Priority Lead
+          <span className="block text-[9px] font-normal text-violet-400/40 mt-0.5 normal-case tracking-normal">
+            Secure target · Higher intel · Unlocks story fragment
+          </span>
+        </button>
+      )}
+
+      {/* ASSAULT TARTARUS — replaces Priority Lead when 11 fragments collected */}
+      {isTartarusReady && (
+        <button
+          onClick={() => startNewSession('tartarus')}
+          className="w-full py-2.5 rounded-lg border border-red-500/60 text-red-400 font-mono text-xs font-bold uppercase tracking-widest bg-red-500/5 hover:bg-red-500/15 hover:border-red-400 transition-all duration-200 active:scale-[0.99] animate-pulse"
+        >
+          Assault Tartarus Node
+          <span className="block text-[9px] font-normal text-red-400/50 mt-0.5 normal-case tracking-normal">
+            400 HP · TRACE_ACCELERATOR · One chance. No retreat.
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ─── Transit Scene (main) ─────────────────────────────────────────────────────
 
 export default function TransitScene() {
   const [activeTab, setActiveTab] = useState('debrief');
 
-  const intelFragments  = useGameStore(s => s.intelFragments);
-  const startNewSession = useGameStore(s => s.startNewSession);
+  const intelFragments   = useGameStore(s => s.intelFragments);
+  const archiveLen       = useGameStore(s => s.storyArchive.length);
+  const currentSafehouse = useGameStore(s => s.currentSafehouse);
+
+  // Escalation phase: 0 = normal, 1 = flicker, 2 = warning, 3 = alarm
+  const phase = archiveLen >= 11 ? 3 : archiveLen >= 8 ? 2 : archiveLen >= 4 ? 1 : 0;
+
+  // Container: phase 3 adds maroon gradient background + inset alarm pulse
+  const containerBg    = phase >= 3
+    ? { background: 'linear-gradient(180deg, #09090b 0%, #1a0505 50%, #09090b 100%)' }
+    : undefined;
+  const containerClass = `flex flex-col h-full overflow-hidden ${phase >= 3 ? 'alarm-pulse' : ''}`;
+
+  // Status line text + colour
+  const statusText  = phase >= 2 ? '// WARNING — THEY ARE WATCHING' : '// Transit Mode — Signal Rerouted';
+  const statusClass = phase >= 2 ? 'text-red-400/80 red-blink' : 'text-green-400/50';
+
+  // Header colour + flicker
+  const headerColor = phase >= 2 ? 'text-red-500' : 'text-zinc-200';
+  const headerAnim  = phase === 1 ? 'transit-header-flicker' : '';
 
   return (
-    <div className="flex flex-col h-full bg-zinc-950 overflow-hidden">
+    <div className={containerClass} style={containerBg}>
 
       {/* ── Header ── */}
       <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-green-400/50">
-          // Transit Mode — Signal Rerouted
+        <p className={`font-mono text-[10px] uppercase tracking-widest ${statusClass}`}>
+          {statusText}
         </p>
         <div className="flex items-center justify-between mt-1">
-          <h2 className="font-mono text-sm font-bold text-zinc-200 uppercase tracking-widest">
-            Safe House
+          <h2 className={`font-mono text-sm font-bold uppercase tracking-widest ${headerColor} ${headerAnim}`}>
+            Safe House // {currentSafehouse?.id ?? 'ALPHA'}
           </h2>
           <div className="flex items-baseline gap-1.5">
             <span className="font-mono text-[10px] text-cyan-400/50 uppercase tracking-widest">Balance</span>
@@ -294,15 +376,8 @@ export default function TransitScene() {
         )}
       </div>
 
-      {/* ── Footer CTA ── */}
-      <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0">
-        <button
-          onClick={startNewSession}
-          className="w-full py-3 rounded-lg border border-green-500/40 text-green-400 font-mono text-sm font-bold uppercase tracking-widest hover:bg-green-500/10 hover:border-green-400 transition-all duration-200 active:scale-[0.99] glow-green"
-        >
-          New Job
-        </button>
-      </div>
+      {/* ── Job selection footer ── */}
+      <JobFooter />
     </div>
   );
 }

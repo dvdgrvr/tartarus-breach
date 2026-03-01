@@ -49,6 +49,8 @@ function FirewallRow() {
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
 
   const isHidden = node?.specialDefense === 'ENCRYPTED_LOGS' && !firewallRevealed;
+  const maxHP    = node?.firewallHP ?? 100;
+  const barWidth = Math.min(100, (firewallHealth / maxHP) * 100);
 
   return (
     <div className="flex items-center gap-2 px-3 py-0.5">
@@ -57,26 +59,26 @@ function FirewallRow() {
       </span>
 
       {isHidden ? (
-        // Encrypted display — static amber dashes instead of a real bar
+        // Encrypted display — static amber fill instead of a real bar
         <>
           <div className="flex-1 h-[3px] bg-zinc-800 rounded-full overflow-hidden">
             <div className="h-full w-full bg-amber-500/40 rounded-full" />
           </div>
           <span className="font-mono text-[10px] tabular-nums w-7 text-right text-amber-500/60">
-            ???
+            ??
           </span>
         </>
       ) : (
-        // Normal display
+        // Normal display — raw HP integer, no %
         <>
           <div className="flex-1 h-[3px] bg-zinc-800 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full bg-violet-500 transition-all duration-300"
-              style={{ width: `${Math.min(100, firewallHealth)}%` }}
+              style={{ width: `${barWidth}%` }}
             />
           </div>
           <span className="font-mono text-[10px] tabular-nums w-7 text-right text-zinc-500">
-            {firewallHealth.toFixed(0)}%
+            {Math.ceil(firewallHealth)}
           </span>
         </>
       )}
@@ -87,17 +89,18 @@ function FirewallRow() {
 // ─── Trace Row ────────────────────────────────────────────────────────────────
 
 function TraceRow() {
-  const trace            = useGameStore(s => s.digitalTrace);
-  const node             = useGameStore(s => s.currentNode);
-  const isAccelerated    = node?.specialDefense === 'TRACE_ACCELERATOR';
+  const trace         = useGameStore(s => s.digitalTrace);
+  const node          = useGameStore(s => s.currentNode);
+  const shakeEnabled  = useGameStore(s => s.settings?.shakeEnabled ?? true);
+  const isAccelerated = node?.specialDefense === 'TRACE_ACCELERATOR';
 
   const isDanger  = trace >= 80;
   const isWarning = trace >= 50;
-  const labelColor  = isDanger ? 'text-red-400' : isWarning ? 'text-orange-400' : 'text-zinc-500';
-  const barColor    = isDanger ? 'bg-red-500'   : isWarning ? 'bg-orange-500'   : 'bg-blue-500';
+  const labelColor = isDanger ? 'text-red-400' : isWarning ? 'text-orange-400' : 'text-zinc-500';
+  const barColor   = isDanger ? 'bg-red-500'   : isWarning ? 'bg-orange-500'   : 'bg-blue-500';
 
   return (
-    <div className="flex items-center gap-2 px-3 py-0.5">
+    <div className={`flex items-center gap-2 px-3 py-0.5 ${isDanger && shakeEnabled ? 'danger-shake' : ''}`}>
       <span className={`font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 ${labelColor} ${isDanger ? 'animate-pulse' : ''}`}>
         {isDanger ? '[!]TR' : isAccelerated ? 'TR x2' : 'TRACE'}
       </span>
@@ -117,15 +120,27 @@ function TraceRow() {
 // ─── Hacking Scene ────────────────────────────────────────────────────────────
 
 export default function HackingScene() {
+  const trace = useGameStore(s => s.digitalTrace);
+  const heat  = useGameStore(s => s.physicalHeat);
+
+  const isTraceDanger = trace >= 80;
+  const isHeatDanger  = heat  >= 80;
+
   return (
-    <div className="flex flex-col h-full bg-zinc-950">
-      {/* Top 15% — Physical Heat peripheral */}
+    <div className="flex flex-col h-full bg-zinc-950 relative">
+
+      {/* Siren vignette — pointer-events-none, pulses when heat is critical */}
+      {isHeatDanger && <div className="siren-vignette" />}
+
+      {/* Top — Physical Heat peripheral */}
       <TopBorder />
 
       {/* Center — Node strip + Terminal + Gauges + Commands */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <NodeStatusStrip />
-        <TerminalLog />
+
+        {/* Terminal — digital-glitch applied when trace is critical */}
+        <TerminalLog className={isTraceDanger ? 'digital-glitch' : ''} />
 
         <div className="border-t border-zinc-800/60 pt-1 pb-0.5">
           <FirewallRow />
@@ -135,7 +150,7 @@ export default function HackingScene() {
         <CommandBar />
       </div>
 
-      {/* Bottom 15% — Intel Fragments + Pack Up peripheral */}
+      {/* Bottom — Intel Fragments + Pack Up peripheral */}
       <BottomBorder />
     </div>
   );

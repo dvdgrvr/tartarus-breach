@@ -10,7 +10,8 @@
     height: 100%;
     margin: 0;
     padding: 0;
-    background-color: #09090b; /* zinc-950 — OLED pitch black */
+    /* Deep radial vignette — outer edges bleed to pure black */
+    background: radial-gradient(ellipse 90% 70% at 50% 40%, #0a0a0f 0%, #000000 100%);
     color: #a1a1aa;            /* zinc-400 */
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
       'Liberation Mono', 'Courier New', monospace;
@@ -28,6 +29,22 @@
   ::-webkit-scrollbar       { width: 2px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
+}
+
+/* ─── Scanline overlay — CRT glass feel, conditionally rendered from React ─────── */
+/* Rendered as a <div className="crt-scanlines" /> when settings.crtEnabled is true */
+.crt-scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0)     0px,
+    rgba(0, 0, 0, 0)     1px,
+    rgba(0, 0, 0, 0.028) 1px,
+    rgba(0, 0, 0, 0.028) 2px
+  );
+  z-index: 9999;
 }
 
 /* ─── Utility Components ──────────────────────────────────────────────────────── */
@@ -54,11 +71,58 @@
   .glow-violet:hover {
     box-shadow: 0 0 20px rgba(167, 139, 250, 0.22);
   }
+
+  /* Game container — faint neon bloom so it looks like it casts light */
+  .game-container-glow {
+    box-shadow: 0 0 80px -20px rgba(74, 222, 128, 0.12),
+                0 0 160px -40px rgba(74, 222, 128, 0.06);
+  }
+
+  /* ── Siren vignette — radial red overlay, pulses like a heartbeat ──────── */
+  .siren-vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 20%,
+      rgba(239, 68, 68, 0.38) 100%
+    );
+    animation: heartbeat 1.2s ease-in-out infinite;
+    z-index: 20;
+  }
+
+  /* ── Terminal glitch — chromatic aberration + horizontal tear ─────────── */
+  .digital-glitch {
+    animation: digital-glitch 3.5s linear infinite;
+  }
+
+  /* ── Danger shake — applied to progress bar rows at >80% ─────────────── */
+  .danger-shake {
+    animation: danger-shake 0.28s linear infinite;
+  }
+
+  /* ── Transit UI escalation ─────────────────────────────────────────────── */
+
+  /* Phase 1 (4+ frags): header flickers occasionally */
+  .transit-header-flicker {
+    animation: transit-header-flicker 5s linear infinite;
+  }
+
+  /* Phase 2 (8+ frags): warning text blinks red */
+  .red-blink {
+    animation: red-blink 1.4s step-end infinite;
+  }
+
+  /* Phase 3 (11 frags): emergency inset alarm pulse on the container */
+  .alarm-pulse {
+    animation: alarm-pulse 2s ease-in-out infinite;
+  }
 }
 
 /* ─── Keyframe Animations ────────────────────────────────────────────────────── */
 
-/* Subtle glitch — fires on danger elements via Tailwind animate-[glitch] */
+/* Legacy glitch — kept for backwards compatibility */
 @keyframes glitch {
   0%, 88%, 100% { transform: translate(0); filter: none; }
   90%  { transform: translate(-2px,  1px); filter: hue-rotate(90deg); }
@@ -71,4 +135,63 @@
 @keyframes neon-pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.55; }
+}
+
+/* Siren heartbeat — for .siren-vignette */
+@keyframes heartbeat {
+  0%, 100% { opacity: 0.28; }
+  40%       { opacity: 0.68; }
+  60%       { opacity: 0.52; }
+}
+
+/* Digital glitch — chromatic aberration burst every ~3.5s */
+@keyframes digital-glitch {
+  0%, 87%, 100% {
+    transform: none;
+    filter: none;
+  }
+  88% {
+    transform: translateX(-3px);
+    filter: drop-shadow(3px 0 0 rgba(0, 255, 255, 0.75))
+            drop-shadow(-3px 0 0 rgba(255, 0, 80, 0.75));
+  }
+  89% {
+    transform: translateX(3px);
+    filter: none;
+  }
+  90% {
+    transform: translateX(-2px);
+    filter: drop-shadow(2px 0 0 rgba(0, 255, 255, 0.5));
+  }
+  91% {
+    transform: none;
+    filter: none;
+  }
+}
+
+/* Danger shake — rapid micro-tremor on >80% bars */
+@keyframes danger-shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-1.5px); }
+  75%       { transform: translateX(1.5px); }
+}
+
+/* Transit header flicker — occasional dropout (Phase 1) */
+@keyframes transit-header-flicker {
+  0%, 93%, 96%, 100% { opacity: 1; }
+  94%                 { opacity: 0.08; }
+  95%                 { opacity: 0.9; }
+}
+
+/* Red blink — step-function blink for warning text (Phase 2+) */
+@keyframes red-blink {
+  0%, 49.9% { opacity: 1; }
+  50%, 100%  { opacity: 0.15; }
+}
+
+/* Alarm pulse — inset red emergency glow (Phase 3) */
+@keyframes alarm-pulse {
+  0%, 100% { box-shadow: inset 0 0 0px  rgba(239, 68, 68, 0);    }
+  50%       { box-shadow: inset 0 0 60px rgba(239, 68, 68, 0.18),
+                          inset 0 0 30px rgba(185, 28, 28, 0.10); }
 }

@@ -1,14 +1,50 @@
 [
-  "Helix Internal log: 'Project SPECTRE phase 1 complete. All legacy relay nodes have been flagged for acquisition. The operators don't suspect anything yet.'",
-  "Encrypted memo, sender redacted: 'The three operators who ran deep traces on the Vault-7 archive last month have gone dark. This is not a coincidence. Do not investigate.'",
-  "The SPECTRE codeword first appears in records 14 months ago, originating from a government contractor ID that no longer exists in any public registry.",
-  "Bank transfer records, shell company HELX-9: $4.2M wired to a blacksite facility listed as decommissioned in 2019. Its power consumption has run at 100% capacity ever since.",
-  "Fragment of internal Helix chat: '[REDACTED]: when do the backdoors go live?' / '[REDACTED]: after the next election cycle. We cannot afford the noise right now.'",
-  "Infrastructure diagram, Helix internal. They have acquired or compromised 14 of the 22 critical civilian relay nodes in this sector. They are building a choke point.",
-  "Partial employee manifest. The person called 'The Architect' is referenced in 47 documents but never named directly. All correspondence routes through a dead-drop the system labels GHOST.",
-  "Security flagging log from a Helix facility: 'Anonymous operator accessed archives three times this week. Designated GHOST-PROTOCOL-UNKNOWN. Escalate to termination protocol.'",
-  "The breadcrumbs in this data are too precise to be accidental. Someone inside Helix is feeding you information deliberately. You are not hunting them. They are guiding you.",
-  "The Architect's final internal memo, timestamp six days ago: 'If SPECTRE activates, there is no more underground network. There is only their infrastructure, and silence.'",
-  "SPECTRE is not a surveillance system. It is a kill switch. When triggered, it severs every non-Helix node from the grid simultaneously — and the severance is permanent.",
-  "A set of GPS coordinates, embedded raw in the final data packet. A physical facility, off-grid. Whoever is feeding you this data wants you to go there in person. The last move is offline."
+  {
+    "id": "FRAG_01",
+    "text": "[ERR_RST] Connection dropped. PCAP analysis confirms external sever. Someone cut the cord on Banshee's dive. This wasn't hostile ICE. It was an inside job."
+  },
+  {
+    "id": "FRAG_02",
+    "text": "FWD: FWD: Asset Cleanup. \"Tell the cleaners to bill it under 'Server Maintenance'. And scrub the transit logs for those three runners. I don't want a paper trail.\""
+  },
+  {
+    "id": "FRAG_03",
+    "text": "Slack Export - Channel: #net-sec. @devin: \"Stop spamming the DECRYPT tool on the outer perimeter. It's redlining the physical heat sensors on your rigs. Do it again and I'm revoking your access.\""
+  },
+  {
+    "id": "FRAG_04",
+    "text": "Recovered Audio Fragment: \"...they knew we were coming. Vanguard, if you're hearing this, burn your rig. They have our IPs. They're taking us to the old— [STATIC]\""
+  },
+  {
+    "id": "FRAG_05",
+    "text": "Invoice #8849-B: 'Sedatives, Class 4. Qty: 3.' Delivery destination: OMNI-CORP SUB-LEVEL 4 (Defunct Metro line)."
+  },
+  {
+    "id": "FRAG_06",
+    "text": "Memo - ICE Protocol Update. \"Once a hostile trace hits 80%, the system now auto-accelerates. The window to disconnect closes to seconds. If they don't pack up before 80, we own them.\""
+  },
+  {
+    "id": "FRAG_07",
+    "text": "Automated ping. Handshake failed. Metadata attached: 'Vanguard, it's Cipher. Trench is hurt. They have us in a Faraday cage under the city. Need an exit strategy.'"
+  },
+  {
+    "id": "FRAG_08",
+    "text": "Direct Message - @k.osborne: \"The Faraday cage is holding, but the internal firewall is a beast. 130 HP minimum. Don't even try brute forcing with a standard Scan.\""
+  },
+  {
+    "id": "FRAG_09",
+    "text": "Terminal Log: Internal breach attempt detected. User: Cipher. \"Can't bypass without an upgraded payload. Need more RAM to cycle tools faster. Vanguard, hope you're farming intel out there.\""
+  },
+  {
+    "id": "FRAG_10",
+    "text": "Routing table decrypted. The dummy corp is 'Apex Logistics'. Following the traffic... it all funnels into a single, massive localized server. The Tartarus Node."
+  },
+  {
+    "id": "FRAG_11",
+    "text": "[SYSTEM ALERT] TARGET ACQUIRED. // NODE: TARTARUS. // IP SECURED. They are holding them behind this wall. This is a one-way trip. Time to break them out."
+  },
+  {
+    "id": "FRAG_12",
+    "text": "> root_access_granted. > executing: cell_release.sh. > STATUS: UNLOCKED. // COMM CHANNEL OPEN. \"Vanguard to team. I see you. Let's go home.\""
+  }
 ]
