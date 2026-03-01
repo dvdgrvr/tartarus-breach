@@ -358,10 +358,10 @@ function JobFooter() {
       {/* DATA SKIM — always visible */}
       <button
         onClick={() => startNewSession('skim')}
-        className="w-full py-2.5 rounded-lg border border-green-500/40 text-green-400 font-mono text-xs font-bold uppercase tracking-widest hover:bg-green-500/10 hover:border-green-400 transition-all duration-200 active:scale-[0.99] glow-green game-button"
+        className="w-full py-2.5 px-6 rounded-lg border border-green-500/40 text-green-400 font-mono text-xs font-bold uppercase tracking-widest hover:bg-green-500/10 hover:border-green-400 transition-all duration-200 active:scale-[0.99] glow-green game-button"
       >
         Initiate Data Skim
-        <span className="block text-[9px] font-normal text-green-400/40 mt-0.5 normal-case tracking-normal">
+        <span className="block px-2 text-[9px] font-normal text-green-400/40 mt-0.5 normal-case tracking-normal">
           Low-sec target · Low intel · No story data
         </span>
       </button>
@@ -370,10 +370,10 @@ function JobFooter() {
       {showPriority && (
         <button
           onClick={() => startNewSession('priority')}
-          className="w-full py-2.5 rounded-lg border border-violet-500/40 text-violet-300 font-mono text-xs font-bold uppercase tracking-widest hover:bg-violet-500/10 hover:border-violet-400 transition-all duration-200 active:scale-[0.99] glow-violet game-button"
+          className="w-full py-2.5 px-6 rounded-lg border border-violet-500/40 text-violet-300 font-mono text-xs font-bold uppercase tracking-widest hover:bg-violet-500/10 hover:border-violet-400 transition-all duration-200 active:scale-[0.99] glow-violet game-button"
         >
           Pursue Priority Lead
-          <span className="block text-[9px] font-normal text-violet-400/40 mt-0.5 normal-case tracking-normal">
+          <span className="block px-2 text-[9px] font-normal text-violet-400/40 mt-0.5 normal-case tracking-normal">
             Secure target · Higher intel · Unlocks story fragment
           </span>
         </button>
@@ -383,10 +383,10 @@ function JobFooter() {
       {showTartarus && (
         <button
           onClick={() => startNewSession('tartarus')}
-          className="w-full py-2.5 rounded-lg border border-red-500/60 text-red-400 font-mono text-xs font-bold uppercase tracking-widest bg-red-500/5 hover:bg-red-500/15 hover:border-red-400 transition-all duration-200 active:scale-[0.99] animate-pulse game-button"
+          className="w-full py-2.5 px-6 rounded-lg border border-red-500/60 text-red-400 font-mono text-xs font-bold uppercase tracking-widest bg-red-500/5 hover:bg-red-500/15 hover:border-red-400 transition-all duration-200 active:scale-[0.99] animate-pulse game-button"
         >
           Assault Tartarus Node
-          <span className="block text-[9px] font-normal text-red-400/50 mt-0.5 normal-case tracking-normal">
+          <span className="block px-2 text-[9px] font-normal text-red-400/50 mt-0.5 normal-case tracking-normal">
             400 HP · TRACE_ACCELERATOR · One chance. No retreat.
           </span>
         </button>
@@ -396,10 +396,10 @@ function JobFooter() {
       {showDarknet && (
         <button
           onClick={() => startNewSession('darknet')}
-          className="w-full py-2.5 rounded-lg border border-fuchsia-500/50 text-fuchsia-300 font-mono text-xs font-bold uppercase tracking-widest bg-fuchsia-500/5 hover:bg-fuchsia-500/15 hover:border-fuchsia-400 transition-all duration-200 active:scale-[0.99] game-button"
+          className="w-full py-2.5 px-6 rounded-lg border border-fuchsia-500/50 text-fuchsia-300 font-mono text-xs font-bold uppercase tracking-widest bg-fuchsia-500/5 hover:bg-fuchsia-500/15 hover:border-fuchsia-400 transition-all duration-200 active:scale-[0.99] game-button"
         >
           Access Darknet Router
-          <span className="block text-[9px] font-normal text-fuchsia-400/40 mt-0.5 normal-case tracking-normal">
+          <span className="block px-2 text-[9px] font-normal text-fuchsia-400/40 mt-0.5 normal-case tracking-normal">
             Tier {darknetTier} · {150 + darknetTier * 50} HP · Severe trace rate · Endless
           </span>
         </button>

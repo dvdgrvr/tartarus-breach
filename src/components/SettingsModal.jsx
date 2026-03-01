@@ -148,6 +148,44 @@ export default function SettingsModal({ onClose }) {
           </div>
         </div>
 
+        {/* Data Management section */}
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600 mb-4">
+            // Data Management
+          </p>
+          <div className="glass-panel rounded-lg px-4 py-3 space-y-2">
+            <button
+              onClick={() => {
+                const save = localStorage.getItem('tartarus-save');
+                if (!save) { alert('No save data found.'); return; }
+                navigator.clipboard.writeText(save).then(() => {
+                  alert('Save string copied to clipboard!');
+                });
+              }}
+              className="w-full py-2 rounded border border-cyan-800/50 text-cyan-600 font-mono text-[10px] uppercase tracking-widest hover:bg-cyan-900/20 hover:text-cyan-400 hover:border-cyan-700/50 transition-all duration-150"
+            >
+              Export Save
+            </button>
+            <button
+              onClick={() => {
+                const pasted = window.prompt('Paste your save string here:');
+                if (!pasted) return;
+                try {
+                  JSON.parse(pasted);
+                } catch {
+                  alert('Invalid save string. Import cancelled.');
+                  return;
+                }
+                localStorage.setItem('tartarus-save', pasted);
+                window.location.reload();
+              }}
+              className="w-full py-2 rounded border border-zinc-700/50 text-zinc-500 font-mono text-[10px] uppercase tracking-widest hover:bg-zinc-800/40 hover:text-zinc-400 hover:border-zinc-600/50 transition-all duration-150"
+            >
+              Import Save
+            </button>
+          </div>
+        </div>
+
       </div>
 
       {/* ── Footer ── */}

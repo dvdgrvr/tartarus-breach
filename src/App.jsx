@@ -164,6 +164,8 @@ export default function App() {
   const physicalHeat       = useGameStore(s => s.physicalHeat);
   const digitalTrace       = useGameStore(s => s.digitalTrace);
 
+  const setPaused = useGameStore(s => s.setPaused);
+
   const [showSettings, setShowSettings] = useState(false);
 
   const cyberdeliaMode = settings?.cyberdeliaMode ?? false;
@@ -203,7 +205,7 @@ export default function App() {
 
   const settingsButton = (
     <button
-      onClick={() => setShowSettings(true)}
+      onClick={() => { setShowSettings(true); setPaused(true); }}
       title="System Configuration"
       className="absolute top-2 right-2 z-40 font-mono text-[10px] uppercase tracking-widest text-zinc-700 hover:text-zinc-400 border border-transparent hover:border-zinc-700/60 px-1.5 py-0.5 rounded transition-all duration-150"
     >
@@ -217,7 +219,7 @@ export default function App() {
         {settings?.crtEnabled && <div className="crt-scanlines" />}
         {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
         {settingsButton}
-        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+        {showSettings && <SettingsModal onClose={() => { setShowSettings(false); setPaused(false); }} />}
         {pendingFragmentIdx !== null && <FragmentModal />}
         <VictoryScene />
       </div>
@@ -230,7 +232,7 @@ export default function App() {
         {settings?.crtEnabled && <div className="crt-scanlines" />}
         {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
         {settingsButton}
-        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+        {showSettings && <SettingsModal onClose={() => { setShowSettings(false); setPaused(false); }} />}
         <GameOverScene />
       </div>
     </div>
@@ -242,7 +244,7 @@ export default function App() {
         {settings?.crtEnabled && <div className="crt-scanlines" />}
         {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
         {settingsButton}
-        {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+        {showSettings && <SettingsModal onClose={() => { setShowSettings(false); setPaused(false); }} />}
         {pendingFragmentIdx !== null && <FragmentModal />}
         {status === 'hacking' ? <HackingScene /> : <TransitScene />}
       </div>

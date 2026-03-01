@@ -142,6 +142,7 @@ const useGameStore = create(
 
       // ── Session state ────────────────────────────────────────────────────
       status:               'transit',  // 'hacking' | 'transit' | 'victory' | 'game_over'
+      isPaused:             false,
       transitOutcome:       'initial',  // 'initial' | 'success' | 'escaped' | 'trace_busted' | 'heat_busted'
       currentJobType:       'skim',     // 'skim' | 'priority' | 'tartarus'
       digitalTrace:         0,
@@ -190,9 +191,11 @@ const useGameStore = create(
       terminalLog: nodeBootLog(_initialNode),
 
       // ─── TICK ─────────────────────────────────────────────────────────
+      setPaused: (paused) => set({ isPaused: paused }),
+
       tick: () => {
         const s = get();
-        if (s.status !== 'hacking') return;
+        if (s.status !== 'hacking' || s.isPaused) return;
 
         // Physical Heat — SIGNAL upgrade reduces rate by 10% per level
         const signalLevel    = s.upgrades['SIGNAL']?.level ?? 0;
