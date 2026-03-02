@@ -57,6 +57,17 @@ export default function CommandBar() {
   const [errorId, setErrorId]     = useState(null);
   const holdTimeout = useRef(null);
 
+  // ── THE FIX: Safety lock to prevent spam-tapping through the disconnect screen
+  const [disconnectLocked, setDisconnectLocked] = useState(false);
+
+  useEffect(() => {
+    if (status === 'resolved') {
+      setDisconnectLocked(true);
+      const timer = setTimeout(() => setDisconnectLocked(false), 1200); // 1.2 second lock
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
+
   const handlePointerDown = (toolId, isDangerous, disabled) => {
     if (disabled) {
       AudioManager.playSFX('error'); 
@@ -97,22 +108,32 @@ export default function CommandBar() {
       <div className="relative px-4 py-2 pb-4 flex justify-center items-end">
         <button
           onClick={() => {
+            if (disconnectLocked) return; // Prevent spam-clicks
             AudioManager.playSFX('thock');
             if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
               navigator.vibrate([30, 20, 10]);
             }
             leaveNode();
           }}
-          className="w-full relative overflow-hidden group py-5 bg-zinc-950 border-2 border-zinc-700 border-b-[6px] active:border-b-2 active:translate-y-1 rounded-lg flex flex-col items-center justify-center transition-all duration-150 hover:bg-zinc-900 hover:border-zinc-500 shadow-xl"
+          // Dynamically swap styles based on the lock state
+          className={`w-full relative overflow-hidden group py-5 bg-zinc-950 border-2 border-zinc-700 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 shadow-xl ${
+            disconnectLocked 
+              ? 'opacity-60 cursor-not-allowed grayscale border-zinc-800' 
+              : 'active:border-b-2 active:translate-y-1 hover:bg-zinc-900 hover:border-zinc-500 cursor-pointer'
+          }`}
         >
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
           
-          <span className="relative z-10 font-mono text-lg font-black text-zinc-300 uppercase tracking-[0.3em] group-hover:text-white drop-shadow-md transition-colors">
-            [ DISCONNECT ]
+          <span className={`relative z-10 font-mono text-lg font-black uppercase tracking-[0.3em] transition-colors ${
+            disconnectLocked ? 'text-zinc-600' : 'text-zinc-300 group-hover:text-white drop-shadow-md'
+          }`}>
+            {disconnectLocked ? '[ SECURING ]' : '[ DISCONNECT ]'}
           </span>
-          <span className="relative z-10 font-mono text-[10px] font-bold text-zinc-500 tracking-widest mt-1.5 uppercase group-hover:text-zinc-300 transition-colors">
-            // Sever_Uplink
+          <span className={`relative z-10 font-mono text-[10px] font-bold tracking-widest mt-1.5 uppercase transition-colors ${
+            disconnectLocked ? 'text-zinc-700' : 'text-zinc-500 group-hover:text-zinc-300'
+          }`}>
+            {disconnectLocked ? '// Awaiting_Sync' : '// Sever_Uplink'}
           </span>
         </button>
       </div>
