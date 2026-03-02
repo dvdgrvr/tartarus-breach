@@ -153,7 +153,7 @@ const PANIC_GLOW =
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
-const CONTAINER_BASE = 'h-[95svh] max-w-sm w-full flex flex-col overflow-hidden relative';
+const CONTAINER_BASE = 'h-[95svh] max-w-md w-full flex flex-col overflow-hidden relative';
 
 export default function App() {
   const status             = useGameStore(s => s.status);
