@@ -499,8 +499,12 @@ const useGameStore = create(
         // Intel penalty based on exit cause
         let intelEarned = 0;
         let newBank     = s.intelFragments;
+        let isGhostExit = false;
+
         if (cause === 'escaped') {
-          intelEarned = Math.floor(s.sessionPotentialIntel * 0.5 * (s.currentSafehouse?.intelMod ?? 1));
+          isGhostExit = s.digitalTrace >= 95 || s.physicalHeat >= 95;
+          const baseMultiplier = isGhostExit ? 0.75 : 0.5; // 1.5x bonus on the standard 0.5 escape rate
+          intelEarned = Math.floor(s.sessionPotentialIntel * baseMultiplier * (s.currentSafehouse?.intelMod ?? 1));
           newBank     = s.intelFragments + intelEarned;
         } else if (cause === 'heat_busted') {
           newBank = 0; // bank wipe
@@ -509,11 +513,18 @@ const useGameStore = create(
 
         // Crash haptic for involuntary disconnects
         if (cause !== 'escaped' && s.settings?.hapticsEnabled) haptic([200, 100, 300]);
+        
+        // Thrill haptic for a Ghost Exit (heartbeat skip)
+        if (isGhostExit && s.settings?.hapticsEnabled) haptic([40, 60, 150]);
 
-        const logMsg =
+        let logMsg =
           cause === 'escaped'      ? '// PACKING UP. SIGNAL REROUTING...' :
           cause === 'trace_busted' ? '!! TRACE CRITICAL — CONNECTION SEVERED !!' :
                                      '!! HEAT CRITICAL — SAFEHOUSE COMPROMISED !!';
+                                     
+        if (isGhostExit && cause === 'escaped') {
+          logMsg = '>> GHOST EXIT: Danger close. 1.5x Intel recovery bonus applied.';
+        }
 
         // TARTARUS bust (not voluntary escape) → game over
         const nextStatus = (isTartarus && cause !== 'escaped') ? 'game_over' : 'transit';
