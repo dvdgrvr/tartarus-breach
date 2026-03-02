@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import useGameStore from '../store/useGameStore';
 import toolsConfig from '../data/toolsConfig.json';
 import AudioManager from '../utils/audioManager'; // Imported your AudioManager!
@@ -18,11 +18,41 @@ const TOOL_STYLES = {
   },
 };
 
+// ─── THE UI DEGRADATION EFFECT ───
+function GlitchLabel({ text, isDanger }) {
+  const [display, setDisplay] = useState(text);
+
+  useEffect(() => {
+    if (!isDanger) {
+      setDisplay(text);
+      return;
+    }
+    
+    const chars = '01XYZ!@#$';
+    const interval = setInterval(() => {
+      // 50% chance to scramble a random character every 50ms
+      if (Math.random() > 0.5) {
+        const arr = text.split('');
+        const idx = Math.floor(Math.random() * arr.length);
+        arr[idx] = chars[Math.floor(Math.random() * chars.length)];
+        setDisplay(arr.join(''));
+      } else {
+        setDisplay(text);
+      }
+    }, 50);
+    
+    return () => clearInterval(interval);
+  }, [text, isDanger]);
+
+  return <>{display}</>;
+}
+
 export default function CommandBar() {
   const toolState      = useGameStore(s => s.toolState);
   const executeCommand = useGameStore(s => s.executeCommand);
   const status         = useGameStore(s => s.status);
   const settings       = useGameStore(s => s.settings); // Grab settings for haptics
+  const digitalTrace   = useGameStore(s => s.digitalTrace); // Grab Trace for degradation
 
   // States for Hold-to-Execute and Error animations
   const [holdingId, setHoldingId] = useState(null);
@@ -32,10 +62,15 @@ export default function CommandBar() {
   const handlePointerDown = (toolId, isDangerous, disabled) => {
     // ─── THE DENIED FRICTION ───
     if (disabled) {
+      // 1. Audio constraint feedback
       AudioManager.playSFX('error'); 
+      
+      // 2. Haptic stutter (like a jammed mechanical switch)
       if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([20, 30, 20]);
       }
+
+      // 3. Visual error shake for 200ms
       setErrorId(toolId);
       setTimeout(() => setErrorId(null), 200);
       return;
@@ -46,10 +81,10 @@ export default function CommandBar() {
       return;
     }
     
-    // ─── TENSION HOLD (DECRYPT) ───
+    // Dangerous tools (DECRYPT) require a 400ms hold
     setHoldingId(toolId);
     
-    // Start a continuous 400ms rumble while the player holds the button
+    // Phase 1 Haptics: Start a continuous 400ms rumble while holding
     if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(400); 
     }
@@ -64,14 +99,14 @@ export default function CommandBar() {
     setHoldingId(null);
     if (holdTimeout.current) clearTimeout(holdTimeout.current);
     
-    // Immediately kill the vibration if they chicken out and let go early
+    // Phase 1 Haptics: Instantly kill the vibration if they let go early
     if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(0); 
     }
   };
 
   return (
-    <div className="px-5 py-2 pb-5 flex gap-3 justify-center items-end">
+    <div className="px-3 py-2 pb-4 flex gap-3 justify-center items-end">
       {toolsConfig.map((tool, index) => {
         const cooldown   = toolState[tool.id]?.cooldownRemaining ?? 0;
         const onCooldown = cooldown > 0;
@@ -102,7 +137,8 @@ export default function CommandBar() {
               isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : ''
             ].join(' ')}
           >
-            {tool.label}
+            {/* The text scrambles when trace hits 85%! */}
+            <GlitchLabel text={tool.label} isDanger={digitalTrace >= 85} />
             
             {onCooldown && (
               <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center">
