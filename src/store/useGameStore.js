@@ -300,9 +300,21 @@ const useGameStore = create(
         if (!tool) return;
         if ((s.toolState[toolId]?.cooldownRemaining ?? 0) > 0) return;
 
-        // Tool is firing — SFX + short haptic tick
+        // Tool is firing — SFX + Asymmetric Haptics
         AudioManager.playSFX('thock');
-        if (s.settings?.hapticsEnabled) haptic(15);
+        if (s.settings?.hapticsEnabled) {
+          if (toolId === 'SCAN') {
+            haptic(10); // Light, snappy click
+          } else if (toolId === 'BYPASS') {
+            haptic([30, 40, 30]); // Heavy double-thud
+          } else if (toolId === 'PULSE') {
+            haptic([15, 20, 15]); // Quick flutter
+          } else if (toolId === 'DECRYPT') {
+            haptic(50); // Sharp, heavy strike upon successful completion of the hold
+          } else {
+            haptic(15); // Fallback
+          }
+        }
 
         // RAM upgrade reduces cooldown by 10% per level; TANGO safehouse adds 10%
         const ramLevel = s.upgrades['RAM']?.level ?? 0;

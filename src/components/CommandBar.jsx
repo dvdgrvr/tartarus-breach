@@ -32,15 +32,10 @@ export default function CommandBar() {
   const handlePointerDown = (toolId, isDangerous, disabled) => {
     // ─── THE DENIED FRICTION ───
     if (disabled) {
-      // 1. Audio constraint feedback
       AudioManager.playSFX('error'); 
-      
-      // 2. Haptic stutter (like a jammed mechanical switch)
       if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([20, 30, 20]);
       }
-
-      // 3. Visual error shake for 200ms
       setErrorId(toolId);
       setTimeout(() => setErrorId(null), 200);
       return;
@@ -51,8 +46,14 @@ export default function CommandBar() {
       return;
     }
     
-    // Dangerous tools (DECRYPT) require a 400ms hold
+    // ─── TENSION HOLD (DECRYPT) ───
     setHoldingId(toolId);
+    
+    // Start a continuous 400ms rumble while the player holds the button
+    if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(400); 
+    }
+
     holdTimeout.current = setTimeout(() => {
       executeCommand(toolId);
       setHoldingId(null);
@@ -62,6 +63,11 @@ export default function CommandBar() {
   const handlePointerUp = () => {
     setHoldingId(null);
     if (holdTimeout.current) clearTimeout(holdTimeout.current);
+    
+    // Immediately kill the vibration if they chicken out and let go early
+    if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(0); 
+    }
   };
 
   return (
