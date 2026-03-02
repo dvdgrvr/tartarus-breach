@@ -182,10 +182,7 @@ export default function CommandBar() {
             ].join(' ')}
           >
             <div className="relative z-10">
-              <GlitchLabel 
-                text={tool.label} 
-                isDanger={digitalTrace >= 85 && (settings?.glitchEnabled ?? true)} 
-              />
+              <GlitchLabel text={tool.label} isDanger={digitalTrace >= 85 && (settings?.glitchEnabled ?? true)} />
             </div>
             
             {onCooldown && (
@@ -195,9 +192,10 @@ export default function CommandBar() {
               />
             )}
 
+            {/* Subtle corner indicator instead of huge center text */}
             {onCooldown && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                <span className="text-[13px] font-bold text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tabular-nums">
+              <div className="absolute top-1.5 right-2 pointer-events-none z-30">
+                <span className="text-[9px] font-bold text-zinc-500 tabular-nums">
                   {cooldown}s
                 </span>
               </div>

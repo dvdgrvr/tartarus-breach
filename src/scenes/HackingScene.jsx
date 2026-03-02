@@ -125,7 +125,11 @@ function TraceRow() {
   const trace         = useGameStore(s => s.digitalTrace);
   const node          = useGameStore(s => s.currentNode);
   const pulseActive   = useGameStore(s => s.pulseActive);
-  const shakeEnabled  = useGameStore(s => s.settings?.shakeEnabled ?? true);
+  const settings      = useGameStore(s => s.settings);
+  
+  const shakeEnabled  = settings?.shakeEnabled ?? true;
+  const glitchEnabled = settings?.glitchEnabled ?? true;
+  
   const isAccelerated = node?.specialDefense === 'TRACE_ACCELERATOR'
                      || node?.specialDefense === 'DARKNET';
 
@@ -150,7 +154,7 @@ function TraceRow() {
 
   return (
     <div className={`flex items-center gap-4 px-4 py-1.5 ${isDanger && shakeEnabled ? 'danger-shake' : ''}`}>
-      <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${isDanger || pulseActive ? 'animate-pulse' : ''}`}>
+      <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${(isDanger || pulseActive) && glitchEnabled ? 'animate-pulse' : ''}`}>
         {isDanger ? '[!]TR' : pulseActive ? 'SYNC' : isAccelerated ? 'TR x2' : 'TRACE'}
       </span>
 
@@ -159,7 +163,7 @@ function TraceRow() {
       }`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
         <div
-          className={`h-full rounded-full transition-all duration-300 ${barGradient} ${isAccelerated && !isDanger && !pulseActive ? 'opacity-80 animate-pulse' : ''}`}
+          className={`h-full rounded-full transition-all duration-300 ${barGradient} ${isAccelerated && !isDanger && !pulseActive && glitchEnabled ? 'opacity-80 animate-pulse' : ''}`}
           style={{ width: `${Math.min(100, trace)}%` }}
         />
       </div>
@@ -329,7 +333,6 @@ export default function HackingScene() {
                 {popupConfig.intel}
               </p>
               
-              {/* Informational Prompt - Now formatted like pure text, no button bounding box */}
               <div className="mt-2 relative z-10 flex flex-col items-center opacity-80">
                 <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest text-center">
                   // Close [x] to review logs
