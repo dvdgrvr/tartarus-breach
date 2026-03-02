@@ -151,7 +151,15 @@ const calcPotentialIntel = (jobType) => {
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
-const _initialNode = pickSkimNode();
+// A hidden, low-threat node specifically for the very first time the app loads
+const TEST_NODE = { 
+  id: 'TEST_01', 
+  name: 'Local Test Router', 
+  specialDefense: null, 
+  firewallHP: 40, 
+  traceMultiplier: 0.5 
+};
+const _initialNode = TEST_NODE;
 
 const useGameStore = create(
   persist(
@@ -220,6 +228,10 @@ const useGameStore = create(
         traceWarning:   false,
         heatWarning:    false,
         decryptWarning: false,
+        siphonWarning:  false,
+        bypassPrompt:   false,
+        scanPrompt:     false,
+        heatTutorial:   false,
       },
 
       // ── Narrative flags — one-shot story moments ──────────────────────────
@@ -254,13 +266,17 @@ const useGameStore = create(
         isPerfectBreach: false
       })),
 
-      triggerFirstBoot: () => {
+triggerFirstBoot: () => {
         set(cur => {
           let log = appendLog(cur.terminalLog, '// KERNEL_INITIALIZED: Safehouse ALPHA online.');
           log = appendLog(log, '// ENCRYPTION_ACTIVE: Signal routed through Belgrade Node.');
           log = appendLog(log, "// MEMO_FROM_MASHA: 'Operator, you're clear. The Tartarus Node is dark, but municipal servers are vulnerable. We need fragments to map the breach.'");
-          log = appendLog(log, '// OBJECTIVE: Skim local servers to recover fragmented keys.');
-          return { terminalLog: log, isFirstBoot: false };
+          log = appendLog(log, "// MASHA: 'Target acquired. Use [ BYPASS ] to hammer their firewall.'"); // <-- Added Instruction
+          return { 
+            terminalLog: log, 
+            isFirstBoot: false,
+            tutorialFlags: { ...cur.tutorialFlags, bypassPrompt: true } // <-- Turns on the UI Glow
+          };
         });
       },
 
@@ -334,6 +350,20 @@ const useGameStore = create(
           terminalLog: newLog
         });
 
+        // ── In-World Tutorial Prompts (Only triggers during the first node) ──
+        if (newTrace >= 40 && !s.tutorialFlags.scanPrompt && s.storyArchive.length === 0) {
+          set(cur => ({
+            terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'Watch your Trace meter! If it hits 100%, they kill the uplink. Use [ SCAN ] to drop it.'"),
+            tutorialFlags: { ...cur.tutorialFlags, scanPrompt: true },
+          }));
+        }
+        if (newHeat >= 40 && !s.tutorialFlags.heatTutorial && s.storyArchive.length === 0) {
+          set(cur => ({
+            terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'Our physical Heat is rising. If it hits 100%, the safehouse gets raided. Work fast.'"),
+            tutorialFlags: { ...cur.tutorialFlags, heatTutorial: true },
+          }));
+        }
+
         // ── Hardware Alerts — one-shot stealth tutorial messages ───────────
         if (newTrace > 70 && !s.tutorialFlags.traceWarning) {
           set(cur => ({
@@ -390,6 +420,14 @@ const useGameStore = create(
           } else {
             haptic(15); // Fallback
           }
+        }
+
+        // Clear tutorial flags if the player follows Masha's instructions
+        if (toolId === 'BYPASS' && s.tutorialFlags.bypassPrompt) {
+          set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, bypassPrompt: false } }));
+        }
+        if (toolId === 'SCAN' && s.tutorialFlags.scanPrompt) {
+          set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, scanPrompt: false } }));
         }
 
         // RAM upgrade reduces cooldown by 10% per level; TANGO safehouse adds 10%

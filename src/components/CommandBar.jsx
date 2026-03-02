@@ -52,14 +52,16 @@ function GlitchLabel({ text, isDanger }) {
 }
 
 export default function CommandBar() {
-  const toolState      = useGameStore(s => s.toolState);
-  const executeCommand = useGameStore(s => s.executeCommand);
-  const status         = useGameStore(s => s.status);
-  const transitOutcome = useGameStore(s => s.transitOutcome);
-  const settings       = useGameStore(s => s.settings); 
-  const digitalTrace   = useGameStore(s => s.digitalTrace);
-  const leaveNode      = useGameStore(s => s.leaveNode);
-  const siphonVault    = useGameStore(s => s.siphonVault);
+  const toolState        = useGameStore(s => s.toolState);
+  const executeCommand   = useGameStore(s => s.executeCommand);
+  const status           = useGameStore(s => s.status);
+  const transitOutcome   = useGameStore(s => s.transitOutcome);
+  const settings         = useGameStore(s => s.settings); 
+  const digitalTrace     = useGameStore(s => s.digitalTrace);
+  const leaveNode        = useGameStore(s => s.leaveNode);
+  const siphonVault      = useGameStore(s => s.siphonVault);
+  const tutorialFlags    = useGameStore(s => s.tutorialFlags);
+  const firewallRevealed = useGameStore(s => s.firewallRevealed);
   
   const upgrades       = useGameStore(s => s.upgrades);
   const safehouse      = useGameStore(s => s.currentSafehouse);
@@ -151,6 +153,10 @@ export default function CommandBar() {
 
   if (status === 'resolved') {
     if (transitOutcome === 'success') {
+      // Glow the Siphon button if they haven't learned it yet
+      const isSiphonTutorial = !tutorialFlags?.siphonWarning;
+      const siphonGlowClass = isSiphonTutorial ? 'ring-2 ring-fuchsia-500 shadow-[0_0_20px_rgba(217,70,239,0.8)] animate-pulse z-50' : '';
+
       return (
         <div className="relative px-4 py-2 pb-4 flex gap-3 justify-center items-end h-[100px]">
           <button
@@ -159,10 +165,10 @@ export default function CommandBar() {
             onPointerLeave={stopSiphon}
             onPointerCancel={stopSiphon}
             onContextMenu={(e) => { e.preventDefault(); stopSiphon(); }}
-            className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 shadow-xl touch-none select-none ${
+            className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 touch-none select-none ${siphonGlowClass} ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
-                : 'bg-fuchsia-950/20 border-fuchsia-700/60 active:border-b-2 active:translate-y-1 hover:bg-fuchsia-900/30 cursor-pointer'
+                : 'bg-fuchsia-950/20 border-fuchsia-700/60 active:border-b-2 active:translate-y-1 hover:bg-fuchsia-900/30 cursor-pointer shadow-xl'
             }`}
           >
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
@@ -271,6 +277,16 @@ export default function CommandBar() {
         const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (safehouse?.ramMod ?? 1)));
         const fillPercent = maxCooldown > 0 ? ((maxCooldown - cooldown) / maxCooldown) * 100 : 100;
 
+        // Determine if this specific button should glow as a tutorial breadcrumb
+        const isTutorialTarget = 
+          (tool.id === 'BYPASS' && tutorialFlags?.bypassPrompt) ||
+          (tool.id === 'SCAN'   && tutorialFlags?.scanPrompt) ||
+          (tool.id === 'DECRYPT' && tutorialFlags?.decryptWarning && !firewallRevealed);
+
+        const tutorialGlow = isTutorialTarget && !disabled 
+          ? 'ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)] z-50 animate-pulse' 
+          : '';
+
         return (
           <button
             key={tool.id}
@@ -285,7 +301,8 @@ export default function CommandBar() {
               'font-mono text-[11px] font-bold uppercase tracking-widest text-center',
               'border border-b-[4px] transition-all duration-75 select-none',
               disabled ? styles.disabled : `${styles.active} active:border-b active:translate-y-1`,
-              isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : ''
+              isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
+              tutorialGlow
             ].join(' ')}
           >
             <div className="relative z-10">
