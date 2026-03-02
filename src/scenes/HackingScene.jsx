@@ -329,17 +329,30 @@ export default function HackingScene() {
                 {popupConfig.sub}
               </p>
               
-              <p className={`font-mono text-sm font-bold uppercase tracking-widest mb-4 relative z-10 ${popupConfig.titleColor}`}>
+              <p className={`font-mono text-sm font-bold uppercase tracking-widest relative z-10 ${popupConfig.titleColor}`}>
                 {popupConfig.intel}
               </p>
               
-              <div className="mt-2 relative z-10 flex flex-col items-center opacity-80">
-                <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest text-center">
+              {/* Informational Prompt - Updated for Readability and Siphon */}
+              <div className="mt-5 pt-4 border-t border-zinc-800/60 w-full relative z-10 flex flex-col items-center gap-1.5">
+                <span className="font-mono text-[11px] text-zinc-300 uppercase tracking-widest text-center">
                   // Close [x] to review logs
                 </span>
-                <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5 text-center">
-                  or select [DISCONNECT] to exit
-                </span>
+                
+                {transitOutcome === 'success' ? (
+                  <>
+                    <span className="font-mono text-[11px] text-fuchsia-400 uppercase tracking-widest text-center drop-shadow-[0_0_5px_rgba(217,70,239,0.3)]">
+                      // Hold [SIPHON] to drain vault
+                    </span>
+                    <span className="font-mono text-[11px] text-cyan-400 uppercase tracking-widest text-center drop-shadow-[0_0_5px_rgba(34,211,238,0.3)]">
+                      // or [DISCONNECT] to secure
+                    </span>
+                  </>
+                ) : (
+                  <span className="font-mono text-[11px] text-cyan-400 uppercase tracking-widest text-center drop-shadow-[0_0_5px_rgba(34,211,238,0.3)]">
+                    // or select [DISCONNECT] to exit
+                  </span>
+                )}
               </div>
             </div>
           </div>

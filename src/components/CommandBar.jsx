@@ -55,9 +55,11 @@ export default function CommandBar() {
   const toolState      = useGameStore(s => s.toolState);
   const executeCommand = useGameStore(s => s.executeCommand);
   const status         = useGameStore(s => s.status);
+  const transitOutcome = useGameStore(s => s.transitOutcome);
   const settings       = useGameStore(s => s.settings); 
   const digitalTrace   = useGameStore(s => s.digitalTrace);
   const leaveNode      = useGameStore(s => s.leaveNode);
+  const siphonVault    = useGameStore(s => s.siphonVault);
   
   const upgrades       = useGameStore(s => s.upgrades);
   const safehouse      = useGameStore(s => s.currentSafehouse);
@@ -65,6 +67,9 @@ export default function CommandBar() {
   const [holdingId, setHoldingId] = useState(null);
   const [errorId, setErrorId]     = useState(null);
   const holdTimeout = useRef(null);
+  
+  const siphonInterval = useRef(null);
+  const [isSiphoning, setIsSiphoning] = useState(false);
 
   const [disconnectLocked, setDisconnectLocked] = useState(false);
 
@@ -75,6 +80,16 @@ export default function CommandBar() {
       return () => clearTimeout(timer);
     }
   }, [status]);
+
+  useEffect(() => {
+    if (status !== 'resolved' || transitOutcome !== 'success') {
+      setIsSiphoning(false);
+      if (siphonInterval.current) clearInterval(siphonInterval.current);
+    }
+    return () => {
+      if (siphonInterval.current) clearInterval(siphonInterval.current);
+    };
+  }, [status, transitOutcome]);
 
   const handlePointerDown = (toolId, isDangerous, disabled) => {
     if (disabled) {
@@ -97,6 +112,9 @@ export default function CommandBar() {
       navigator.vibrate(400); 
     }
 
+    // Safely clear any ghost timeouts before creating a new one
+    if (holdTimeout.current) clearTimeout(holdTimeout.current);
+
     holdTimeout.current = setTimeout(() => {
       executeCommand(toolId);
       setHoldingId(null);
@@ -105,13 +123,105 @@ export default function CommandBar() {
 
   const handlePointerUp = () => {
     setHoldingId(null);
-    if (holdTimeout.current) clearTimeout(holdTimeout.current);
+    if (holdTimeout.current) {
+      clearTimeout(holdTimeout.current);
+      holdTimeout.current = null;
+    }
     if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate(0); 
     }
   };
 
+  const startSiphon = () => {
+    if (disconnectLocked) return;
+    
+    // THE FIX: Annihilate any existing interval before creating a new one
+    if (siphonInterval.current) clearInterval(siphonInterval.current);
+    
+    setIsSiphoning(true);
+    siphonInterval.current = setInterval(() => {
+      siphonVault();
+    }, 100);
+  };
+
+  const stopSiphon = () => {
+    setIsSiphoning(false);
+    if (siphonInterval.current) {
+      clearInterval(siphonInterval.current);
+      siphonInterval.current = null;
+    }
+  };
+
   if (status === 'resolved') {
+    if (transitOutcome === 'success') {
+      return (
+        <div className="relative px-4 py-2 pb-4 flex gap-3 justify-center items-end h-[100px]">
+          {/* SIPHON BUTTON */}
+          <button
+            onPointerDown={startSiphon}
+            onPointerUp={stopSiphon}
+            onPointerLeave={stopSiphon}
+            onPointerCancel={stopSiphon} // THE FIX: Catch touch interruptions
+            onContextMenu={(e) => { e.preventDefault(); stopSiphon(); }} // Block long-press menus
+            className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 shadow-xl touch-none select-none ${
+              disconnectLocked 
+                ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
+                : 'bg-fuchsia-950/20 border-fuchsia-700/60 active:border-b-2 active:translate-y-1 hover:bg-fuchsia-900/30 cursor-pointer'
+            }`}
+          >
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+            
+            <div 
+              className="absolute bottom-0 left-0 w-full bg-fuchsia-500/20 transition-all ease-linear"
+              style={{ height: isSiphoning ? '100%' : '0%', transitionDuration: isSiphoning ? '2000ms' : '200ms' }}
+            />
+
+            <span className={`relative z-10 font-mono text-sm font-black uppercase tracking-[0.2em] transition-colors ${
+              disconnectLocked ? 'text-zinc-600' : 'text-fuchsia-400 group-hover:text-fuchsia-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.4)]'
+            }`}>
+              {disconnectLocked ? '[ SECURING ]' : '[ SIPHON ]'}
+            </span>
+            <span className={`relative z-10 font-mono text-[9px] font-bold tracking-widest mt-1 uppercase transition-colors ${
+              disconnectLocked ? 'text-zinc-700' : 'text-fuchsia-600 group-hover:text-fuchsia-400'
+            }`}>
+              {disconnectLocked ? '// Awaiting_Sync' : '// Hold to Drain'}
+            </span>
+          </button>
+
+          {/* DISCONNECT BUTTON */}
+          <button
+            onClick={() => {
+              if (disconnectLocked) return;
+              AudioManager.playSFX('thock');
+              if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
+                navigator.vibrate([30, 20, 10]);
+              }
+              leaveNode();
+            }}
+            className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 shadow-xl touch-none select-none ${
+              disconnectLocked 
+                ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
+                : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-2 active:translate-y-1 hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
+            }`}
+          >
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+            
+            <span className={`relative z-10 font-mono text-sm font-black uppercase tracking-[0.2em] transition-colors ${
+              disconnectLocked ? 'text-zinc-600' : 'text-cyan-400 group-hover:text-white drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]'
+            }`}>
+              {disconnectLocked ? '[ SECURING ]' : '[ DISCONNECT ]'}
+            </span>
+            <span className={`relative z-10 font-mono text-[9px] font-bold tracking-widest mt-1 uppercase transition-colors ${
+              disconnectLocked ? 'text-zinc-700' : 'text-cyan-600 group-hover:text-cyan-400'
+            }`}>
+              {disconnectLocked ? '// Awaiting_Sync' : '// Sever_Uplink'}
+            </span>
+          </button>
+        </div>
+      );
+    }
+
     return (
       <div className="relative px-4 py-2 pb-4 flex justify-center items-end">
         <button
@@ -123,7 +233,7 @@ export default function CommandBar() {
             }
             leaveNode();
           }}
-          className={`w-full relative overflow-hidden group py-5 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl ${
+          className={`w-full relative overflow-hidden group py-5 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
             disconnectLocked 
               ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
               : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-2 active:translate-y-1 hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
@@ -172,9 +282,11 @@ export default function CommandBar() {
             onPointerDown={() => handlePointerDown(tool.id, isDangerous, disabled)}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
+            onPointerCancel={handlePointerUp} // Also applied safety patch to main tools!
+            onContextMenu={(e) => { e.preventDefault(); handlePointerUp(); }}
             title={tool.description}
             className={[
-              'flex-1 relative overflow-hidden min-h-[64px] py-4 px-4 rounded game-button',
+              'flex-1 relative overflow-hidden min-h-[64px] py-4 px-4 rounded game-button touch-none',
               'font-mono text-[11px] font-bold uppercase tracking-widest text-center',
               'border border-b-[4px] transition-all duration-75 select-none',
               disabled ? styles.disabled : `${styles.active} active:border-b active:translate-y-1`,
@@ -192,7 +304,6 @@ export default function CommandBar() {
               />
             )}
 
-            {/* Subtle corner indicator instead of huge center text */}
             {onCooldown && (
               <div className="absolute top-1.5 right-2 pointer-events-none z-30">
                 <span className="text-[9px] font-bold text-zinc-500 tabular-nums">

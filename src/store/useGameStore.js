@@ -873,6 +873,35 @@ const useGameStore = create(
         }
       },
 
+      // ─── SIPHON VAULT (Push Your Luck) ────────────────────────────────
+      // Called rapidly via setInterval while holding the button on the resolved screen
+      siphonVault: () => {
+        const s = get();
+        // Only allow siphoning if we are on the success screen
+        if (s.status !== 'resolved' || s.transitOutcome !== 'success') return;
+
+        const tracePenalty = 3.5; // Trace jumps by 3.5% every 100ms
+        const intelReward  = 1;   // You earn 1 IF every 100ms (10 IF per second)
+
+        const newTrace = s.digitalTrace + tracePenalty;
+
+        // If you push it too far, you bust and lose everything
+        if (newTrace >= 100) {
+          get().packUp('trace_busted');
+          return;
+        }
+
+        if (s.settings?.hapticsEnabled) haptic(10); // Light vibration ticking
+
+        set({
+          digitalTrace:       newTrace,
+          packUpTrace:        newTrace, // Keep the visual UI gauge synced
+          sessionIntelEarned: s.sessionIntelEarned + intelReward,
+          intelFragments:     s.intelFragments + intelReward, // Add instantly to bank
+          terminalLog:        appendLog(s.terminalLog, `>> SIPHONING... TRACE: ${newTrace.toFixed(0)}% (+${intelReward} IF)`),
+        });
+      },
+
       // ─── PURCHASE UPGRADE ─────────────────────────────────────────────
       purchaseUpgrade: (upgradeId) => {
         const s = get();
