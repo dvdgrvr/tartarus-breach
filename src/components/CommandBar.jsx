@@ -86,13 +86,13 @@ export default function CommandBar() {
     
     setHoldingId(toolId);
     if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(400); 
+      navigator.vibrate(300); 
     }
 
     holdTimeout.current = setTimeout(() => {
       executeCommand(toolId);
       setHoldingId(null);
-    }, 400);
+    }, 300); // 300ms hold time for dangerous tools
   };
 
   const handlePointerUp = () => {
@@ -183,7 +183,7 @@ export default function CommandBar() {
             {isHolding && (
               <div 
                 className="absolute bottom-0 left-0 h-1 bg-amber-400 transition-all ease-linear"
-                style={{ width: isHolding ? '100%' : '0%', transitionDuration: isHolding ? '400ms' : '0ms' }}
+                style={{ width: isHolding ? '100%' : '0%', transitionDuration: isHolding ? '300ms' : '0ms' }}
               />
             )}
           </button>
