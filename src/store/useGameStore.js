@@ -162,6 +162,7 @@ const useGameStore = create(
       isPerfectBreach:      false,
       isPaused:             false,
       pulseActive:          false,
+      systemOverride:       null,       // ── PHASE 4: Override State
       transitOutcome:       'initial',  // 'initial' | 'success' | 'escaped' | 'trace_busted' | 'heat_busted'
       currentJobType:       'skim',     // 'skim' | 'priority' | 'tartarus'
       digitalTrace:         0,
@@ -241,6 +242,30 @@ const useGameStore = create(
         const s = get();
         if (s.status !== 'hacking' || s.isPaused) return;
 
+        // ── PHASE 4: SYSTEM OVERRIDE TICK LOGIC ──
+        let currentOverride = s.systemOverride;
+        let spikeTrace      = 0;
+        let logMsg          = null;
+
+        if (currentOverride !== null) {
+          currentOverride -= 1;
+          if (currentOverride <= 0) {
+            spikeTrace = 25; // Massive penalty for failing
+            currentOverride = null;
+            logMsg = '!! ACTIVE COUNTER-MEASURE FAILED — TRACE SPIKE !!';
+            AudioManager.playSFX('error');
+            if (s.settings?.hapticsEnabled) haptic([200, 50, 200]);
+          }
+        } else {
+          // 5% chance per tick to spawn an override if trace > 30% and not in low-sec
+          if (s.digitalTrace > 30 && s.currentJobType !== 'skim' && Math.random() < 0.05) {
+            currentOverride = 3; // 3 seconds to react
+            logMsg = '[!] WARNING: ACTIVE COUNTER-MEASURE DETECTED. INTERCEPT REQUIRED.';
+            AudioManager.playSFX('error');
+            if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
+          }
+        }
+
         // Physical Heat — SIGNAL upgrade reduces rate by 10% per level
         const signalLevel    = s.upgrades['SIGNAL']?.level ?? 0;
         const heatMultiplier = Math.max(0, 1 - signalLevel * 0.10);
@@ -265,12 +290,23 @@ const useGameStore = create(
         );
 
         const newHeat  = Math.min(100, s.physicalHeat  + heatGain);
-        const newTrace = Math.min(100, s.digitalTrace + traceGain);
+        const newTrace = Math.min(100, s.digitalTrace + traceGain + spikeTrace);
 
         const newTickCount = s.tickCount + 1;
         const isPulse      = (newTickCount % PULSE_INTERVAL_TICKS) < PULSE_WINDOW_TICKS;
 
-        set({ physicalHeat: newHeat, digitalTrace: newTrace, toolState: newToolState, tickCount: newTickCount, pulseActive: isPulse });
+        let newLog = s.terminalLog;
+        if (logMsg) newLog = appendLog(newLog, logMsg);
+
+        set({
+          physicalHeat: newHeat,
+          digitalTrace: newTrace,
+          toolState: newToolState,
+          tickCount: newTickCount,
+          pulseActive: isPulse,
+          systemOverride: currentOverride,
+          terminalLog: newLog
+        });
 
         // ── Hardware Alerts — one-shot stealth tutorial messages ───────────
         if (newTrace > 70 && !s.tutorialFlags.traceWarning) {
@@ -289,6 +325,20 @@ const useGameStore = create(
         // Heat bust is more severe (bank wipe) — check first
         if (newHeat  >= 100) { get().packUp('heat_busted');  return; }
         if (newTrace >= 100) { get().packUp('trace_busted'); return; }
+      },
+
+      // ─── PHASE 4: RESOLVE OVERRIDE ───
+      resolveOverride: () => {
+        const s = get();
+        if (s.systemOverride === null) return;
+        
+        if (s.settings?.hapticsEnabled) haptic([50, 50, 50]);
+        AudioManager.playSFX('thock');
+        
+        set({
+          systemOverride: null,
+          terminalLog: appendLog(s.terminalLog, '>> COUNTER-MEASURE INTERCEPTED. TRACE NEUTRALIZED.')
+        });
       },
 
       // ─── EXECUTE COMMAND ──────────────────────────────────────────────
@@ -629,6 +679,7 @@ const useGameStore = create(
           sessionPotentialIntel: potentialIntel,
           packUpHeat:            0,
           packUpTrace:           0,
+          systemOverride:        null, // Reset Phase 4
           terminalLog:           appendLog(
             nodeBootLog(sessionNode),
             `// SAFEHOUSE ${s.currentSafehouse?.id ?? 'ALPHA'} ACTIVE: ${(s.currentSafehouse?.trait ?? 'Standard').toUpperCase()} PROTOCOLS ENGAGED.`
@@ -658,6 +709,7 @@ const useGameStore = create(
           sessionPotentialIntel: 0,
           packUpHeat:            0,
           packUpTrace:           0,
+          systemOverride:        null, // Reset Phase 4
           tartarusBeaten:        false,      // per-run flag — reset each campaign
           darknetTier:           1,          // streak resets; highestDarknetTier + hasBeatenGame persist
           consumables:           { zeroDay: 0, coolant: 0 },

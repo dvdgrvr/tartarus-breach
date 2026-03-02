@@ -54,6 +54,10 @@ export default function CommandBar() {
   const settings       = useGameStore(s => s.settings); // Grab settings for haptics
   const digitalTrace   = useGameStore(s => s.digitalTrace); // Grab Trace for degradation
 
+  // ─── PHASE 4: OVERRIDE STATE ───
+  const systemOverride = useGameStore(s => s.systemOverride);
+  const resolveOverride= useGameStore(s => s.resolveOverride);
+
   // States for Hold-to-Execute and Error animations
   const [holdingId, setHoldingId] = useState(null);
   const [errorId, setErrorId]     = useState(null);
@@ -106,7 +110,26 @@ export default function CommandBar() {
   };
 
   return (
-    <div className="px-3 py-2 pb-4 flex gap-3 justify-center items-end">
+    // Added 'relative' to wrap the absolute overlay securely
+    <div className="relative px-3 py-2 pb-4 flex gap-3 justify-center items-end">
+      
+      {/* ─── PHASE 4: ACTIVE COUNTER-MEASURE OVERLAY ─── */}
+      {systemOverride !== null && (
+        <div className="absolute inset-0 z-50 px-3 py-2 pb-4 flex items-stretch">
+          <button
+            onPointerDown={(e) => { e.preventDefault(); resolveOverride(); }}
+            className="w-full flex-1 bg-red-950/95 backdrop-blur-md border-2 border-red-500 border-b-[6px] active:border-b-2 active:translate-y-1 rounded shadow-[0_0_30px_rgba(239,68,68,0.5)] flex flex-col items-center justify-center danger-shake"
+          >
+            <span className="font-mono text-xl font-black text-red-500 uppercase tracking-[0.2em] animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+              SYSTEM OVERRIDE
+            </span>
+            <span className="font-mono text-[10px] font-bold text-white uppercase tracking-widest mt-1 bg-red-600/80 px-2 py-0.5 rounded">
+              TAP TO INTERCEPT // {systemOverride}s
+            </span>
+          </button>
+        </div>
+      )}
+
       {toolsConfig.map((tool, index) => {
         const cooldown   = toolState[tool.id]?.cooldownRemaining ?? 0;
         const onCooldown = cooldown > 0;
