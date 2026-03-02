@@ -180,7 +180,8 @@ export default function App() {
     ? ', inset 0 0 20px rgba(0,0,0,0.8), inset 0 0 2px rgba(255,255,255,0.1)'
     : '';
 
-  const isPanic   = status === 'hacking' && (physicalHeat > 80 || digitalTrace > 80);
+  // THE FIX: Added `status === 'resolved'` so the panic glow stays on during the disconnect screen
+  const isPanic   = (status === 'hacking' || status === 'resolved') && (physicalHeat > 80 || digitalTrace > 80);
   const outerGlow = isPanic
     ? PANIC_GLOW
     : (SAFEHOUSE_GLOW[currentSafehouse?.color] ?? SAFEHOUSE_GLOW.cyan);
@@ -196,8 +197,8 @@ export default function App() {
     ...(cyberdeliaMode && { background: '#0D0221' }),
   };
 
-  // Room environment — shows the desk/surface behind the terminal
-  const envId   = status === 'hacking' ? 'combat' : (currentSafehouse?.id?.toLowerCase() ?? 'alpha');
+  // THE FIX: Added `status === 'resolved'` so the background room stays in 'combat' mode
+  const envId   = (status === 'hacking' || status === 'resolved') ? 'combat' : (currentSafehouse?.id?.toLowerCase() ?? 'alpha');
   const roomClass = `h-[100svh] w-full flex justify-center items-center overflow-hidden room-environment env-${envId}`;
 
   // Global heartbeat — the single timer driving all time-based game events.
@@ -219,7 +220,6 @@ export default function App() {
       <div className={containerClass} style={glowStyle}>
         {settings?.crtEnabled && <div className="crt-scanlines" />}
         {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-        {/* settingsButton deleted from here! */}
         {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
         {pendingFragmentIdx !== null && <FragmentModal />}
         <VictoryScene />
@@ -232,7 +232,6 @@ export default function App() {
       <div className={containerClass} style={glowStyle}>
         {settings?.crtEnabled && <div className="crt-scanlines" />}
         {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-        {/* settingsButton deleted from here! */}
         {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
         <GameOverScene />
       </div>
@@ -244,10 +243,10 @@ export default function App() {
       <div className={containerClass} style={glowStyle}>
         {settings?.crtEnabled && <div className="crt-scanlines" />}
         {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-        {/* settingsButton deleted from here! */}
         {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
         {pendingFragmentIdx !== null && <FragmentModal />}
-        {status === 'hacking' ? <HackingScene /> : <TransitScene />}
+        {/* THE FIX: Render the HackingScene if status is 'hacking' OR 'resolved' */}
+        {status === 'hacking' || status === 'resolved' ? <HackingScene /> : <TransitScene />}
       </div>
     </div>
   );

@@ -1,16 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import useGameStore from '../store/useGameStore';
 
-// A sub-component that rapidly types out its text on mount
 function TypewriterLine({ text, className, isDanger }) {
   const [displayed, setDisplayed] = useState('');
   const [glitchOffset, setGlitchOffset] = useState('');
 
-  // 1. The Teletype Effect
   useEffect(() => {
     let i = 0;
     const interval = setInterval(() => {
-      // Type 2 characters at a time to keep it extremely fast and snappy
       setDisplayed(text.slice(0, i + 2));
       i += 2;
       if (i >= text.length) clearInterval(interval);
@@ -18,7 +15,6 @@ function TypewriterLine({ text, className, isDanger }) {
     return () => clearInterval(interval);
   }, [text]);
 
-  // 2. The Phosphor Ghosting / Hardware Failure Effect
   useEffect(() => {
     if (!isDanger) {
       setGlitchOffset('');
@@ -26,7 +22,6 @@ function TypewriterLine({ text, className, isDanger }) {
     }
     
     const interval = setInterval(() => {
-      // Randomly jitter the text slightly left/right and drop opacity
       if (Math.random() > 0.8) {
         setGlitchOffset(Math.random() > 0.5 ? 'translate-x-[2px] opacity-70' : '-translate-x-[2px] opacity-90');
       } else {
@@ -37,7 +32,7 @@ function TypewriterLine({ text, className, isDanger }) {
     return () => clearInterval(interval);
   }, [isDanger]);
 
-  return <p className={`font-mono text-[11px] leading-relaxed mb-1 transition-all duration-75 ${className} ${glitchOffset}`}>{displayed}</p>;
+  return <p className={`font-mono text-xs leading-relaxed mb-1 transition-all duration-75 ${className} ${glitchOffset}`}>{displayed}</p>;
 }
 
 export default function TerminalLog({ className = '' }) {
@@ -47,13 +42,12 @@ export default function TerminalLog({ className = '' }) {
 
   const isDanger = digitalTrace >= 85;
 
-  // Auto-scroll to latest entry
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'auto' });
   }, [terminalLog]);
 
   return (
-    <div className={`flex-1 overflow-y-auto px-3 py-2 scrollbar-thin ${className}`}>
+    <div className={`flex-1 overflow-y-auto px-4 py-2 scrollbar-thin ${className}`}>
       {terminalLog.map((line, i) => {
         const colorClass = line.startsWith('>> PERFECT BREACH') ? 'text-yellow-400 font-bold animate-pulse' :
                            line.startsWith('>> PERFECT SYNC')   ? 'text-cyan-300 italic font-bold' :
@@ -61,8 +55,8 @@ export default function TerminalLog({ className = '' }) {
                            line.startsWith('!!') ? 'text-red-400 font-bold' :
                            line.startsWith('[!]') ? 'text-amber-400 font-bold' :
                            line.startsWith('// MEMO') ? 'text-purple-400 italic font-medium' :
-                           line.startsWith('//') ? 'text-cyan-400/60' :
-                           'text-zinc-400';
+                           line.startsWith('//') ? 'text-cyan-400/80' :
+                           'text-zinc-300';
                            
         return <TypewriterLine key={i} text={line} className={colorClass} isDanger={isDanger} />;
       })}

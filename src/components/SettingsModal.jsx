@@ -6,9 +6,9 @@ function Toggle({ label, description, value, onChange }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-zinc-800/60 last:border-0">
       <div className="flex-1 mr-4">
-        <p className="font-mono text-xs text-zinc-300">{label}</p>
+        <p className="font-mono text-sm font-bold text-zinc-200">{label}</p>
         {description && (
-          <p className="font-mono text-[10px] text-zinc-600 mt-0.5">{description}</p>
+          <p className="font-mono text-[11px] text-zinc-400 mt-1">{description}</p>
         )}
       </div>
       <button
@@ -46,16 +46,16 @@ export default function SettingsModal({ onClose }) {
       {/* ── Header ── */}
       <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-950/80 flex items-center justify-between shrink-0">
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-green-400/50">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-green-400/80">
             // System
           </p>
-          <h2 className="font-mono text-sm font-bold uppercase tracking-widest text-zinc-200">
+          <h2 className="font-mono text-base font-bold uppercase tracking-widest text-zinc-100 mt-0.5">
             Configuration
           </h2>
         </div>
         <button
           onClick={onClose}
-          className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 hover:text-red-400 border border-zinc-700 hover:border-red-500/40 px-3 py-1.5 rounded transition-all duration-150"
+          className="font-mono text-xs font-bold uppercase tracking-widest text-zinc-300 hover:text-red-400 border border-zinc-600 hover:border-red-500/60 bg-zinc-800/50 hover:bg-zinc-800 px-4 py-2 rounded transition-all duration-150"
         >
           Close
         </button>
@@ -66,15 +66,15 @@ export default function SettingsModal({ onClose }) {
 
         {/* Audio section */}
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600 mb-4">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
             // Audio
           </p>
 
           {/* Master Volume slider */}
-          <div className="glass-panel rounded-lg px-4 py-3 mb-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="font-mono text-xs text-zinc-300">Master Volume</span>
-              <span className="font-mono text-xs text-cyan-400 tabular-nums w-8 text-right">
+          <div className="glass-panel rounded-lg px-4 py-4 mb-3">
+            <div className="flex items-center justify-between mb-3">
+              <span className="font-mono text-sm font-bold text-zinc-200">Master Volume</span>
+              <span className="font-mono text-sm font-bold text-cyan-300 tabular-nums w-8 text-right">
                 {volumePct}%
               </span>
             </div>
@@ -85,12 +85,12 @@ export default function SettingsModal({ onClose }) {
               step="0.05"
               value={settings?.masterVolume ?? 0.8}
               onChange={(e) => updateSettings({ masterVolume: parseFloat(e.target.value) })}
-              className="w-full h-1 rounded-full appearance-none bg-zinc-700 accent-cyan-400 cursor-pointer"
+              className="w-full h-1.5 rounded-full appearance-none bg-zinc-700 accent-cyan-400 cursor-pointer"
             />
           </div>
 
           {/* Audio toggles */}
-          <div className="glass-panel rounded-lg px-4">
+          <div className="glass-panel rounded-lg px-4 py-1">
             <Toggle
               label="SFX"
               description="Keystroke clicks and interaction sounds"
@@ -108,10 +108,10 @@ export default function SettingsModal({ onClose }) {
 
         {/* Hardware section */}
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600 mb-4">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
             // Hardware
           </p>
-          <div className="glass-panel rounded-lg px-4">
+          <div className="glass-panel rounded-lg px-4 py-1">
             <Toggle
               label="Haptic Feedback"
               description="Vibration on tool use and critical events"
@@ -123,10 +123,10 @@ export default function SettingsModal({ onClose }) {
 
         {/* Display section */}
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600 mb-4">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
             // Display
           </p>
-          <div className="glass-panel rounded-lg px-4">
+          <div className="glass-panel rounded-lg px-4 py-1">
             <Toggle
               label="Screen Shake"
               description="Micro-tremor on critical threat bars"
@@ -150,10 +150,10 @@ export default function SettingsModal({ onClose }) {
 
         {/* Data Management section */}
         <div>
-          <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-600 mb-4">
+          <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
             // Data Management
           </p>
-          <div className="glass-panel rounded-lg px-4 py-3 space-y-2">
+          <div className="glass-panel rounded-lg px-4 py-4 space-y-3">
             <button
               onClick={() => {
                 const save = localStorage.getItem('tartarus-save');
@@ -162,7 +162,7 @@ export default function SettingsModal({ onClose }) {
                   alert('Save string copied to clipboard!');
                 });
               }}
-              className="w-full py-2 rounded border border-cyan-800/50 text-cyan-600 font-mono text-[10px] uppercase tracking-widest hover:bg-cyan-900/20 hover:text-cyan-400 hover:border-cyan-700/50 transition-all duration-150"
+              className="w-full py-2.5 rounded border border-cyan-700/60 bg-cyan-900/10 text-cyan-400 font-mono text-xs font-bold uppercase tracking-widest hover:bg-cyan-900/30 hover:text-cyan-300 hover:border-cyan-500/60 transition-all duration-150"
             >
               Export Save
             </button>
@@ -179,7 +179,7 @@ export default function SettingsModal({ onClose }) {
                 localStorage.setItem('tartarus-save', pasted);
                 window.location.reload();
               }}
-              className="w-full py-2 rounded border border-zinc-700/50 text-zinc-500 font-mono text-[10px] uppercase tracking-widest hover:bg-zinc-800/40 hover:text-zinc-400 hover:border-zinc-600/50 transition-all duration-150"
+              className="w-full py-2.5 rounded border border-zinc-600/60 bg-zinc-800/20 text-zinc-300 font-mono text-xs font-bold uppercase tracking-widest hover:bg-zinc-800/50 hover:text-zinc-100 hover:border-zinc-500/60 transition-all duration-150"
             >
               Import Save
             </button>
@@ -189,8 +189,8 @@ export default function SettingsModal({ onClose }) {
       </div>
 
       {/* ── Footer ── */}
-      <div className="px-5 py-4 border-t border-zinc-800 shrink-0 space-y-3">
-        <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-700 text-center">
+      <div className="px-5 py-5 border-t border-zinc-800 shrink-0 space-y-4 bg-zinc-950/90">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 text-center">
           Settings saved automatically
         </p>
         <button
@@ -203,7 +203,7 @@ export default function SettingsModal({ onClose }) {
               onClose();
             }
           }}
-          className="w-full py-2 rounded border border-red-900/50 text-red-700 font-mono text-[10px] uppercase tracking-widest hover:bg-red-900/20 hover:text-red-500 hover:border-red-700/50 transition-all duration-150"
+          className="w-full py-3 rounded-lg border border-red-800/60 bg-red-950/30 text-red-500 font-mono text-xs font-bold uppercase tracking-widest hover:bg-red-900/40 hover:text-red-400 hover:border-red-600/60 transition-all duration-150"
         >
           Restart Campaign
         </button>

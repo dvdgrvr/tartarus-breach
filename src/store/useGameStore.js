@@ -157,7 +157,8 @@ const useGameStore = create(
       tickCount:            0,         // persistent counter driving the pulse window
 
       // ── Session state ────────────────────────────────────────────────────
-      status:               'transit',  // 'hacking' | 'transit' | 'victory' | 'game_over'
+      status:               'transit',  // 'hacking' | 'transit' | 'victory' | 'game_over' | 'resolved'
+      nextStatus:           'transit',  // Tracks where the Disconnect button should go
       isBreaching:          false,
       isPerfectBreach:      false,
       isPaused:             false,
@@ -227,6 +228,15 @@ const useGameStore = create(
 
       // ─── TICK ─────────────────────────────────────────────────────────
       setPaused: (paused) => set({ isPaused: paused }),
+
+      // ── THE DISCONNECT ACTION ──
+      // Fired when the player is ready to leave the frozen 'resolved' state
+      leaveNode: () => set(s => ({
+        status: s.nextStatus || 'transit',
+        physicalHeat: 0,
+        digitalTrace: 0,
+        isPerfectBreach: false
+      })),
 
       triggerFirstBoot: () => {
         set(cur => {
@@ -446,67 +456,59 @@ const useGameStore = create(
              navigator.vibrate([100, 50, 150]);
           }
 
-          // 2. Freeze the UI at 0 HP and trigger the 'isBreaching' state
-          set({ firewallHealth: 0, digitalTrace: newTrace, isBreaching: true, isPerfectBreach: newTrace >= 90 });
+          const isPerfect    = newTrace >= 90;
+          const intelEarned  = isPerfect
+            ? Math.floor(s.sessionPotentialIntel * 1.25)
+            : s.sessionPotentialIntel;
+          const isTartarus   = s.currentJobType === 'tartarus';
+          const isDarknet    = s.currentJobType === 'darknet';
+          const isPriority   = s.currentJobType === 'priority' || isTartarus;
 
-          // 3. Wait 1500ms for the visual tear to play, then execute the transition
-          setTimeout(() => {
-            const currentState = useGameStore.getState();
-            const isPerfect    = currentState.digitalTrace >= 90;
-            const intelEarned  = isPerfect
-              ? Math.floor(currentState.sessionPotentialIntel * 1.25)
-              : currentState.sessionPotentialIntel;
-            const isTartarus   = currentState.currentJobType === 'tartarus';
-            const isDarknet    = currentState.currentJobType === 'darknet';
-            const isPriority   = currentState.currentJobType === 'priority' || isTartarus;
+          let newArchive  = s.storyArchive;
+          let fragmentIdx = null;
+          if (isPriority && !s.isReplay && s.storyArchive.length < storyFragments.length) {
+            fragmentIdx = s.storyArchive.length;
+            newArchive  = [...s.storyArchive, fragmentIdx];
+          }
 
-            let newArchive  = currentState.storyArchive;
-            let fragmentIdx = null;
-            if (isPriority && !currentState.isReplay && currentState.storyArchive.length < storyFragments.length) {
-              fragmentIdx = currentState.storyArchive.length;
-              newArchive  = [...currentState.storyArchive, fragmentIdx];
-            }
+          const newDarknetTier = isDarknet ? s.darknetTier + 1 : s.darknetTier;
+          const newHighestTier = Math.max(s.highestDarknetTier, newDarknetTier);
 
-            const newDarknetTier = isDarknet ? currentState.darknetTier + 1 : currentState.darknetTier;
-            const newHighestTier = Math.max(currentState.highestDarknetTier, newDarknetTier);
-
-            let log = appendLog(currentState.terminalLog,
-              `> ${toolId} // FW: 0 | TRACE: ${newTrace.toFixed(0)}%`);
-            log = appendLog(log, `>> [ACCESS GRANTED] +${intelEarned} FRAGS`);
-            if (isPerfect) {
-              log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
-            }
-            if (fragmentIdx !== null) {
-              log = appendLog(log,
-                `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
-            }
+          let log = appendLog(s.terminalLog,
+            `> ${toolId} // FW: 0 | TRACE: ${newTrace.toFixed(0)}%`);
+          log = appendLog(log, `>> [ ACCESS GRANTED ]`);
+          if (isPerfect) {
+            log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
+          }
+          log = appendLog(log, `>> NODE BREACHED. PAYLOAD SECURED: +${intelEarned} IF.`);
+          if (fragmentIdx !== null) {
             log = appendLog(log,
-              isTartarus ? '// TARTARUS BREACHED. EXECUTING CELL RELEASE...' :
-              isDarknet  ? `// DARKNET T${currentState.darknetTier} CLEARED. TIER ${newDarknetTier} UNLOCKED.` :
-                           '// NODE BREACHED. EXTRACTING AND RELOCATING...');
+              `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
+          }
+          log = appendLog(log, '// AWAITING MANUAL DISCONNECT...');
 
-            useGameStore.setState({
-              status:             isTartarus ? 'victory' : 'transit',
-              transitOutcome:     'success',
-              physicalHeat:       0,
-              packUpHeat:         currentState.physicalHeat,
-              packUpTrace:        currentState.digitalTrace,
-              firewallHealth:     0,
-              digitalTrace:       newTrace,
-              intelFragments:     currentState.intelFragments + intelEarned,
-              sessionIntelEarned: intelEarned,
-              storyArchive:       newArchive,
-              hasBeatenGame:      currentState.hasBeatenGame || isTartarus,
-              tartarusBeaten:     currentState.tartarusBeaten || isTartarus,
-              darknetTier:        newDarknetTier,
-              highestDarknetTier: newHighestTier,
-              pendingFragmentIdx: currentState.isReplay ? null : fragmentIdx,
-              terminalLog:        log,
-              toolState: { ...currentState.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
-              isBreaching:        false,
-              isPerfectBreach:    false,
-            });
-          }, 1500); // 1500ms delay for the glitch
+          set({
+            status:             'resolved', // Pauses the hacking loop without leaving the screen
+            nextStatus:         isTartarus ? 'victory' : 'transit',
+            transitOutcome:     'success',
+            packUpHeat:         s.physicalHeat, // Freeze heat gauge
+            packUpTrace:        newTrace,       // Freeze trace gauge
+            systemOverride:     null,
+            firewallHealth:     0,
+            digitalTrace:       newTrace,
+            intelFragments:     s.intelFragments + intelEarned,
+            sessionIntelEarned: intelEarned,
+            storyArchive:       newArchive,
+            hasBeatenGame:      s.hasBeatenGame || isTartarus,
+            tartarusBeaten:     s.tartarusBeaten || isTartarus,
+            darknetTier:        newDarknetTier,
+            highestDarknetTier: newHighestTier,
+            pendingFragmentIdx: s.isReplay ? null : fragmentIdx,
+            terminalLog:        log,
+            toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
+            isPerfectBreach:    isPerfect,
+            isBreaching:        false, // Remove overlay logic
+          });
           return;
         }
 
@@ -567,16 +569,20 @@ const useGameStore = create(
         // Thrill haptic for a Ghost Exit (heartbeat skip)
         if (isGhostExit && s.settings?.hapticsEnabled) haptic([40, 60, 150]);
 
-        let logMsg =
-          cause === 'escaped'      ? '// PACKING UP. SIGNAL REROUTING...' :
-          cause === 'trace_busted' ? '!! TRACE CRITICAL — CONNECTION SEVERED !!' :
-                                     '!! HEAT CRITICAL — SAFEHOUSE COMPROMISED !!';
-                                     
-        if (isGhostExit && cause === 'escaped') {
-          logMsg = '>> GHOST EXIT: Danger close. 1.5x Intel recovery bonus applied.';
+        let log = s.terminalLog;
+        if (cause === 'escaped') {
+          log = appendLog(log, '>> [ CONNECTION CLOSED ]');
+          if (isGhostExit) log = appendLog(log, '>> GHOST EXIT: Danger close. 1.5x Intel recovery bonus applied.');
+          log = appendLog(log, `>> TACTICAL RETREAT SUCCESSFUL. SALVAGED +${intelEarned} IF.`);
+        } else if (cause === 'trace_busted') {
+          log = appendLog(log, '!! [ ACCESS DENIED ] !!');
+          log = appendLog(log, '!! TRACE CRITICAL — CONNECTION SEVERED.');
+        } else {
+          log = appendLog(log, '!! [ SYSTEM LOCKDOWN ] !!');
+          log = appendLog(log, '!! SAFEHOUSE COMPROMISED. INTEL WIPED.');
         }
+        log = appendLog(log, '// AWAITING MANUAL DISCONNECT...');
 
-        // TARTARUS bust (not voluntary escape) → game over
         const nextStatus = (isTartarus && cause !== 'escaped') ? 'game_over' : 'transit';
 
         // Darknet bust: streak resets (escaped preserves tier)
@@ -591,16 +597,17 @@ const useGameStore = create(
         }
 
         set({
-          status:             nextStatus,
+          status:             'resolved', // Freeze UI
+          nextStatus:         nextStatus,
           transitOutcome:     cause,
-          physicalHeat:       0,
-          packUpHeat:         s.physicalHeat,
+          systemOverride:     null,
+          packUpHeat:         s.physicalHeat, // DO NOT ZERO HERE. We want the user to see the gauges at 100%!
           packUpTrace:        s.digitalTrace,
           intelFragments:     newBank,
           sessionIntelEarned: intelEarned,
           currentSafehouse:   nextSafehouse,
           darknetTier:        nextDarknetTier,
-          terminalLog:        appendLog(s.terminalLog, logMsg),
+          terminalLog:        log,
         });
       },
 
@@ -668,6 +675,7 @@ const useGameStore = create(
 
         set({
           status:                'hacking',
+          nextStatus:            'transit',
           currentJobType:        jobType,
           isReplay,
           digitalTrace:          0,
@@ -694,6 +702,7 @@ const useGameStore = create(
         const freshNode = pickSkimNode();
         set({
           status:                'transit',
+          nextStatus:            'transit',
           isBreaching:           false,
           transitOutcome:        'initial',
           intelFragments:        0,
@@ -810,69 +819,57 @@ const useGameStore = create(
              navigator.vibrate([100, 50, 150]);
           }
 
-          // 2. Freeze UI at 0 HP and trigger 'isBreaching'
-          set({
-            firewallHealth:  0,
-            isBreaching:     true,
-            isPerfectBreach: s.digitalTrace >= 90,
-            consumables:     newConsumables,
-            terminalLog:     baseLog
-          });
+          const currentState = useGameStore.getState();
+          const isPerfect    = currentState.digitalTrace >= 90;
+          const intelEarned  = isPerfect
+            ? Math.floor(currentState.sessionPotentialIntel * 1.25)
+            : currentState.sessionPotentialIntel;
+          const isTartarus   = currentState.currentJobType === 'tartarus';
+          const isDarknet    = currentState.currentJobType === 'darknet';
+          const isPriority   = currentState.currentJobType === 'priority' || isTartarus;
 
-          // 3. Wait 1.5s for the visual tear to play, then transition
-          setTimeout(() => {
-            const currentState = useGameStore.getState();
-            const isPerfect    = currentState.digitalTrace >= 90;
-            const intelEarned  = isPerfect
-              ? Math.floor(currentState.sessionPotentialIntel * 1.25)
-              : currentState.sessionPotentialIntel;
-            const isTartarus   = currentState.currentJobType === 'tartarus';
-            const isDarknet    = currentState.currentJobType === 'darknet';
-            const isPriority   = currentState.currentJobType === 'priority' || isTartarus;
+          let newArchive  = currentState.storyArchive;
+          let fragmentIdx = null;
+          if (isPriority && !currentState.isReplay && currentState.storyArchive.length < storyFragments.length) {
+            fragmentIdx = currentState.storyArchive.length;
+            newArchive  = [...currentState.storyArchive, fragmentIdx];
+          }
 
-            let newArchive  = currentState.storyArchive;
-            let fragmentIdx = null;
-            if (isPriority && !currentState.isReplay && currentState.storyArchive.length < storyFragments.length) {
-              fragmentIdx = currentState.storyArchive.length;
-              newArchive  = [...currentState.storyArchive, fragmentIdx];
-            }
+          const newDarknetTier = isDarknet ? currentState.darknetTier + 1 : currentState.darknetTier;
+          const newHighestTier = Math.max(currentState.highestDarknetTier, newDarknetTier);
 
-            const newDarknetTier = isDarknet ? currentState.darknetTier + 1 : currentState.darknetTier;
-            const newHighestTier = Math.max(currentState.highestDarknetTier, newDarknetTier);
-
-            let log = appendLog(baseLog, `>> [ACCESS GRANTED] +${intelEarned} FRAGS`);
-            if (isPerfect) {
-              log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
-            }
-            if (fragmentIdx !== null) {
-              log = appendLog(log,
-                `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE`);
-            }
+          let log = appendLog(baseLog, `>> [ ACCESS GRANTED ]`);
+          if (isPerfect) {
+            log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
+          }
+          log = appendLog(log, `>> NODE BREACHED. PAYLOAD SECURED: +${intelEarned} IF.`);
+          if (fragmentIdx !== null) {
             log = appendLog(log,
-              isTartarus ? '// TARTARUS BREACHED. EXECUTING CELL RELEASE...' :
-              isDarknet  ? `// DARKNET T${currentState.darknetTier} CLEARED. TIER ${newDarknetTier} UNLOCKED.` :
-                           '// NODE BREACHED. EXTRACTING AND RELOCATING...');
+              `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
+          }
+          log = appendLog(log, '// AWAITING MANUAL DISCONNECT...');
 
-            useGameStore.setState({
-              status:             isTartarus ? 'victory' : 'transit',
-              transitOutcome:     'success',
-              physicalHeat:       0,
-              packUpHeat:         currentState.physicalHeat,
-              packUpTrace:        currentState.digitalTrace,
-              firewallHealth:     0,
-              intelFragments:     currentState.intelFragments + intelEarned,
-              sessionIntelEarned: intelEarned,
-              storyArchive:       newArchive,
-              hasBeatenGame:      currentState.hasBeatenGame || isTartarus,
-              tartarusBeaten:     currentState.tartarusBeaten || isTartarus,
-              darknetTier:        newDarknetTier,
-              highestDarknetTier: newHighestTier,
-              pendingFragmentIdx: currentState.isReplay ? null : fragmentIdx,
-              terminalLog:        log,
-              isBreaching:        false,
-              isPerfectBreach:    false,
-            });
-          }, 1500);
+          set({
+            status:             'resolved',
+            nextStatus:         isTartarus ? 'victory' : 'transit',
+            transitOutcome:     'success',
+            packUpHeat:         currentState.physicalHeat,
+            packUpTrace:        currentState.digitalTrace,
+            systemOverride:     null,
+            firewallHealth:     0,
+            intelFragments:     currentState.intelFragments + intelEarned,
+            sessionIntelEarned: intelEarned,
+            storyArchive:       newArchive,
+            hasBeatenGame:      currentState.hasBeatenGame || isTartarus,
+            tartarusBeaten:     currentState.tartarusBeaten || isTartarus,
+            darknetTier:        newDarknetTier,
+            highestDarknetTier: newHighestTier,
+            pendingFragmentIdx: currentState.isReplay ? null : fragmentIdx,
+            terminalLog:        log,
+            consumables:        newConsumables,
+            isPerfectBreach:    isPerfect,
+            isBreaching:        false,
+          });
         }
       },
 
