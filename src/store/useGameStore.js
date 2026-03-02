@@ -232,6 +232,7 @@ const useGameStore = create(
         bypassPrompt:   false,
         scanPrompt:     false,
         heatTutorial:   false,
+        decryptPrompt:  false,
       },
 
       // ── Narrative flags — one-shot story moments ──────────────────────────
@@ -429,6 +430,9 @@ triggerFirstBoot: () => {
         if (toolId === 'SCAN' && s.tutorialFlags.scanPrompt) {
           set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, scanPrompt: false } }));
         }
+        if (toolId === 'DECRYPT' && s.tutorialFlags.decryptPrompt) {
+          set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, decryptPrompt: false } })); // <--- ADD THIS BLOCK
+        }
 
         // RAM upgrade reduces cooldown by 10% per level; TANGO safehouse adds 10%
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
@@ -447,11 +451,11 @@ triggerFirstBoot: () => {
           const bsLevel = s.upgrades['BYPASS_STRENGTH']?.level ?? 0;
           firewallDamage += bsLevel * 10;
 
-          // Hardware Alert — warn once if FW is hidden and player hasn't run DECRYPT
+        // Hardware Alert — warn once if FW is hidden and player hasn't run DECRYPT
           if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
             set(cur => ({
               terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics are hidden. Run DECRYPT to reveal FW health.'),
-              tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true },
+              tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true, decryptPrompt: true }, // <--- ADD decryptPrompt here
             }));
           }
 
@@ -705,10 +709,15 @@ triggerFirstBoot: () => {
           firewallHP = calcScaledFW(level);
 
         } else {
-          // Data Skim: scaled to frontier but with a 30% discount so low-sec
-          // targets are always mathematically easier than the current Priority Lead.
-          nextNode   = pickSkimNode();
-          firewallHP = Math.floor(calcScaledFW(frontierLevel) * 0.70);
+          // If this is literally their first hack ever, give them the tutorial node
+          if (s.storyArchive.length === 0 && !isReplay) {
+            nextNode   = TEST_NODE;
+            firewallHP = TEST_NODE.firewallHP;
+          } else {
+            // Data Skim: scaled to frontier but with a 30% discount
+            nextNode   = pickSkimNode();
+            firewallHP = Math.floor(calcScaledFW(frontierLevel) * 0.70);
+          }
         }
 
         // Darknet intel scales with tier; others use config ranges.
@@ -751,7 +760,8 @@ triggerFirstBoot: () => {
       // ─── RESET GAME ───────────────────────────────────────────────────
       // Full reset — called from VICTORY and GAME_OVER overlays.
       resetGame: () => {
-        const freshNode = pickSkimNode();
+        // A full wipe should always start them back at the tutorial node
+        const freshNode = TEST_NODE;
         set({
           status:                'transit',
           nextStatus:            'transit',

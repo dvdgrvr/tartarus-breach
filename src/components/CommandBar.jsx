@@ -281,7 +281,7 @@ export default function CommandBar() {
         const isTutorialTarget = 
           (tool.id === 'BYPASS' && tutorialFlags?.bypassPrompt) ||
           (tool.id === 'SCAN'   && tutorialFlags?.scanPrompt) ||
-          (tool.id === 'DECRYPT' && tutorialFlags?.decryptWarning && !firewallRevealed);
+          (tool.id === 'DECRYPT' && tutorialFlags?.decryptPrompt);
 
         const tutorialGlow = isTutorialTarget && !disabled 
           ? 'ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)] z-50 animate-pulse' 
