@@ -158,7 +158,7 @@ const TEST_NODE = {
   specialDefense: null, 
   firewallHP: 120, 
   traceMultiplier: 0.5,
-  heatMultiplier: 0.4
+  heatMultiplier: 0.4,
   damageMod: 2.5
 };
 const _initialNode = TEST_NODE;
