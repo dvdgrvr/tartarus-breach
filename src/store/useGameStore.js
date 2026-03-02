@@ -156,8 +156,10 @@ const TEST_NODE = {
   id: 'TEST_01', 
   name: 'Local Test Router', 
   specialDefense: null, 
-  firewallHP: 40, 
-  traceMultiplier: 0.5 
+  firewallHP: 120, 
+  traceMultiplier: 0.5,
+  heatMultiplier: 0.4
+  damageMod: 2.5
 };
 const _initialNode = TEST_NODE;
 
@@ -233,6 +235,7 @@ const useGameStore = create(
         scanPrompt:     false,
         heatTutorial:   false,
         decryptPrompt:  false,
+        pulsePrompt:    false,
       },
 
       // ── Narrative flags — one-shot story moments ──────────────────────────
@@ -351,17 +354,23 @@ triggerFirstBoot: () => {
           terminalLog: newLog
         });
 
-        // ── In-World Tutorial Prompts (Only triggers during the first node) ──
-        if (newTrace >= 40 && !s.tutorialFlags.scanPrompt && s.storyArchive.length === 0) {
+      // ── In-World Tutorial Prompts (Only triggers during the first node) ──
+        if (newTrace >= 40 && !s.tutorialFlags.scanPrompt && !s.tutorialFlags.siphonWarning) {
           set(cur => ({
             terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'Watch your Trace meter! If it hits 100%, they kill the uplink. Use [ SCAN ] to drop it.'"),
             tutorialFlags: { ...cur.tutorialFlags, scanPrompt: true },
           }));
         }
-        if (newHeat >= 40 && !s.tutorialFlags.heatTutorial && s.storyArchive.length === 0) {
+        if (newHeat >= 40 && !s.tutorialFlags.heatTutorial && !s.tutorialFlags.siphonWarning) {
           set(cur => ({
             terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'Our physical Heat is rising. If it hits 100%, the safehouse gets raided. Work fast.'"),
             tutorialFlags: { ...cur.tutorialFlags, heatTutorial: true },
+          }));
+        }
+        if (s.pulseActive && !s.tutorialFlags.pulsePrompt && !s.tutorialFlags.siphonWarning) {
+          set(cur => ({
+            terminalLog: appendLog(cur.terminalLog, "// MASHA: 'See the Trace bar pulsing? Hit [ PULSE ] when it says SYNC and drop Trace twice as fast!'"),
+            tutorialFlags: { ...cur.tutorialFlags, pulsePrompt: true },
           }));
         }
 
@@ -424,15 +433,10 @@ triggerFirstBoot: () => {
         }
 
         // Clear tutorial flags if the player follows Masha's instructions
-        if (toolId === 'BYPASS' && s.tutorialFlags.bypassPrompt) {
-          set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, bypassPrompt: false } }));
-        }
-        if (toolId === 'SCAN' && s.tutorialFlags.scanPrompt) {
-          set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, scanPrompt: false } }));
-        }
-        if (toolId === 'DECRYPT' && s.tutorialFlags.decryptPrompt) {
-          set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, decryptPrompt: false } })); // <--- ADD THIS BLOCK
-        }
+        if (toolId === 'BYPASS' && s.tutorialFlags.bypassPrompt) set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, bypassPrompt: false } }));
+        if (toolId === 'SCAN' && s.tutorialFlags.scanPrompt) set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, scanPrompt: false } }));
+        if (toolId === 'PULSE' && s.tutorialFlags.pulsePrompt) set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, pulsePrompt: false } }));
+        if (toolId === 'DECRYPT' && s.tutorialFlags.decryptPrompt) set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, decryptPrompt: false } }));
 
         // RAM upgrade reduces cooldown by 10% per level; TANGO safehouse adds 10%
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
@@ -452,12 +456,12 @@ triggerFirstBoot: () => {
           firewallDamage += bsLevel * 10;
 
         // Hardware Alert — warn once if FW is hidden and player hasn't run DECRYPT
-          if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
-            set(cur => ({
-              terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics are hidden. Run DECRYPT to reveal FW health.'),
-              tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true, decryptPrompt: true }, // <--- ADD decryptPrompt here
-            }));
-          }
+        if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
+          set(cur => ({
+            terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics are hidden. Run DECRYPT to reveal FW health.'),
+            tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true, decryptPrompt: true }, // Add prompt here
+          }));
+        }
 
           // Narrative flavor — fires once on the player's very first BYPASS
           if (!s.hasFirstBypass) {
@@ -469,6 +473,7 @@ triggerFirstBoot: () => {
         }
 
         // Safehouse damage modifier (ECHO: −10%, WRAITH: +20%)
+        const nodeDmgMod = s.currentNode?.damageMod ?? 1;
         firewallDamage = Math.floor(firewallDamage * (s.currentSafehouse?.dmgMod ?? 1));
 
         // Compute resulting values
@@ -709,12 +714,11 @@ triggerFirstBoot: () => {
           firewallHP = calcScaledFW(level);
 
         } else {
-          // If this is literally their first hack ever, give them the tutorial node
-          if (s.storyArchive.length === 0 && !isReplay) {
+          // Use siphonWarning to see if they've finished the tutorial node
+          if (!s.tutorialFlags.siphonWarning && !isReplay) {
             nextNode   = TEST_NODE;
             firewallHP = TEST_NODE.firewallHP;
           } else {
-            // Data Skim: scaled to frontier but with a 30% discount
             nextNode   = pickSkimNode();
             firewallHP = Math.floor(calcScaledFW(frontierLevel) * 0.70);
           }
@@ -786,6 +790,19 @@ triggerFirstBoot: () => {
           consumables:           { zeroDay: 0, coolant: 0 },
           pendingFragmentIdx:    null,
           isReplay:              false,
+          tutorialFlags: {
+            traceWarning: false,
+            heatWarning: false,
+            decryptWarning: false, 
+            siphonWarning: false,
+            bypassPrompt: false, 
+            scanPrompt: false,
+            heatTutorial: false,
+            decryptPrompt: false,
+            pulsePrompt: false
+          },
+          isFirstBoot:           true,
+          hasFirstBypass:        false,
           // NOTE: hasBeatenGame / highestDarknetTier / settings intentionally omitted — preserved via shallow merge
           terminalLog:           nodeBootLog(freshNode),
           toolState:             buildInitialToolState(),

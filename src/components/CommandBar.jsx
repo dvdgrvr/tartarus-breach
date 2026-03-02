@@ -281,6 +281,7 @@ export default function CommandBar() {
         const isTutorialTarget = 
           (tool.id === 'BYPASS' && tutorialFlags?.bypassPrompt) ||
           (tool.id === 'SCAN'   && tutorialFlags?.scanPrompt) ||
+          (tool.id === 'PULSE'  && tutorialFlags?.pulsePrompt) ||
           (tool.id === 'DECRYPT' && tutorialFlags?.decryptPrompt);
 
         const tutorialGlow = isTutorialTarget && !disabled 
