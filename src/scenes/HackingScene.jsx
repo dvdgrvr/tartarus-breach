@@ -224,10 +224,8 @@ export default function HackingScene() {
   const systemOverride  = useGameStore(s => s.systemOverride);
   const resolveOverride = useGameStore(s => s.resolveOverride);
 
-  // State to track if the player has dismissed the resolution popup to read the logs
   const [popupDismissed, setPopupDismissed] = useState(false);
 
-  // Reset the popup dismissal state whenever a new hack starts
   useEffect(() => {
     if (status !== 'resolved') {
       setPopupDismissed(false);
@@ -327,22 +325,19 @@ export default function HackingScene() {
                 {popupConfig.sub}
               </p>
               
-              <p className={`font-mono text-sm font-bold uppercase tracking-widest mb-5 relative z-10 ${popupConfig.titleColor}`}>
+              <p className={`font-mono text-sm font-bold uppercase tracking-widest mb-3 relative z-10 ${popupConfig.titleColor}`}>
                 {popupConfig.intel}
               </p>
               
-              {/* Dismiss Button Strip */}
-              <button 
-                onClick={handleDismissPopup}
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 hover:bg-zinc-800 hover:border-zinc-500 active:bg-zinc-950 transition-all relative z-10 flex flex-col items-center group cursor-pointer"
-              >
-                <span className="font-mono text-[11px] font-bold text-zinc-300 group-hover:text-white uppercase tracking-widest transition-colors">
-                  [ CLOSE DIALOG ]
+              {/* Informational Prompt */}
+              <div className="w-full mt-3 px-4 py-3 bg-zinc-900/50 border border-zinc-800/50 relative z-10 flex flex-col items-center">
+                <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest text-center">
+                  Close [x] to review logs
                 </span>
-                <span className="font-mono text-[9px] text-zinc-500 group-hover:text-zinc-400 mt-1 uppercase tracking-widest transition-colors">
-                  // Review Logs or Disconnect
+                <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mt-1 text-center">
+                  or select [DISCONNECT] to exit
                 </span>
-              </button>
+              </div>
             </div>
           </div>
         )}
