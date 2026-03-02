@@ -44,7 +44,7 @@ export default function SettingsModal({ onClose }) {
     <div className="absolute inset-0 z-50 bg-zinc-950/96 backdrop-blur-sm flex flex-col">
 
       {/* ── Header ── */}
-      <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/80 flex items-center justify-between shrink-0">
+      <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-950/80 flex items-center justify-between shrink-0">
         <div>
           <p className="font-mono text-[10px] uppercase tracking-widest text-green-400/50">
             // System
@@ -62,7 +62,7 @@ export default function SettingsModal({ onClose }) {
       </div>
 
       {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto px-5 py-6 space-y-6 scrollbar-thin">
 
         {/* Audio section */}
         <div>
@@ -189,7 +189,7 @@ export default function SettingsModal({ onClose }) {
       </div>
 
       {/* ── Footer ── */}
-      <div className="px-4 py-3 border-t border-zinc-800 shrink-0 space-y-3">
+      <div className="px-5 py-4 border-t border-zinc-800 shrink-0 space-y-3">
         <p className="font-mono text-[9px] uppercase tracking-widest text-zinc-700 text-center">
           Settings saved automatically
         </p>

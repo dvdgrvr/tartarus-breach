@@ -326,7 +326,7 @@ function TabBar({ active, onChange }) {
   ];
 
   return (
-    <div className="flex border-b border-zinc-800 shrink-0">
+    <div className="flex px-5 gap-2 border-b border-zinc-800 shrink-0">
       {tabs.map(tab => (
         <button
           key={tab.id}
@@ -352,8 +352,6 @@ function TabBar({ active, onChange }) {
 
 // ─── Job Selection Footer ─────────────────────────────────────────────────────
 
-// ─── Job Selection Footer ─────────────────────────────────────────────────────
-
 function JobFooter({ isLocked }) {
   const startNewSession = useGameStore(s => s.startNewSession);
   const archiveLen      = useGameStore(s => s.storyArchive.length);
@@ -368,7 +366,7 @@ function JobFooter({ isLocked }) {
   const lockClass = isLocked ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'active:border-b active:translate-y-[2px]';
 
   return (
-    <div className="px-4 py-3 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2 pb-4">
+    <div className="px-5 py-4 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2 pb-4">
       {/* DATA SKIM — always visible */}
       <button
         onClick={() => startNewSession('skim')}
@@ -467,7 +465,7 @@ export default function TransitScene() {
     <div className={containerClass} style={containerBg}>
 
     {/* ── Header ── */}
-      <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0">
+      <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0">
         <p className={`font-mono text-[10px] uppercase tracking-widest ${statusClass}`}>
           {statusText}
         </p>
@@ -511,7 +509,7 @@ export default function TransitScene() {
       <TabBar active={activeTab} onChange={setActiveTab} />
 
       {/* ── Scrollable body ── */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto px-5 py-4 scrollbar-thin">
         {activeTab === 'debrief' ? (
           <>
             <SessionSummary />

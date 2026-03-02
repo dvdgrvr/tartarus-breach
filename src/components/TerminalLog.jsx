@@ -29,7 +29,7 @@ export default function TerminalLog({ className = '' }) {
   }, [terminalLog]);
 
   return (
-    <div className={`flex-1 overflow-y-auto px-3 py-2 scrollbar-thin ${className}`}>
+    <div className={`flex-1 overflow-y-auto px-5 py-2 scrollbar-thin ${className}`}>
       {terminalLog.map((line, i) => {
         const colorClass = line.startsWith('>> PERFECT BREACH') ? 'text-yellow-400 font-bold animate-pulse' :
                            line.startsWith('>> PERFECT SYNC')   ? 'text-cyan-300 italic font-bold' :

@@ -26,7 +26,7 @@ export function TopBorder() {
   const labelClass = isDanger ? 'text-red-400' : isWarning ? 'text-orange-400' : 'text-zinc-500';
 
   return (
-    <div className="px-3 py-2 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm flex items-center gap-2">
+    <div className="px-5 py-3 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm flex items-center gap-4">
       {/* 1. Heat Label */}
       <span className={`font-mono text-[10px] uppercase tracking-widest w-14 shrink-0 font-bold ${labelClass} ${isDanger ? 'animate-pulse' : ''}`}>
         {isDanger ? '[!] HEAT' : 'HEAT'}
@@ -64,7 +64,7 @@ export function BottomBorder() {
   const packUp         = useGameStore(s => s.packUp);
 
   return (
-    <div className="px-4 py-2.5 border-t border-zinc-800 bg-zinc-950/80 backdrop-blur-sm flex items-center justify-between">
+    <div className="px-5 py-3 border-t border-zinc-800 bg-zinc-950/80 backdrop-blur-sm flex items-center justify-between">
       <div className="flex items-baseline gap-1.5">
         <span className="font-mono text-lg font-bold text-cyan-400 tabular-nums">{intelFragments}</span>
         <span className="font-mono text-[10px] uppercase tracking-widest text-cyan-400/50">IF</span>
@@ -73,9 +73,9 @@ export function BottomBorder() {
       {status === 'hacking' && (
         <button
           onClick={() => packUp('escaped')}
-          className="px-6 py-3 rounded border border-orange-500/50 text-orange-400 font-mono text-sm font-bold uppercase tracking-widest hover:bg-orange-500/10 hover:border-orange-400 transition-all duration-150 active:scale-95"
+          className="px-6 py-3 rounded border-2 border-orange-500/50 border-b-[5px] active:border-b-2 active:translate-y-1 text-orange-400 font-mono text-sm font-bold uppercase tracking-[0.2em] bg-orange-950/20 hover:bg-orange-900/30 transition-all duration-75 shadow-lg"
         >
-          Pack Up
+          PACK_UP
         </button>
       )}
     </div>

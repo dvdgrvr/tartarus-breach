@@ -65,7 +65,7 @@ export default function CommandBar() {
   };
 
   return (
-    <div className="px-3 py-2 pb-4 flex gap-3 justify-center items-end">
+    <div className="px-5 py-2 pb-5 flex gap-3 justify-center items-end">
       {toolsConfig.map((tool, index) => {
         const cooldown   = toolState[tool.id]?.cooldownRemaining ?? 0;
         const onCooldown = cooldown > 0;

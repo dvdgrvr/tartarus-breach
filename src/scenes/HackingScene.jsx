@@ -38,7 +38,7 @@ function NodeStatusStrip() {
   const showTrait  = safehouse?.trait && safehouse.trait !== 'Standard';
 
   return (
-    <div className="px-3 py-1.5 border-b border-zinc-800/50 flex items-center justify-between gap-2 bg-zinc-900/40">
+    <div className="px-5 py-1.5 border-b border-zinc-800/50 flex items-center justify-between gap-2 bg-zinc-900/40">
       <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest truncate">
         // {node.name}
       </span>
@@ -77,10 +77,6 @@ function NodeStatusStrip() {
 }
 
 // ─── Firewall Row ─────────────────────────────────────────────────────────────
-// When the node has ENCRYPTED_LOGS and DECRYPT hasn't been used yet,
-// show an obfuscated bar instead of the real percentage.
-
-// ─── Firewall Row ─────────────────────────────────────────────────────────────
 // Updated: Uses a 10-segment "Armor Block" UI to differentiate from the smooth Trace bar.
 
 function FirewallRow() {
@@ -97,7 +93,7 @@ function FirewallRow() {
   const activeBlocks = Math.ceil(hpPercentage * totalBlocks);
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5">
+    <div className="flex items-center gap-4 px-5 py-1.5">
       <span className="font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 text-zinc-500 font-bold">
         FW_HP
       </span>
@@ -136,8 +132,6 @@ function FirewallRow() {
 }
 
 // ─── Trace Row ────────────────────────────────────────────────────────────────
-
-// ─── Trace Row ────────────────────────────────────────────────────────────────
 // Updated: Smooth, continuous bar with aggressive gradient styling for critical states.
 
 function TraceRow() {
@@ -169,7 +163,7 @@ function TraceRow() {
         : 'bg-gradient-to-r from-blue-700 to-blue-500';
 
   return (
-    <div className={`flex items-center gap-2 px-3 py-1.5 ${isDanger && shakeEnabled ? 'danger-shake' : ''}`}>
+    <div className={`flex items-center gap-4 px-5 py-1.5 ${isDanger && shakeEnabled ? 'danger-shake' : ''}`}>
       <span className={`font-mono text-[10px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${isDanger || pulseActive ? 'animate-pulse' : ''}`}>
         {isDanger ? '[!]TR' : pulseActive ? 'SYNC' : isAccelerated ? 'TR x2' : 'TRACE'}
       </span>
@@ -195,10 +189,6 @@ function TraceRow() {
 }
 
 // ─── Consumable Bar ───────────────────────────────────────────────────────────
-// Sits between the gauge rows and the command bar.
-// Always rendered; buttons are disabled (greyed) when count is 0.
-
-// ─── Consumable Bar ───────────────────────────────────────────────────────────
 
 function ConsumableBar() {
   const consumables    = useGameStore(s => s.consumables);
@@ -211,7 +201,7 @@ function ConsumableBar() {
   if (!hasBeatenGame || (intelFragments < 50 && zeroDay === 0 && coolant === 0)) return null;
 
   return (
-    <div className="flex gap-2 px-3 py-2 border-t border-zinc-800/40 pb-3">
+    <div className="flex gap-2 px-5 py-2 border-t border-zinc-800/40 pb-3">
       <button
         onClick={() => useConsumable('zeroDay')}
         disabled={zeroDay === 0}
