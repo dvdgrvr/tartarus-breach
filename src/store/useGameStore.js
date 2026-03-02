@@ -109,6 +109,22 @@ const AMBIENT_DETAILS = [
   '// AMBIENT: Masha says the night shift logs slower. Work the gap.',
 ];
 
+const getMashaReaction = (type, trace) => {
+  if (type === 'breach') {
+    if (trace < 15) return "// MEMO_FROM_MASHA: 'Total ghost. They never even saw the packet. Impressive work.'";
+    if (trace > 85) return "// MEMO_FROM_MASHA: 'That was way too loud. You're leaving footprints everywhere—next time, be more surgical.'";
+    return "// MEMO_FROM_MASHA: 'Node down. Clean enough. Bank the intel and move.'";
+  }
+  if (type === 'escaped') {
+    if (trace > 95) return "// MEMO_FROM_MASHA: 'My heart stopped. You almost didn't make it out. Don't push your luck like that again.'";
+    return "// MEMO_FROM_MASHA: 'Good call on the retreat. Live to hack another day.'";
+  }
+  if (type === 'bust') {
+    return "// MEMO_FROM_MASHA: 'Damn it! They traced the uplink. That node is burned and our signal is blacklisted. Drop the connection!'";
+  }
+  return null;
+};
+
 const nodeBootLog = (node) => {
   const lines = [
     '// SIGNAL REROUTED. NEW LOCATION ACQUIRED.',
@@ -477,6 +493,10 @@ const useGameStore = create(
           let log = appendLog(s.terminalLog,
             `> ${toolId} // FW: 0 | TRACE: ${newTrace.toFixed(0)}%`);
           log = appendLog(log, `>> [ ACCESS GRANTED ]`);
+
+          const mashaLine = getMashaReaction('breach', newTrace);
+          if (mashaLine) log = appendLog(log, mashaLine);
+
           if (isPerfect) {
             log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
           }
@@ -541,41 +561,38 @@ const useGameStore = create(
         if (newHeat >= 100) get().packUp('heat_busted');
       },
 
-      // ─── PACK UP ──────────────────────────────────────────────────────
-      // cause: 'escaped' | 'trace_busted' | 'heat_busted'
+    // ─── PACK UP ──────────────────────────────────────────────────────
       packUp: (cause = 'escaped') => {
         const s = get();
-
         const isTartarus = s.currentNode?.id === 'TARTARUS';
 
-        // Intel penalty based on exit cause
         let intelEarned = 0;
         let newBank     = s.intelFragments;
         let isGhostExit = false;
 
         if (cause === 'escaped') {
           isGhostExit = s.digitalTrace >= 95 || s.physicalHeat >= 95;
-          const baseMultiplier = isGhostExit ? 0.75 : 0.5; // 1.5x bonus on the standard 0.5 escape rate
+          const baseMultiplier = isGhostExit ? 0.75 : 0.5; 
           intelEarned = Math.floor(s.sessionPotentialIntel * baseMultiplier * (s.currentSafehouse?.intelMod ?? 1));
           newBank     = s.intelFragments + intelEarned;
         } else if (cause === 'heat_busted') {
-          newBank = 0; // bank wipe
+          newBank = 0; 
         }
-        // trace_busted: 0 earned, bank unchanged
 
-        // Crash haptic for involuntary disconnects
         if (cause !== 'escaped' && s.settings?.hapticsEnabled) haptic([200, 100, 300]);
-        
-        // Thrill haptic for a Ghost Exit (heartbeat skip)
         if (isGhostExit && s.settings?.hapticsEnabled) haptic([40, 60, 150]);
 
         let log = s.terminalLog;
         if (cause === 'escaped') {
           log = appendLog(log, '>> [ CONNECTION CLOSED ]');
+          const mashaLine = getMashaReaction('escaped', s.digitalTrace);
+          if (mashaLine) log = appendLog(log, mashaLine);
           if (isGhostExit) log = appendLog(log, '>> GHOST EXIT: Danger close. 1.5x Intel recovery bonus applied.');
           log = appendLog(log, `>> TACTICAL RETREAT SUCCESSFUL. SALVAGED +${intelEarned} IF.`);
         } else if (cause === 'trace_busted') {
           log = appendLog(log, '!! [ ACCESS DENIED ] !!');
+          const mashaLine = getMashaReaction('bust', s.digitalTrace);
+          if (mashaLine) log = appendLog(log, mashaLine);
           log = appendLog(log, '!! TRACE CRITICAL — CONNECTION SEVERED.');
         } else {
           log = appendLog(log, '!! [ SYSTEM LOCKDOWN ] !!');
@@ -584,12 +601,9 @@ const useGameStore = create(
         log = appendLog(log, '// AWAITING MANUAL DISCONNECT...');
 
         const nextStatus = (isTartarus && cause !== 'escaped') ? 'game_over' : 'transit';
-
-        // Darknet bust: streak resets (escaped preserves tier)
         const isDarknet       = s.currentJobType === 'darknet';
         const nextDarknetTier = (isDarknet && cause !== 'escaped') ? 1 : s.darknetTier;
 
-        // On HEAT_BUSTED: rotate to a random different safehouse
         let nextSafehouse = s.currentSafehouse;
         if (cause === 'heat_busted') {
           const others = SAFEHOUSE_ROSTER.filter(sh => sh.id !== s.currentSafehouse.id);
@@ -597,11 +611,11 @@ const useGameStore = create(
         }
 
         set({
-          status:             'resolved', // Freeze UI
-          nextStatus:         nextStatus,
+          status:             'resolved', // ALWAYS pause the UI here
+          nextStatus:         nextStatus, // Save where we go when they hit DISCONNECT
           transitOutcome:     cause,
           systemOverride:     null,
-          packUpHeat:         s.physicalHeat, // DO NOT ZERO HERE. We want the user to see the gauges at 100%!
+          packUpHeat:         s.physicalHeat, 
           packUpTrace:        s.digitalTrace,
           intelFragments:     newBank,
           sessionIntelEarned: intelEarned,
@@ -839,6 +853,8 @@ const useGameStore = create(
           const newHighestTier = Math.max(currentState.highestDarknetTier, newDarknetTier);
 
           let log = appendLog(baseLog, `>> [ ACCESS GRANTED ]`);
+          const mashaLine = getMashaReaction('breach', currentState.digitalTrace);
+          if (mashaLine) log = appendLog(log, mashaLine);
           if (isPerfect) {
             log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
           }
@@ -873,31 +889,31 @@ const useGameStore = create(
         }
       },
 
-      // ─── SIPHON VAULT (Push Your Luck) ────────────────────────────────
-      // Called rapidly via setInterval while holding the button on the resolved screen
+    // ─── SIPHON VAULT (Push Your Luck) ────────────────────────────────
       siphonVault: () => {
         const s = get();
-        // Only allow siphoning if we are on the success screen
         if (s.status !== 'resolved' || s.transitOutcome !== 'success') return;
 
-        const tracePenalty = 3.5; // Trace jumps by 3.5% every 100ms
-        const intelReward  = 1;   // You earn 1 IF every 100ms (10 IF per second)
+        const tracePenalty = 3.5; 
+        const intelReward  = 1;   
 
         const newTrace = s.digitalTrace + tracePenalty;
 
-        // If you push it too far, you bust and lose everything
         if (newTrace >= 100) {
           get().packUp('trace_busted');
+          set(cur => ({
+            terminalLog: appendLog(cur.terminalLog, "// MEMO_FROM_MASHA: 'You stayed too long! I told you to get out!'")
+          }));
           return;
         }
 
-        if (s.settings?.hapticsEnabled) haptic(10); // Light vibration ticking
+        if (s.settings?.hapticsEnabled) haptic(10); 
 
         set({
           digitalTrace:       newTrace,
-          packUpTrace:        newTrace, // Keep the visual UI gauge synced
+          packUpTrace:        newTrace, 
           sessionIntelEarned: s.sessionIntelEarned + intelReward,
-          intelFragments:     s.intelFragments + intelReward, // Add instantly to bank
+          intelFragments:     s.intelFragments + intelReward, 
           terminalLog:        appendLog(s.terminalLog, `>> SIPHONING... TRACE: ${newTrace.toFixed(0)}% (+${intelReward} IF)`),
         });
       },

@@ -333,24 +333,27 @@ export default function HackingScene() {
                 {popupConfig.intel}
               </p>
               
-              {/* Informational Prompt - Updated for Readability and Siphon */}
-              <div className="mt-5 pt-4 border-t border-zinc-800/60 w-full relative z-10 flex flex-col items-center gap-1.5">
-                <span className="font-mono text-[11px] text-zinc-300 uppercase tracking-widest text-center">
-                  // Close [x] to review logs
-                </span>
+            {/* Informational Prompt - Sharpened for Readability */}
+              <div className="mt-5 pt-4 border-t border-zinc-800/80 w-full relative z-10 flex flex-col items-center gap-2">
+                <div className="flex items-center gap-2 opacity-90">
+                  <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                  <span className="font-mono text-[11px] font-bold text-zinc-300 uppercase tracking-widest">
+                    CLOSE [X] TO REVIEW LOGS
+                  </span>
+                </div>
                 
                 {transitOutcome === 'success' ? (
-                  <>
-                    <span className="font-mono text-[11px] text-fuchsia-400 uppercase tracking-widest text-center drop-shadow-[0_0_5px_rgba(217,70,239,0.3)]">
-                      // Hold [SIPHON] to drain vault
+                  <div className="flex flex-col items-center gap-1">
+                    <span className="font-mono text-[11px] font-black text-fuchsia-400 uppercase tracking-[0.15em] animate-pulse">
+                      HOLD [SIPHON] TO DRAIN VAULT
                     </span>
-                    <span className="font-mono text-[11px] text-cyan-400 uppercase tracking-widest text-center drop-shadow-[0_0_5px_rgba(34,211,238,0.3)]">
-                      // or [DISCONNECT] to secure
+                    <span className="font-mono text-[11px] font-bold text-cyan-400/90 uppercase tracking-widest">
+                      OR [DISCONNECT] TO SECURE
                     </span>
-                  </>
+                  </div>
                 ) : (
-                  <span className="font-mono text-[11px] text-cyan-400 uppercase tracking-widest text-center drop-shadow-[0_0_5px_rgba(34,211,238,0.3)]">
-                    // or select [DISCONNECT] to exit
+                  <span className="font-mono text-[11px] font-bold text-cyan-400/90 uppercase tracking-widest">
+                    OR SELECT [DISCONNECT] TO EXIT
                   </span>
                 )}
               </div>

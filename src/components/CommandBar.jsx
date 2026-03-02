@@ -79,7 +79,7 @@ export default function CommandBar() {
       const timer = setTimeout(() => setDisconnectLocked(false), 1200);
       return () => clearTimeout(timer);
     }
-  }, [status]);
+  }, [status, transitOutcome]);
 
   useEffect(() => {
     if (status !== 'resolved' || transitOutcome !== 'success') {
@@ -112,7 +112,6 @@ export default function CommandBar() {
       navigator.vibrate(400); 
     }
 
-    // Safely clear any ghost timeouts before creating a new one
     if (holdTimeout.current) clearTimeout(holdTimeout.current);
 
     holdTimeout.current = setTimeout(() => {
@@ -134,8 +133,6 @@ export default function CommandBar() {
 
   const startSiphon = () => {
     if (disconnectLocked) return;
-    
-    // THE FIX: Annihilate any existing interval before creating a new one
     if (siphonInterval.current) clearInterval(siphonInterval.current);
     
     setIsSiphoning(true);
@@ -156,13 +153,12 @@ export default function CommandBar() {
     if (transitOutcome === 'success') {
       return (
         <div className="relative px-4 py-2 pb-4 flex gap-3 justify-center items-end h-[100px]">
-          {/* SIPHON BUTTON */}
           <button
             onPointerDown={startSiphon}
             onPointerUp={stopSiphon}
             onPointerLeave={stopSiphon}
-            onPointerCancel={stopSiphon} // THE FIX: Catch touch interruptions
-            onContextMenu={(e) => { e.preventDefault(); stopSiphon(); }} // Block long-press menus
+            onPointerCancel={stopSiphon}
+            onContextMenu={(e) => { e.preventDefault(); stopSiphon(); }}
             className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 shadow-xl touch-none select-none ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
@@ -188,7 +184,6 @@ export default function CommandBar() {
             </span>
           </button>
 
-          {/* DISCONNECT BUTTON */}
           <button
             onClick={() => {
               if (disconnectLocked) return;
@@ -282,7 +277,7 @@ export default function CommandBar() {
             onPointerDown={() => handlePointerDown(tool.id, isDangerous, disabled)}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
-            onPointerCancel={handlePointerUp} // Also applied safety patch to main tools!
+            onPointerCancel={handlePointerUp}
             onContextMenu={(e) => { e.preventDefault(); handlePointerUp(); }}
             title={tool.description}
             className={[
