@@ -235,7 +235,7 @@
   /* box-shadow conflict with the outward desk glow. This class provides the  */
   /* border-radius (curved glass) and the ::after static glare reflection.    */
   .crt-hardware {
-    border-radius: 16px;
+    border-radius: inherit;
   }
 
   .crt-hardware::after {
@@ -243,7 +243,7 @@
     position: absolute;
     inset: 0;
     pointer-events: none;
-    border-radius: 16px;
+    border-radius: inherit;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
     z-index: 10;
   }

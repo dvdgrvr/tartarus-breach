@@ -19,7 +19,6 @@ function VictoryScene() {
     <div className="h-full flex flex-col bg-zinc-950 px-6 py-8 overflow-y-auto">
       <div className="flex-1 flex flex-col justify-center">
 
-        {/* Status header */}
         <p className="font-mono text-[10px] uppercase tracking-widest text-green-400/50 mb-2">
           // Mission Complete
         </p>
@@ -30,7 +29,6 @@ function VictoryScene() {
           Your team is out. The conspiracy is exposed.
         </p>
 
-        {/* Final fragment */}
         <div className="glass-panel rounded-lg p-4 border border-green-500/20 bg-green-500/[0.03] mb-6">
           <p className="font-mono text-[9px] uppercase tracking-widest text-green-400/40 mb-2">
             Fragment #012 — Final Transmission
@@ -40,7 +38,6 @@ function VictoryScene() {
           </p>
         </div>
 
-        {/* Stats */}
         <div className="glass-panel rounded-lg p-4 border border-zinc-800/50 mb-6">
           <div className="flex justify-between items-center">
             <span className="font-mono text-xs text-zinc-500">Intel Banked</span>
@@ -56,7 +53,6 @@ function VictoryScene() {
           </div>
         </div>
 
-        {/* Narrative bridge to Endless Mode */}
         <div className="glass-panel rounded-lg p-4 border border-fuchsia-500/20 bg-fuchsia-500/[0.03] mb-8">
           <p className="font-mono text-[10px] uppercase tracking-widest text-fuchsia-400/50 mb-1">
             // Override Complete
@@ -69,7 +65,6 @@ function VictoryScene() {
 
       </div>
 
-      {/* Post-game actions */}
       <div className="space-y-2">
         <button
           onClick={enterDarknet}
@@ -101,8 +96,6 @@ function GameOverScene() {
 
   return (
     <div className="h-full flex flex-col bg-zinc-950 px-6 py-8 justify-center">
-
-      {/* Status header */}
       <p className="font-mono text-[10px] uppercase tracking-widest text-red-400/50 mb-2 animate-pulse">
         // Connection Lost
       </p>
@@ -113,7 +106,6 @@ function GameOverScene() {
         They traced you back. All intel burned. All assets compromised.
       </p>
 
-      {/* Loss detail */}
       <div className="glass-panel rounded-lg p-4 border border-red-500/20 bg-red-500/[0.03] mb-8">
         <p className="font-mono text-[10px] text-red-400/60 leading-relaxed">
           The Tartarus Node is hardened. One wrong move and the trace was complete.
@@ -124,7 +116,6 @@ function GameOverScene() {
         </p>
       </div>
 
-      {/* Restart */}
       <button
         onClick={resetGame}
         className="w-full py-3 rounded-lg border border-red-500/40 text-red-400 font-mono text-sm font-bold uppercase tracking-widest hover:bg-red-500/10 hover:border-red-400 transition-all duration-200 active:scale-[0.99]"
@@ -136,8 +127,6 @@ function GameOverScene() {
 }
 
 // ─── Safehouse ambient glow ───────────────────────────────────────────────────
-// Downward-shifted to simulate monitor light casting onto the desk below.
-// Inline styles (not Tailwind classes) so values are never purged by the scanner.
 
 const SAFEHOUSE_GLOW = {
   cyan:    '0 40px 80px -20px rgba(6,182,212,0.25),   0 80px 160px -40px rgba(6,182,212,0.15)',
@@ -147,13 +136,10 @@ const SAFEHOUSE_GLOW = {
   fuchsia: '0 40px 80px -20px rgba(217,70,239,0.25),  0 80px 160px -40px rgba(217,70,239,0.15)',
 };
 
-// Panic override — Safety Orange/Red downward burst when heat or trace exceeds 80%.
 const PANIC_GLOW =
   '0 40px 80px -20px rgba(239,68,68,0.40), 0 80px 160px -40px rgba(245,158,11,0.25)';
 
 // ─── App ──────────────────────────────────────────────────────────────────────
-
-const CONTAINER_BASE = 'h-[95svh] max-w-md w-full flex flex-col overflow-hidden relative';
 
 export default function App() {
   const status             = useGameStore(s => s.status);
@@ -168,86 +154,90 @@ export default function App() {
   const isFirstBoot       = useGameStore(s => s.isFirstBoot);
   const triggerFirstBoot  = useGameStore(s => s.triggerFirstBoot);
 
-  // Use the new global state instead of local useState
   const isSettingsModalOpen = useGameStore(s => s.isSettingsModalOpen);
   const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
 
   const cyberdeliaMode = settings?.cyberdeliaMode ?? false;
 
-  // CRT bezel: inset shadow merged into boxShadow to avoid CSS property conflict
-  // with the outward desk glow. The border-radius + glass glare live in .crt-hardware.
-  const insetBezel = settings?.crtEnabled
-    ? ', inset 0 0 20px rgba(0,0,0,0.8), inset 0 0 2px rgba(255,255,255,0.1)'
-    : '';
-
-  // THE FIX: Added `status === 'resolved'` so the panic glow stays on during the disconnect screen
   const isPanic   = (status === 'hacking' || status === 'resolved') && (physicalHeat > 80 || digitalTrace > 80);
   const outerGlow = isPanic
     ? PANIC_GLOW
     : (SAFEHOUSE_GLOW[currentSafehouse?.color] ?? SAFEHOUSE_GLOW.cyan);
 
-  const containerClass = [
-    CONTAINER_BASE,
-    cyberdeliaMode         ? 'cyberdelia-vibe' : '',
-    settings?.crtEnabled   ? 'crt-hardware'    : '',
-  ].filter(Boolean).join(' ');
+  // Outer casing shadow merges the glowing ambient light with a physical heavy drop shadow
+  const deviceStyle = {
+    boxShadow: outerGlow + ', 0 25px 50px -12px rgba(0,0,0,0.8), 0 0 20px rgba(0,0,0,0.5)',
+  };
 
-  const glowStyle = {
-    boxShadow: outerGlow + insetBezel,
+  // Screen inset shadow is applied directly to the glass
+  const insetBezel = settings?.crtEnabled
+    ? 'inset 0 0 20px rgba(0,0,0,0.8), inset 0 0 2px rgba(255,255,255,0.1)'
+    : 'inset 0 0 20px rgba(0,0,0,0.8)';
+
+  const screenStyle = {
+    boxShadow: insetBezel,
     ...(cyberdeliaMode && { background: '#0D0221' }),
   };
 
-  // THE FIX: Added `status === 'resolved'` so the background room stays in 'combat' mode
   const envId   = (status === 'hacking' || status === 'resolved') ? 'combat' : (currentSafehouse?.id?.toLowerCase() ?? 'alpha');
   const roomClass = `h-[100svh] w-full flex justify-center items-center overflow-hidden room-environment env-${envId}`;
 
-  // Global heartbeat — the single timer driving all time-based game events.
-  // All logic resolves inside the store's tick(); this component only fires it.
   useEffect(() => {
     const id = setInterval(tick, TICK_INTERVAL_MS);
     return () => clearInterval(id);
   }, [tick]);
 
-  // First boot — inject the intro transmission once, on the transit screen only.
   useEffect(() => {
     if (status === 'transit' && isFirstBoot) {
       triggerFirstBoot();
     }
   }, [status, isFirstBoot, triggerFirstBoot]);
 
-  if (status === 'victory') return (
-    <div className={roomClass}>
-      <div className={containerClass} style={glowStyle}>
-        {settings?.crtEnabled && <div className="crt-scanlines" />}
-        {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-        {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
-        {pendingFragmentIdx !== null && <FragmentModal />}
-        <VictoryScene />
-      </div>
-    </div>
-  );
-
-  if (status === 'game_over') return (
-    <div className={roomClass}>
-      <div className={containerClass} style={glowStyle}>
-        {settings?.crtEnabled && <div className="crt-scanlines" />}
-        {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-        {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
-        <GameOverScene />
-      </div>
-    </div>
-  );
+  // Determine the active screen content
+  let Content;
+  if (status === 'victory') Content = <VictoryScene />;
+  else if (status === 'game_over') Content = <GameOverScene />;
+  else if (status === 'hacking' || status === 'resolved') Content = <HackingScene />;
+  else Content = <TransitScene />;
 
   return (
     <div className={roomClass}>
-      <div className={containerClass} style={glowStyle}>
-        {settings?.crtEnabled && <div className="crt-scanlines" />}
-        {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
-        {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
-        {pendingFragmentIdx !== null && <FragmentModal />}
-        {/* THE FIX: Render the HackingScene if status is 'hacking' OR 'resolved' */}
-        {status === 'hacking' || status === 'resolved' ? <HackingScene /> : <TransitScene />}
+      
+      {/* ── HARDWARE BEZEL (The physical device) ── */}
+      <div className="h-[95svh] max-w-md w-full p-2 sm:p-3 bg-zinc-900 border-t border-zinc-700 border-x border-zinc-800 border-b-[8px] border-b-black rounded-[32px] flex flex-col relative" style={deviceStyle}>
+        
+        {/* Device Texture overlay */}
+        <div className="absolute inset-0 rounded-[32px] bg-[url('/noise.png')] opacity-10 pointer-events-none mix-blend-overlay" />
+
+        {/* Top Hardware Details (Sensors / Mic array) */}
+        <div className="absolute top-2.5 left-1/2 -translate-x-1/2 flex items-center gap-3 opacity-40 z-10">
+          <div className="w-1.5 h-1.5 rounded-full bg-black shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)]" />
+          <div className="w-12 h-1.5 rounded-full bg-black shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)]" />
+        </div>
+
+        {/* ── SCREEN CONTAINER (The recessed glass display) ── */}
+        <div className="mt-4 flex-1 w-full relative ring-4 ring-black rounded-[20px] overflow-hidden bg-black shadow-[0_0_10px_rgba(0,0,0,1)]">
+          <div className={`h-full w-full flex flex-col relative ${cyberdeliaMode ? 'cyberdelia-vibe' : ''} ${settings?.crtEnabled ? 'crt-hardware' : ''}`} style={screenStyle}>
+            
+            {settings?.crtEnabled && <div className="crt-scanlines" />}
+            {cyberdeliaMode && <div className="cyberdelia-scanlines" />}
+            
+            {isSettingsModalOpen && <SettingsModal onClose={() => { toggleSettingsModal(false); setPaused(false); }} />}
+            {pendingFragmentIdx !== null && <FragmentModal />}
+            
+            {Content}
+          </div>
+        </div>
+
+        {/* Bottom Hardware Details (Speaker Grill) */}
+        <div className="h-3 w-full mt-2.5 mb-0.5 flex justify-center items-center gap-2 opacity-30 z-10">
+          {[...Array(6)].map((_, i) => (
+             <div key={i} className="w-1 h-3 bg-black rounded-sm shadow-[inset_0_1px_0px_rgba(255,255,255,0.3)]" />
+          ))}
+        </div>
+
       </div>
+
     </div>
   );
 }
