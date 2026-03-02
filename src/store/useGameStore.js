@@ -156,9 +156,9 @@ const TEST_NODE = {
   id: 'TEST_01', 
   name: 'Local Test Router', 
   specialDefense: null, 
-  firewallHP: 120, 
-  traceMultiplier: 0.5,
-  heatMultiplier: 0.4,
+  firewallHP: 200, 
+  traceMultiplier: 0.2,
+  heatMultiplier: 0.2,
   damageMod: 2.5
 };
 const _initialNode = TEST_NODE;
