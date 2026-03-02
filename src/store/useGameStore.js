@@ -150,7 +150,8 @@ const useGameStore = create(
       upgrades: buildInitialUpgradeState(),
 
       // ── Narrative archive ─────────────────────────────────────────────────
-      storyArchive: [],
+      storyArchive:       [],
+      decryptedFragments: [],
 
       // ── Pulse mechanic ───────────────────────────────────────────────────
       tickCount:            0,         // persistent counter driving the pulse window
@@ -653,6 +654,19 @@ const useGameStore = create(
       // ─── DISMISS FRAGMENT MODAL ───────────────────────────────────────
       dismissFragmentModal: () => set({ pendingFragmentIdx: null }),
 
+      // ─── DEEP DECRYPT FRAGMENT ────────────────────────────────────────
+      deepDecryptFragment: (fragmentIndex, cost) => {
+        const s = get();
+        if (s.intelFragments >= cost && !s.decryptedFragments.includes(fragmentIndex)) {
+          if (s.settings?.hapticsEnabled) haptic([20, 50, 20]);
+          AudioManager.playSFX('thock');
+          set({
+            intelFragments:     s.intelFragments - cost,
+            decryptedFragments: [...s.decryptedFragments, fragmentIndex],
+          });
+        }
+      },
+
       // ─── TOGGLE CYBERDELIA MODE ───────────────────────────────────────
       toggleCyberdelia: () => set((s) => ({
         settings: { ...s.settings, cyberdeliaMode: !s.settings?.cyberdeliaMode },
@@ -890,6 +904,10 @@ const useGameStore = create(
 
         if (version < 9) {
           state = { ...state, tickCount: 0 };
+        }
+
+        if (version < 10) {
+          state = { ...state, decryptedFragments: [] };
         }
 
         return state;

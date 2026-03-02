@@ -3,6 +3,18 @@ import useGameStore from '../store/useGameStore';
 import upgradesConfig from '../data/upgradesConfig.json';
 import storyFragments from '../data/storyFragments.json';
 
+// ─── Corrupt Text ─────────────────────────────────────────────────────────────
+
+export function corruptText(text) {
+  const chars = '!<>-_\\\\/[]{}—=+*^?#_';
+  return text.split('').map(char => {
+    if (char.match(/[a-zA-Z0-9]/) && Math.random() > 0.3) {
+      return chars[Math.floor(Math.random() * chars.length)];
+    }
+    return char;
+  }).join('');
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function calcUpgradeCost(cfg, currentLevel) {
@@ -226,12 +238,16 @@ function BlackMarket() {
 // ─── Narrative Archive ────────────────────────────────────────────────────────
 
 function NarrativeArchive() {
-  const storyArchive    = useGameStore(s => s.storyArchive);
-  const startNewSession = useGameStore(s => s.startNewSession);
-  const total           = storyFragments.length;
-  const collected       = storyArchive.length;
+  const storyArchive        = useGameStore(s => s.storyArchive);
+  const decryptedFragments  = useGameStore(s => s.decryptedFragments);
+  const intelFragments      = useGameStore(s => s.intelFragments);
+  const deepDecryptFragment = useGameStore(s => s.deepDecryptFragment);
+  const startNewSession     = useGameStore(s => s.startNewSession);
+  
+  const total     = storyFragments.length;
+  const collected = storyArchive.length;
+  const DECRYPT_COST = 50;
 
-  // Render in narrative order (ascending fragment index)
   const sortedIndices = [...storyArchive].sort((a, b) => a - b);
 
   return (
@@ -247,63 +263,52 @@ function NarrativeArchive() {
 
       {collected === 0 ? (
         <div className="glass-panel rounded-lg p-5 text-center border border-red-900/30 bg-red-950/20 relative overflow-hidden">
-          <p className="font-mono text-xs text-red-500/80 font-bold uppercase tracking-widest mb-2">
-            [ SEC_CORRUPTED ]
-          </p>
-          <p className="font-mono text-[10px] text-red-400/60 leading-relaxed mb-1">
-            0x000F4A: Drive completely fragmented.
-          </p>
-          {/* Animated "Scanning" bar */}
+          <p className="font-mono text-xs text-red-500/80 font-bold uppercase tracking-widest mb-2">[ SEC_CORRUPTED ]</p>
+          <p className="font-mono text-[10px] text-red-400/60 leading-relaxed mb-1">0x000F4A: Drive completely fragmented.</p>
           <div className="w-full bg-red-950/50 h-2 rounded mt-3 mb-2 overflow-hidden border border-red-900/50">
              <div className="w-1/3 h-full bg-red-500/30 animate-pulse" />
           </div>
-          <p className="font-mono text-[9px] text-zinc-500 mt-2">
-            Breach a Priority Lead to rebuild sector index.
-          </p>
+          <p className="font-mono text-[9px] text-zinc-500 mt-2">Breach a Priority Lead to rebuild sector index.</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {sortedIndices.map(idx => (
-            <div key={idx} className="glass-panel rounded-lg p-4 border border-green-500/10 bg-green-500/[0.02]">
-              <div className="flex items-center justify-between mb-2">
-                <p className="font-mono text-[9px] uppercase tracking-widest text-green-400/40">
-                  Fragment #{String(idx + 1).padStart(3, '0')} — Decoded
+          {sortedIndices.map(idx => {
+            const isDecrypted = decryptedFragments.includes(idx);
+            const rawText = storyFragments[idx].text;
+            const displayText = isDecrypted ? rawText : corruptText(rawText);
+
+            return (
+              <div key={idx} className="glass-panel rounded-lg p-4 border border-green-500/10 bg-green-500/[0.02]">
+                <div className="flex items-center justify-between mb-2">
+                  <p className={`font-mono text-[9px] uppercase tracking-widest ${isDecrypted ? 'text-green-400/40' : 'text-amber-500/60'}`}>
+                    Fragment #{String(idx + 1).padStart(3, '0')} — {isDecrypted ? 'Decoded' : 'Encrypted'}
+                  </p>
+                  <button
+                    onClick={() => startNewSession('priority', true, idx + 1)}
+                    className="font-mono text-[8px] uppercase tracking-widest text-zinc-600 hover:text-amber-400 border border-zinc-800 hover:border-amber-500/40 px-2 py-0.5 rounded transition-all duration-150 shrink-0 ml-2"
+                  >
+                    Re-Run
+                  </button>
+                </div>
+                <p className={`font-mono text-[11px] leading-relaxed ${isDecrypted ? 'text-zinc-300' : 'text-zinc-500'}`}>
+                  {displayText}
                 </p>
-                <button
-                  onClick={() => startNewSession('priority', true, idx + 1)}
-                  className="font-mono text-[8px] uppercase tracking-widest text-zinc-600 hover:text-amber-400 border border-zinc-800 hover:border-amber-500/40 px-2 py-0.5 rounded transition-all duration-150 shrink-0 ml-2"
-                  title={`Replay at original difficulty (FW: ${Math.floor(100 * Math.pow(1.15, idx))} HP) · 50% intel`}
-                >
-                  Re-Run
-                </button>
+                {!isDecrypted && (
+                  <button
+                    onClick={() => deepDecryptFragment(idx, DECRYPT_COST)}
+                    disabled={intelFragments < DECRYPT_COST}
+                    className={`mt-4 w-full py-2.5 rounded border font-mono text-xs font-bold uppercase tracking-widest transition-all duration-150 ${
+                      intelFragments >= DECRYPT_COST 
+                        ? 'border-green-500/50 text-green-400 bg-green-500/10 hover:bg-green-500/20 active:scale-95 glow-green' 
+                        : 'border-zinc-800 text-zinc-600 bg-transparent cursor-not-allowed'
+                    }`}
+                  >
+                    Decrypt Data // {DECRYPT_COST} IF
+                  </button>
+                )}
               </div>
-              <p className="font-mono text-[11px] text-zinc-300 leading-relaxed">
-                {storyFragments[idx].text}
-              </p>
-            </div>
-          ))}
-
-          {/* Remaining count hint */}
-          {collected < total && (
-            <div className="rounded-lg p-3 border border-zinc-800/50 text-center">
-              <p className="font-mono text-[10px] text-zinc-700">
-                {total - collected} fragment{total - collected !== 1 ? 's' : ''} still encrypted.
-              </p>
-              <p className="font-mono text-[10px] text-zinc-800 mt-0.5">Keep hacking.</p>
-            </div>
-          )}
-
-          {/* Completion state */}
-          {collected === total && (
-            <div className="glass-panel rounded-lg p-4 border border-green-500/30 bg-green-500/5 text-center">
-              <p className="font-mono text-xs text-green-400 font-bold uppercase tracking-widest">
-                Archive Complete
-              </p>
-              <p className="font-mono text-[10px] text-green-400/60 mt-1">
-                You have the full picture. What you do next is your choice.
-              </p>
-            </div>
-          )}
+            );
+          })}
         </div>
       )}
     </div>

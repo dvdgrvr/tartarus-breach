@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import useGameStore from '../store/useGameStore';
 import storyFragments from '../data/storyFragments.json';
+import { corruptText } from '../scenes/TransitScene';
 
 const TARTARUS_SCRIPT =
 `[SYSTEM]: Trace at 99%. Safety Orange override active.
@@ -25,9 +26,14 @@ export default function FragmentModal() {
   const [displayed, setDisplayed] = useState('');
   const [exiting,   setExiting]   = useState(false);
 
+  const decryptedFragments = useGameStore(s => s.decryptedFragments);
+  
   const isFragment12 = pendingFragmentIdx === 11;
+  const isDecrypted  = decryptedFragments?.includes(pendingFragmentIdx);
   const fragment     = storyFragments[pendingFragmentIdx];
-  const fullText     = isFragment12 ? TARTARUS_SCRIPT : (fragment?.text ?? '');
+  
+  const baseText = isFragment12 ? TARTARUS_SCRIPT : (fragment?.text ?? '');
+  const fullText = (!isFragment12 && !isDecrypted) ? corruptText(baseText) : baseText;
 
   // Phase 1: Rapidly scramble hex characters for ~500ms
   useEffect(() => {
@@ -101,8 +107,9 @@ export default function FragmentModal() {
             `// Fragment #${String(pendingFragmentIdx + 1).padStart(3, '0')} — Decrypted`}
         </p>
         <h2 className="font-mono text-sm font-bold uppercase tracking-widest" style={{ color: textCol }}>
-          {phase === 'decrypting' ? 'BYPASSING ENCRYPTION...' :
-            isFragment12 ? '// Cell Release Authorized //' : 'Decryption Complete'}
+          {phase === 'decrypting' ? 'DOWNLOADING FRAGMENT...' :
+            isFragment12 ? '// Cell Release Authorized //' : 
+            isDecrypted ? 'Decryption Complete' : 'DATA ENCRYPTED — DECRYPT IN ARCHIVE'}
         </h2>
       </div>
 
