@@ -57,13 +57,12 @@ export default function CommandBar() {
   const [errorId, setErrorId]     = useState(null);
   const holdTimeout = useRef(null);
 
-  // ── THE FIX: Safety lock to prevent spam-tapping through the disconnect screen
   const [disconnectLocked, setDisconnectLocked] = useState(false);
 
   useEffect(() => {
     if (status === 'resolved') {
       setDisconnectLocked(true);
-      const timer = setTimeout(() => setDisconnectLocked(false), 1200); // 1.2 second lock
+      const timer = setTimeout(() => setDisconnectLocked(false), 1200);
       return () => clearTimeout(timer);
     }
   }, [status]);
@@ -86,13 +85,13 @@ export default function CommandBar() {
     
     setHoldingId(toolId);
     if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(300); 
+      navigator.vibrate(400); 
     }
 
     holdTimeout.current = setTimeout(() => {
       executeCommand(toolId);
       setHoldingId(null);
-    }, 300); // 300ms hold time for dangerous tools
+    }, 400);
   };
 
   const handlePointerUp = () => {
@@ -108,14 +107,13 @@ export default function CommandBar() {
       <div className="relative px-4 py-2 pb-4 flex justify-center items-end">
         <button
           onClick={() => {
-            if (disconnectLocked) return; // Prevent spam-clicks
+            if (disconnectLocked) return;
             AudioManager.playSFX('thock');
             if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
               navigator.vibrate([30, 20, 10]);
             }
             leaveNode();
           }}
-          // Dynamically swap styles based on the lock state
           className={`w-full relative overflow-hidden group py-5 bg-zinc-950 border-2 border-zinc-700 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 shadow-xl ${
             disconnectLocked 
               ? 'opacity-60 cursor-not-allowed grayscale border-zinc-800' 
@@ -142,7 +140,7 @@ export default function CommandBar() {
 
   return (
     <div className="relative px-4 py-2 pb-4 flex gap-3 justify-center items-end">
-      {toolsConfig.map((tool, index) => {
+      {toolsConfig.map((tool) => {
         const cooldown   = toolState[tool.id]?.cooldownRemaining ?? 0;
         const onCooldown = cooldown > 0;
         const disabled   = onCooldown || status !== 'hacking';
@@ -151,8 +149,6 @@ export default function CommandBar() {
         const isDangerous = tool.color === 'amber';
         const isHolding   = holdingId === tool.id;
         const isError     = errorId === tool.id;
-
-        const arcTranslate = index === 1 ? '-translate-y-2' : 'translate-y-2';
 
         return (
           <button
@@ -166,7 +162,6 @@ export default function CommandBar() {
               'font-mono text-[11px] font-bold uppercase tracking-widest text-center',
               'border border-b-[4px] transition-all duration-75 select-none',
               disabled ? styles.disabled : `${styles.active} active:border-b active:translate-y-1`,
-              arcTranslate,
               isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : ''
             ].join(' ')}
           >
@@ -183,7 +178,7 @@ export default function CommandBar() {
             {isHolding && (
               <div 
                 className="absolute bottom-0 left-0 h-1 bg-amber-400 transition-all ease-linear"
-                style={{ width: isHolding ? '100%' : '0%', transitionDuration: isHolding ? '300ms' : '0ms' }}
+                style={{ width: isHolding ? '100%' : '0%', transitionDuration: isHolding ? '400ms' : '0ms' }}
               />
             )}
           </button>
