@@ -182,7 +182,10 @@ export default function CommandBar() {
             ].join(' ')}
           >
             <div className="relative z-10">
-              <GlitchLabel text={tool.label} isDanger={digitalTrace >= 85} />
+              <GlitchLabel 
+                text={tool.label} 
+                isDanger={digitalTrace >= 85 && (settings?.glitchEnabled ?? true)} 
+              />
             </div>
             
             {onCooldown && (

@@ -38,9 +38,11 @@ function TypewriterLine({ text, className, isDanger }) {
 export default function TerminalLog({ className = '' }) {
   const terminalLog  = useGameStore(s => s.terminalLog);
   const digitalTrace = useGameStore(s => s.digitalTrace);
+  const settings     = useGameStore(s => s.settings); // <-- Add this
   const endRef       = useRef(null);
 
-  const isDanger = digitalTrace >= 85;
+  // Check if glitch is enabled in settings (defaults to true)
+  const isDanger = digitalTrace >= 85 && (settings?.glitchEnabled ?? true);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'auto' });

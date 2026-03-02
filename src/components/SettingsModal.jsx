@@ -134,6 +134,12 @@ export default function SettingsModal({ onClose }) {
               onChange={(v) => updateSettings({ shakeEnabled: v })}
             />
             <Toggle
+              label="UI Glitch Effects"
+              description="Text jitter and corruption on high trace"
+              value={settings?.glitchEnabled ?? true}
+              onChange={(v) => updateSettings({ glitchEnabled: v })}
+            />
+            <Toggle
               label="CRT Scanlines"
               description="Phosphor scanline overlay across the display"
               value={settings?.crtEnabled ?? true}

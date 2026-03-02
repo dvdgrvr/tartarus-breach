@@ -240,7 +240,7 @@ export default function HackingScene() {
     setPopupDismissed(true);
   };
 
-  const isTraceDanger = trace >= 80;
+  const isTraceDanger = trace >= 80 && (settings?.glitchEnabled ?? true);
   const isHeatDanger  = heat  >= 80;
 
   const isWin = status === 'resolved' && transitOutcome === 'success';
@@ -325,16 +325,16 @@ export default function HackingScene() {
                 {popupConfig.sub}
               </p>
               
-              <p className={`font-mono text-sm font-bold uppercase tracking-widest mb-3 relative z-10 ${popupConfig.titleColor}`}>
+              <p className={`font-mono text-sm font-bold uppercase tracking-widest mb-4 relative z-10 ${popupConfig.titleColor}`}>
                 {popupConfig.intel}
               </p>
               
-              {/* Informational Prompt */}
-              <div className="w-full mt-3 px-4 py-3 bg-zinc-900/50 border border-zinc-800/50 relative z-10 flex flex-col items-center">
+              {/* Informational Prompt - Now formatted like pure text, no button bounding box */}
+              <div className="mt-2 relative z-10 flex flex-col items-center opacity-80">
                 <span className="font-mono text-[10px] text-zinc-400 uppercase tracking-widest text-center">
-                  Close [x] to review logs
+                  // Close [x] to review logs
                 </span>
-                <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mt-1 text-center">
+                <span className="font-mono text-[10px] text-zinc-500 uppercase tracking-widest mt-0.5 text-center">
                   or select [DISCONNECT] to exit
                 </span>
               </div>
