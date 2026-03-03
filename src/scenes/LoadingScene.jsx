@@ -13,13 +13,29 @@ export default function LoadingScene({ onComplete }) {
       <div className="flex-1 flex flex-col justify-center space-y-8">
         
         {/* Boot Sequence Header */}
-        <div className="space-y-2">
-          <p className="text-cyan-400 text-[10px] tracking-widest uppercase animate-pulse">
-            // KERNEL_LOAD_V10.2
-          </p>
-          <h1 className="text-zinc-100 text-2xl font-bold tracking-tighter uppercase">
-            Initializing Deck...
-          </h1>
+        <div className="space-y-4">
+          {/* THE ASCII LOGO - Now at the very top */}
+          <pre className="text-red-500 font-mono text-[8px] sm:text-[10px] leading-none tracking-tight font-bold drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] select-none">
+{`
+
+████████╗ █████╗ ██████╗ ████████╗ █████╗ ██████╗ ██╗   ██╗███████╗
+╚══██╔══╝██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗██║   ██║██╔════╝
+   ██║   ███████║██████╔╝   ██║   ███████║██████╔╝██║   ██║███████╗
+   ██║   ██╔══██║██╔══██╗   ██║   ██╔══██║██╔══██╗██║   ██║╚════██║
+   ██║   ██║  ██║██║  ██║   ██║   ██║  ██║██║  ██║╚██████╔╝███████║
+   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝                                                      
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+`}
+          </pre>
+
+          <div className="space-y-1">
+            <p className="text-cyan-400 text-[10px] tracking-widest uppercase animate-pulse">
+              // KERNEL_LOAD_V10.2
+            </p>
+            <h1 className="text-zinc-100 text-xl font-bold tracking-tighter uppercase">
+              Initializing Deck...
+            </h1>
+          </div>
         </div>
 
         {/* Advisory Panel */}
@@ -61,7 +77,7 @@ export default function LoadingScene({ onComplete }) {
           </span>
         </button>
         
-        <p className="text-center text-[10px] text-zinc-300 uppercase tracking-widest pt-2">
+        <p className="text-center text-[10px] text-zinc-600 uppercase tracking-widest pt-2">
           Settings can be recalibrated in SYS menu
         </p>
         
