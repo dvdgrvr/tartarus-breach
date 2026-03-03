@@ -341,8 +341,14 @@ tick: () => {
         
         let rabbitDamage = 0;
         if (s.rabbitTicks > 0) {
-          rabbitDamage = 1; // 1 HP per tick = 10 HP per sec for 50 ticks = 50 total
-          if (newTickCount % 10 === 0) logMsg = '>> RABBIT VIRUS: EATING FW...';
+          rabbitDamage = 1; 
+          // Every 5 ticks (0.5 seconds), the rabbits multiply and eat data
+          if (newTickCount % 5 === 0) {
+            const rabbitMultiplier = Math.floor((50 - s.rabbitTicks) / 10) + 1;
+            const bunnies = "(\\_/) ".repeat(Math.min(rabbitMultiplier, 5));
+            logMsg = `>> ${bunnies} *chomp* [ DATA_CONSUMED ]`;
+            if (s.settings?.hapticsEnabled) haptic(10); // Tiny nibble haptics
+          }
         }
         
         if (s.ghostTicks > 0) {
@@ -512,10 +518,14 @@ executeCommand: (toolId) => {
           // RIPOSTE: If the node is exposed, deal double damage and consume the exposure!
           if (s.exposedTicks > 0) {
             firewallDamage *= 2;
-            set({ exposedTicks: 0 }); // Consume the exposure
+            set(cur => ({ 
+              exposedTicks: 0,
+              terminalLog: appendLog(cur.terminalLog, `>> [!!] CRITICAL OVERRIDE [!!] — 2.0x MULTIPLIER APPLIED`)
+            })); 
+            if (s.settings?.hapticsEnabled) haptic([50, 80, 50]); // Heavy critical hit recoil
+            AudioManager.playSFX('thock'); // Double up the sound for impact
           }
 
-          // Hardware Alert — warn once if FW is hidden and player hasn't run DECRYPT
           if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
             set(cur => ({
               terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics encrypted. Blind strikes are inefficient. Recommend structural dissection.'),

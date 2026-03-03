@@ -64,6 +64,7 @@ export default function CommandBar() {
   const siphonVault      = useGameStore(s => s.siphonVault);
   const tutorialFlags    = useGameStore(s => s.tutorialFlags);
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
+  const exposedTicks     = useGameStore(s => s.exposedTicks);
   
   const upgrades       = useGameStore(s => s.upgrades);
   const safehouse      = useGameStore(s => s.currentSafehouse);
@@ -131,11 +132,27 @@ const handlePointerDown = (toolId, disabled) => {
       return (
         <div className="relative px-4 py-2 pb-4 flex gap-3 justify-center items-end h-[100px]">
           <button
-            onPointerDown={startSiphon}
-            onPointerUp={stopSiphon}
+            onPointerDown={(e) => {
+              e.target.setPointerCapture(e.pointerId); // Locks the touch to this button
+              startSiphon();
+            }}
+            onPointerUp={(e) => {
+              if (e.target.hasPointerCapture(e.pointerId)) {
+                e.target.releasePointerCapture(e.pointerId);
+              }
+              stopSiphon();
+            }}
             onPointerLeave={stopSiphon}
             onPointerCancel={stopSiphon}
             onContextMenu={(e) => { e.preventDefault(); stopSiphon(); }}
+            onTouchStart={(e) => { 
+              e.preventDefault(); // The silver bullet for Android/iOS text-selection interruption
+              startSiphon(); 
+            }}
+            onTouchEnd={(e) => { 
+              e.preventDefault(); 
+              stopSiphon(); 
+            }}
             className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 touch-none select-none ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
@@ -257,7 +274,8 @@ const handlePointerDown = (toolId, disabled) => {
               'font-mono text-[11px] font-bold uppercase tracking-widest text-center',
               'border border-b-[4px] transition-all duration-75 select-none',
               disabled ? styles.disabled : `${styles.active} active:border-b active:translate-y-1`,
-              isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : ''
+              isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
+              (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled) ? 'ring-2 ring-green-400 shadow-[0_0_15px_rgba(74,222,128,0.6)] animate-pulse z-50' : ''
             ].join(' ')}
           >
             <div className="relative z-10">
