@@ -159,7 +159,8 @@ export default function SettingsModal({ onClose }) {
           <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
             // Data Management
           </p>
-          <div className="glass-panel rounded-lg px-4 py-4 space-y-3">
+          <div className="flex gap-3">
+            {/* EXPORT BUTTON - Neutral Utility */}
             <button
               onClick={() => {
                 const save = localStorage.getItem('tartarus-save');
@@ -168,10 +169,15 @@ export default function SettingsModal({ onClose }) {
                   alert('Save string copied to clipboard!');
                 });
               }}
-              className="w-full py-2.5 rounded border border-cyan-700/60 bg-cyan-900/10 text-cyan-400 font-mono text-xs font-bold uppercase tracking-widest hover:bg-cyan-900/30 hover:text-cyan-300 hover:border-cyan-500/60 transition-all duration-150"
+              className="flex-1 py-3 px-2 rounded border border-zinc-600 border-b-[4px] border-b-zinc-700 text-zinc-200 bg-zinc-800/60 hover:bg-zinc-700/80 hover:text-white font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 active:translate-y-[2px] active:border-b-0 flex flex-col items-center gap-1 select-none"
             >
               Export Save
+              <span className="text-[9px] font-normal text-zinc-400 normal-case tracking-normal text-center leading-tight">
+                Copy to clipboard
+              </span>
             </button>
+
+            {/* IMPORT BUTTON - Active Utility */}
             <button
               onClick={() => {
                 const pasted = window.prompt('Paste your save string here:');
@@ -185,9 +191,12 @@ export default function SettingsModal({ onClose }) {
                 localStorage.setItem('tartarus-save', pasted);
                 window.location.reload();
               }}
-              className="w-full py-2.5 rounded border border-zinc-600/60 bg-zinc-800/20 text-zinc-300 font-mono text-xs font-bold uppercase tracking-widest hover:bg-zinc-800/50 hover:text-zinc-100 hover:border-zinc-500/60 transition-all duration-150"
+              className="flex-1 py-3 px-2 rounded border border-cyan-500/60 border-b-[4px] border-b-cyan-700 text-cyan-300 bg-cyan-900/50 hover:bg-cyan-800/60 hover:text-cyan-100 font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 active:translate-y-[2px] active:border-b-0 flex flex-col items-center justify-center gap-1 select-none"
             >
               Import Save
+              <span className="text-[9px] font-normal text-cyan-400/70 normal-case tracking-normal text-center leading-tight">
+                Restore from string
+              </span>
             </button>
           </div>
         </div>
@@ -209,9 +218,13 @@ export default function SettingsModal({ onClose }) {
               onClose();
             }
           }}
-          className="w-full py-3 rounded-lg border border-red-800/60 bg-red-950/30 text-red-500 font-mono text-xs font-bold uppercase tracking-widest hover:bg-red-900/40 hover:text-red-400 hover:border-red-600/60 transition-all duration-150"
+          // I removed 'danger-shake' from the end of the className list below:
+          className="w-full py-3 px-4 rounded border border-red-500/80 border-b-[4px] border-b-red-700 text-red-400 bg-red-950/60 hover:bg-red-900/80 hover:text-red-200 font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 active:translate-y-[2px] active:border-b-0 flex flex-col items-center gap-1 select-none"
         >
-          Restart Campaign
+          Erase Safehouse
+          <span className="text-[10px] font-normal text-red-400/80 normal-case tracking-normal">
+            Restart campaign & wipe intel
+          </span>
         </button>
       </div>
 

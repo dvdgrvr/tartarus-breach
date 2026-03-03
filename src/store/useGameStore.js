@@ -183,7 +183,7 @@ const useGameStore = create(
       tickCount:            0,         // persistent counter driving the pulse window
 
       // ── Session state ────────────────────────────────────────────────────
-      status:               'transit',  // 'hacking' | 'transit' | 'victory' | 'game_over' | 'resolved'
+      status:               'transit',  // 'loading' | 'hacking' | 'transit' | 'victory' | 'game_over'
       nextStatus:           'transit',  // Tracks where the Disconnect button should go
       isBreaching:          false,
       isPerfectBreach:      false,
@@ -219,6 +219,7 @@ const useGameStore = create(
         shakeEnabled:    true,
         crtEnabled:      true,
         cyberdeliaMode:  false,  // global 1995 Cyberdelia visual override
+        reducedMotion:   false,  // NEW: Ocular protection protocol
       },
 
       isSettingsModalOpen: false,
@@ -828,6 +829,20 @@ triggerFirstBoot: () => {
             decryptedFragments: [...s.decryptedFragments, fragmentIndex],
           });
         }
+      },
+
+      // ─── INITIALIZE DECK ─────────────────────────────────────────────
+      initializeDeck: (isReduced) => {
+        set((s) => ({
+          // REMOVED the status line from here!
+          settings: { 
+            ...s.settings, 
+            reducedMotion: isReduced,
+            shakeEnabled:  isReduced ? false : s.settings.shakeEnabled,
+            crtEnabled:    isReduced ? false : s.settings.crtEnabled,
+            glitchEnabled: isReduced ? false : s.settings.glitchEnabled,
+          }
+        }));
       },
 
       // ─── TOGGLE CYBERDELIA MODE ───────────────────────────────────────

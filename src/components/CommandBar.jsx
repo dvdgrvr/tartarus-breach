@@ -26,9 +26,11 @@ const FILL_STYLES = {
 
 function GlitchLabel({ text, isDanger }) {
   const [display, setDisplay] = useState(text);
+  const glitchEnabled = useGameStore(s => s.settings?.glitchEnabled ?? true);
+  const reducedMotion = useGameStore(s => s.settings?.reducedMotion ?? false);
 
   useEffect(() => {
-    if (!isDanger) {
+    if (!isDanger || !glitchEnabled || reducedMotion) {
       setDisplay(text);
       return;
     }
@@ -46,7 +48,7 @@ function GlitchLabel({ text, isDanger }) {
     }, 50);
     
     return () => clearInterval(interval);
-  }, [text, isDanger]);
+  }, [text, isDanger, glitchEnabled, reducedMotion]);
 
   return <>{display}</>;
 }

@@ -222,6 +222,7 @@ export default function HackingScene() {
   const status             = useGameStore(s => s.status);
   const transitOutcome     = useGameStore(s => s.transitOutcome);
   const isPerfectBreach    = useGameStore(s => s.isPerfectBreach);
+  const reducedMotion      = useGameStore(s => s.settings?.reducedMotion);
   const sessionIntelEarned = useGameStore(s => s.sessionIntelEarned);
   const settings           = useGameStore(s => s.settings);
 
@@ -291,8 +292,8 @@ export default function HackingScene() {
 
   return (
     <div className={`flex flex-col h-full bg-zinc-950 relative ${breachTearClass}`}>
-
-      {isHeatDanger && <div className="siren-vignette" />}
+      {/* Siren vignette — pointer-events-none, pulses when heat is critical */}
+      {(isHeatDanger && !reducedMotion) && <div className="siren-vignette" />}
 
       <TopBorder />
 
@@ -379,7 +380,8 @@ export default function HackingScene() {
 
         <NodeStatusStrip />
 
-        <TerminalLog className={isTraceDanger ? 'digital-glitch' : ''} />
+        {/* Terminal — digital-glitch applied when trace is critical */}
+        <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />
 
         <div className="border-t border-zinc-800/60 pt-1 pb-0.5">
           <FirewallRow />

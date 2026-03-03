@@ -437,10 +437,11 @@ export default function TransitScene() {
   const highestDarknetTier = useGameStore(s => s.highestDarknetTier);
   const setPaused           = useGameStore(s => s.setPaused);
   const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
+  const reducedMotion       = useGameStore(s => s.settings?.reducedMotion);
 
   const phase = archiveLen >= 11 ? 3 : archiveLen >= 8 ? 2 : archiveLen >= 4 ? 1 : 0;
   const containerBg    = phase >= 3 ? { background: 'linear-gradient(180deg, #09090b 0%, #1a0505 50%, #09090b 100%)' } : undefined;
-  const containerClass = `flex flex-col h-full overflow-hidden ${phase >= 3 ? 'alarm-pulse' : ''}`;
+  const containerClass = `flex flex-col h-full overflow-hidden ${(phase >= 3 && !reducedMotion) ? 'alarm-pulse' : ''}`;
 
   const statusText  = phase >= 2 ? '// WARNING — THEY ARE WATCHING' : '// Transit Mode — Signal Rerouted';
   const statusClass = phase >= 2 ? 'text-red-400/90 red-blink font-bold' : 'text-green-400 font-bold';

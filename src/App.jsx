@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import useGameStore from './store/useGameStore';
 import HackingScene from './scenes/HackingScene';
 import TransitScene from './scenes/TransitScene';
+import LoadingScene from './scenes/LoadingScene';
 import SettingsModal from './components/SettingsModal';
 import FragmentModal from './components/FragmentModal';
 import storyFragments from './data/storyFragments.json';
@@ -142,6 +143,7 @@ const PANIC_GLOW =
 // ─── App ──────────────────────────────────────────────────────────────────────
 
 export default function App() {
+  const [isBooting, setIsBooting] = useState(true);
   const status             = useGameStore(s => s.status);
   const tick               = useGameStore(s => s.tick);
   const currentSafehouse   = useGameStore(s => s.currentSafehouse);
@@ -195,7 +197,8 @@ export default function App() {
 
   // Determine the active screen content
   let Content;
-  if (status === 'victory') Content = <VictoryScene />;
+  if (isBooting) Content = <LoadingScene onComplete={() => setIsBooting(false)} />; // <-- NEW LOGIC
+  else if (status === 'victory') Content = <VictoryScene />;
   else if (status === 'game_over') Content = <GameOverScene />;
   else if (status === 'hacking' || status === 'resolved') Content = <HackingScene />;
   else Content = <TransitScene />;
