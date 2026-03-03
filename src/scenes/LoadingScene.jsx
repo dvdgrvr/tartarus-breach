@@ -14,17 +14,15 @@ export default function LoadingScene({ onComplete }) {
         
         {/* Boot Sequence Header */}
         <div className="space-y-4">
-          {/* THE ASCII LOGO - Now at the very top */}
-          <pre className="text-red-500 font-mono text-[8px] sm:text-[10px] leading-none tracking-tight font-bold drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] select-none">
+          {/* THE ASCII LOGO */}
+          <pre className="text-red-500 font-mono text-[8px] sm:text-[10px] leading-none tracking-tight font-bold drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] select-none animate-logo-flicker animate-logo-shift">
 {`
-
 ████████╗ █████╗ ██████╗ ████████╗ █████╗ ██████╗ ██╗   ██╗███████╗
 ╚══██╔══╝██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗██║   ██║██╔════╝
    ██║   ███████║██████╔╝   ██║   ███████║██████╔╝██║   ██║███████╗
    ██║   ██╔══██║██╔══██╗   ██║   ██╔══██║██╔══██╗██║   ██║╚════██║
-   ██║   ██║  ██║██║  ██║   ██║   ██║  ██║██║  ██║╚██████╔╝███████║
-   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝                                                      
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
+   ██║   ██║  ██║██║  ██║   ██║   ██║  ██║██║  ██║╚██████╔╝███████╗
+   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 `}
           </pre>
 

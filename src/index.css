@@ -49,6 +49,31 @@
 
 /* ─── Utility Components ──────────────────────────────────────────────────────── */
 @layer components {
+  /* Subtle brightness/opacity flicker */
+  @keyframes logo-flicker {
+    0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { opacity: 1; filter: brightness(1); }
+    20%, 21.999% { opacity: 0.8; filter: brightness(1.5); }
+    63%, 63.999% { opacity: 0.6; filter: brightness(2); }
+    65%, 69.999% { opacity: 0.9; filter: brightness(1.2); }
+  }
+
+  /* Rapid horizontal shift/jitter */
+  @keyframes logo-shift {
+    0%, 90%, 100% { transform: translateX(0); }
+    91% { transform: translateX(1px); }
+    92% { transform: translateX(-1px); }
+    93% { transform: translateX(2px); }
+    94% { transform: translateX(0); }
+  }
+
+  .animate-logo-flicker {
+    animation: logo-flicker 4s linear infinite;
+  }
+
+  .animate-logo-shift {
+    animation: logo-shift 2s steps(1) infinite;
+  }
+
   /* Glassmorphism panel — the core "Modern Cyber-Rebel" card style */
   .glass-panel {
     background: rgba(255, 255, 255, 0.04);
