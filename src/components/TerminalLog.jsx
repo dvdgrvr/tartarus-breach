@@ -1,68 +1,70 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import useGameStore from '../store/useGameStore';
 
-function TypewriterLine({ text, className, isDanger }) {
-  const [displayed, setDisplayed] = useState('');
-  const [glitchOffset, setGlitchOffset] = useState('');
-
-  useEffect(() => {
-    let i = 0;
-    const interval = setInterval(() => {
-      setDisplayed(text.slice(0, i + 2));
-      i += 2;
-      if (i >= text.length) clearInterval(interval);
-    }, 10);
-    return () => clearInterval(interval);
-  }, [text]);
-
-  useEffect(() => {
-    if (!isDanger) {
-      setGlitchOffset('');
-      return;
-    }
-    
-    const interval = setInterval(() => {
-      if (Math.random() > 0.8) {
-        setGlitchOffset(Math.random() > 0.5 ? 'translate-x-[2px] opacity-70' : '-translate-x-[2px] opacity-90');
-      } else {
-        setGlitchOffset('');
-      }
-    }, 100);
-    
-    return () => clearInterval(interval);
-  }, [isDanger]);
-
-  return <p className={`font-mono text-xs leading-relaxed mb-1 transition-all duration-75 ${className} ${glitchOffset}`}>{displayed}</p>;
-}
-
 export default function TerminalLog({ className = '' }) {
-  const terminalLog  = useGameStore(s => s.terminalLog);
-  const digitalTrace = useGameStore(s => s.digitalTrace);
-  const settings     = useGameStore(s => s.settings); // <-- Add this
-  const endRef       = useRef(null);
-
-  // Check if glitch is enabled in settings (defaults to true)
-  const isDanger = digitalTrace >= 85 && (settings?.glitchEnabled ?? true);
+  const log = useGameStore(s => s.terminalLog);
+  const scrollRef = useRef(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'auto' });
-  }, [terminalLog]);
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [log]);
+
+  // Dynamic syntax highlighting for the terminal (BRIGHTENED FOR READABILITY)
+  const getLineColor = (line) => {
+    // Errors, Daemons, and Busted states
+    if (line.includes('!!') || line.includes('CRITICAL OVERRIDE') || line.includes('FATAL') || line.includes('SEVERED')) {
+      return 'text-red-400 font-bold drop-shadow-md';
+    }
+    // Warnings and Exposures
+    if (line.includes('[!]') || line.includes('EXPOSED') || line.includes('WARNING')) {
+      return 'text-amber-300 font-bold';
+    }
+    // Operator/Masha Dialogue
+    if (line.includes('// MASHA:') || line.includes('// MEMO_FROM_MASHA:')) {
+      return 'text-fuchsia-300 font-bold';
+    }
+    // Ambient flavor text
+    if (line.includes('// AMBIENT:')) {
+      return 'text-zinc-400/80';
+    }
+    // Rabbit Virus
+    if (line.includes('(\\_/)')) {
+      return 'text-green-400 font-bold';
+    }
+    // Player Tool Actions & Successes
+    if (line.startsWith('> ') || line.startsWith('>> ')) {
+      return 'text-green-300 font-bold';
+    }
+    // Default system text (Brightened significantly)
+    return 'text-cyan-300/90';
+  };
 
   return (
-    <div className={`flex-1 overflow-y-auto px-4 py-2 scrollbar-thin ${className}`}>
-      {terminalLog.map((line, i) => {
-        const colorClass = line.startsWith('>> PERFECT BREACH') ? 'text-yellow-400 font-bold animate-pulse' :
-                           line.startsWith('>> PERFECT SYNC')   ? 'text-cyan-300 italic font-bold' :
-                           line.startsWith('>>') ? 'text-green-400' :
-                           line.startsWith('!!') ? 'text-red-400 font-bold' :
-                           line.startsWith('[!]') ? 'text-amber-400 font-bold' :
-                           line.startsWith('// MEMO') ? 'text-purple-400 italic font-medium' :
-                           line.startsWith('//') ? 'text-cyan-400/80' :
-                           'text-zinc-300';
-                           
-        return <TypewriterLine key={i} text={line} className={colorClass} isDanger={isDanger} />;
-      })}
-      <div ref={endRef} />
+    <div className={`flex-1 overflow-hidden relative border-t border-zinc-800/40 bg-black ${className}`}>
+      {/* Scanline overlay - reduced opacity so it doesn't fight the text */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] pointer-events-none z-10" />
+      
+      {/* Vignette shadow */}
+      <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.8)] pointer-events-none z-10" />
+
+      <div
+        ref={scrollRef}
+        className="h-full overflow-y-auto px-4 py-4 scrollbar-thin flex flex-col justify-start relative z-0"
+      >
+        <div className="mt-auto space-y-2 pb-2">
+          {log.map((entry, i) => (
+            <p 
+              key={i} 
+              // Bumped font size to 11px/12px, removed the inline text-shadow
+              className={`font-mono text-[11px] sm:text-xs leading-normal tracking-wide ${getLineColor(entry)}`}
+            >
+              {entry}
+            </p>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
