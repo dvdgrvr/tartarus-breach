@@ -151,17 +151,7 @@ const calcPotentialIntel = (jobType) => {
 
 // ─── Store ────────────────────────────────────────────────────────────────────
 
-// A hidden, low-threat node specifically for the very first time the app loads
-const TEST_NODE = { 
-  id: 'TEST_01', 
-  name: 'Local Test Router', 
-  specialDefense: null, 
-  firewallHP: 200, 
-  traceMultiplier: 0.2,
-  heatMultiplier: 0.2,
-  damageMod: 2.5
-};
-const _initialNode = TEST_NODE;
+const _initialNode = pickSkimNode();
 
 const useGameStore = create(
   persist(
@@ -285,12 +275,11 @@ triggerFirstBoot: () => {
         set(cur => {
           let log = appendLog(cur.terminalLog, '// KERNEL_INITIALIZED: Safehouse ALPHA online.');
           log = appendLog(log, '// ENCRYPTION_ACTIVE: Signal routed through Belgrade Node.');
-          log = appendLog(log, "// MEMO_FROM_MASHA: 'Operator, you're clear. The Tartarus Node is dark, but municipal servers are vulnerable. We need fragments to map the breach.'");
-          log = appendLog(log, "// MASHA: 'Target acquired. Use [ BYPASS ] to hammer their firewall.'"); // <-- Added Instruction
+          log = appendLog(log, "// MEMO_FROM_MASHA: 'Operator, you're clear. If you forget your tool protocols, check the DECK MANUAL in the Safehouse.'");
+          log = appendLog(log, "// MASHA: 'Target acquired. Don't fry the hardware. Good luck.'");
           return { 
             terminalLog: log, 
-            isFirstBoot: false,
-            tutorialFlags: { ...cur.tutorialFlags, bypassPrompt: true } // <-- Turns on the UI Glow
+            isFirstBoot: false
           };
         });
       },
@@ -394,36 +383,36 @@ tick: () => {
           terminalLog: newLog
         });
 
-        // ── In-World Tutorial Prompts (Only triggers during the first node) ──
-        if (newTrace >= 40 && !s.tutorialFlags.scanPrompt && !s.tutorialFlags.siphonWarning) {
+        // ── Narrative Operator Prompts (Only triggers once per save) ──
+        if (newTrace >= 50 && !s.tutorialFlags.scanPrompt) {
           set(cur => ({
-            terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'Watch your Trace meter! If it hits 100%, they kill the uplink. Use [ SCAN ] to drop it.'"),
+            terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'They are sniffing our packets. Mask your signature before they trace the uplink.'"),
             tutorialFlags: { ...cur.tutorialFlags, scanPrompt: true },
           }));
         }
-        if (newHeat >= 40 && !s.tutorialFlags.heatTutorial && !s.tutorialFlags.siphonWarning) {
+        if (newHeat >= 60 && !s.tutorialFlags.heatTutorial) {
           set(cur => ({
-            terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'Our physical Heat is rising. If it hits 100%, the safehouse gets raided. Work fast.'"),
+            terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'Rig temperatures are climbing. We're going to fry the hardware if you don't let it cool.'"),
             tutorialFlags: { ...cur.tutorialFlags, heatTutorial: true },
           }));
         }
-        if (isPulse && !s.tutorialFlags.pulsePrompt && !s.tutorialFlags.siphonWarning) {
+        if (isPulse && !s.tutorialFlags.pulsePrompt) {
           set(cur => ({
-            terminalLog: appendLog(cur.terminalLog, "// MASHA: 'See the Trace bar pulsing? Hit [ PULSE ] when it says SYNC and drop Trace twice as fast!'"),
+            terminalLog: appendLog(cur.terminalLog, "// MASHA: 'I'm seeing a momentary sync gap in their security rotation. That's your window.'"),
             tutorialFlags: { ...cur.tutorialFlags, pulsePrompt: true },
           }));
         }
 
-        // ── Hardware Alerts — one-shot stealth tutorial messages ───────────
-        if (newTrace > 70 && !s.tutorialFlags.traceWarning) {
+        // ── Hardware Alerts ───────────
+        if (newTrace > 80 && !s.tutorialFlags.traceWarning) {
           set(cur => ({
-            terminalLog:  appendLog(cur.terminalLog, '[!] STROBE_DETECTION: Firewall is mapping your IP. Use SCAN to recalibrate.'),
+            terminalLog:  appendLog(cur.terminalLog, '[!] STROBE_DETECTION: Firewall is actively mapping your IP.'),
             tutorialFlags: { ...cur.tutorialFlags, traceWarning: true },
           }));
         }
-        if (newHeat > 70 && !s.tutorialFlags.heatWarning) {
+        if (newHeat > 80 && !s.tutorialFlags.heatWarning) {
           set(cur => ({
-            terminalLog:  appendLog(cur.terminalLog, '[!] THERMAL_FLARE: Safehouse emission levels critical. Prepare to PACK UP.'),
+            terminalLog:  appendLog(cur.terminalLog, '[!] THERMAL_FLARE: Safehouse emission levels critical.'),
             tutorialFlags: { ...cur.tutorialFlags, heatWarning: true },
           }));
         }
@@ -470,12 +459,6 @@ executeCommand: (toolId) => {
             haptic(15); // Fallback
           }
         }
-
-        // Clear tutorial flags if the player follows Masha's instructions
-        if (toolId === 'BYPASS' && s.tutorialFlags.bypassPrompt) set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, bypassPrompt: false } }));
-        if (toolId === 'SCAN' && s.tutorialFlags.scanPrompt) set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, scanPrompt: false } }));
-        if (toolId === 'PULSE' && s.tutorialFlags.pulsePrompt) set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, pulsePrompt: false } }));
-        if (toolId === 'DECRYPT' && s.tutorialFlags.decryptPrompt) set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, decryptPrompt: false } }));
 
         // RAM upgrade reduces cooldown by 10% per level; TANGO safehouse adds 10%
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
@@ -535,15 +518,14 @@ executeCommand: (toolId) => {
           // Hardware Alert — warn once if FW is hidden and player hasn't run DECRYPT
           if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
             set(cur => ({
-              terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics are hidden. Run DECRYPT to reveal FW health.'),
-              tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true, decryptPrompt: true }, // Add prompt here
+              terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics encrypted. Blind strikes are inefficient. Recommend structural dissection.'),
+              tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true },
             }));
           }
 
-          // Narrative flavor — fires once on the player's very first BYPASS
           if (!s.hasFirstBypass) {
             set(cur => ({
-              terminalLog: appendLog(cur.terminalLog, '// OPERATOR: First breach established. The grid is watching. Move fast.'),
+              terminalLog: appendLog(cur.terminalLog, "// MASHA: 'First strike confirmed. We're in the system. Keep the pressure up.'"),
               hasFirstBypass: true,
             }));
           }
@@ -753,14 +735,8 @@ executeCommand: (toolId) => {
           firewallHP = calcScaledFW(level);
 
         } else {
-          // Use siphonWarning to see if they've finished the tutorial node
-          if (!s.tutorialFlags.siphonWarning && !isReplay) {
-            nextNode   = TEST_NODE;
-            firewallHP = TEST_NODE.firewallHP;
-          } else {
-            nextNode   = pickSkimNode();
-            firewallHP = Math.floor(calcScaledFW(frontierLevel) * 0.70);
-          }
+          nextNode   = pickSkimNode();
+          firewallHP = Math.floor(calcScaledFW(frontierLevel) * 0.70);
         }
 
         // Darknet intel scales with tier; others use config ranges.
@@ -805,8 +781,7 @@ executeCommand: (toolId) => {
       // ─── RESET GAME ───────────────────────────────────────────────────
       // Full reset — called from VICTORY and GAME_OVER overlays.
       resetGame: () => {
-        // A full wipe should always start them back at the tutorial node
-        const freshNode = TEST_NODE;
+        const freshNode = pickSkimNode();
         set({
           status:                'transit',
           nextStatus:            'transit',

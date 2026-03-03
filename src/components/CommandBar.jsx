@@ -68,9 +68,7 @@ export default function CommandBar() {
   const upgrades       = useGameStore(s => s.upgrades);
   const safehouse      = useGameStore(s => s.currentSafehouse);
 
-  const [holdingId, setHoldingId] = useState(null);
   const [errorId, setErrorId]     = useState(null);
-  const holdTimeout = useRef(null);
   
   const siphonInterval = useRef(null);
   const [isSiphoning, setIsSiphoning] = useState(false);
@@ -95,7 +93,7 @@ export default function CommandBar() {
     };
   }, [status, transitOutcome]);
 
-  const handlePointerDown = (toolId, isDangerous, disabled) => {
+const handlePointerDown = (toolId, disabled) => {
     if (disabled) {
       AudioManager.playSFX('error'); 
       if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -106,33 +104,8 @@ export default function CommandBar() {
       return;
     }
 
-    if (!isDangerous) {
-      executeCommand(toolId);
-      return;
-    }
-    
-    setHoldingId(toolId);
-    if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(400); 
-    }
-
-    if (holdTimeout.current) clearTimeout(holdTimeout.current);
-
-    holdTimeout.current = setTimeout(() => {
-      executeCommand(toolId);
-      setHoldingId(null);
-    }, 400);
-  };
-
-  const handlePointerUp = () => {
-    setHoldingId(null);
-    if (holdTimeout.current) {
-      clearTimeout(holdTimeout.current);
-      holdTimeout.current = null;
-    }
-    if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(0); 
-    }
+    // Instant execution for snappy combat
+    executeCommand(toolId);
   };
 
   const startSiphon = () => {
@@ -155,10 +128,6 @@ export default function CommandBar() {
 
   if (status === 'resolved') {
     if (transitOutcome === 'success') {
-      // Glow the Siphon button if they haven't learned it yet
-      const isSiphonTutorial = !tutorialFlags?.siphonWarning;
-      const siphonGlowClass = isSiphonTutorial ? 'ring-2 ring-fuchsia-500 shadow-[0_0_20px_rgba(217,70,239,0.8)] animate-pulse z-50' : '';
-
       return (
         <div className="relative px-4 py-2 pb-4 flex gap-3 justify-center items-end h-[100px]">
           <button
@@ -167,7 +136,7 @@ export default function CommandBar() {
             onPointerLeave={stopSiphon}
             onPointerCancel={stopSiphon}
             onContextMenu={(e) => { e.preventDefault(); stopSiphon(); }}
-            className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 touch-none select-none ${siphonGlowClass} ${
+            className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 touch-none select-none ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
                 : 'bg-fuchsia-950/20 border-fuchsia-700/60 active:border-b-2 active:translate-y-1 hover:bg-fuchsia-900/30 cursor-pointer shadow-xl'
@@ -272,40 +241,23 @@ export default function CommandBar() {
         const styles     = TOOL_STYLES[tool.color] ?? TOOL_STYLES.green;
         const activeFill = FILL_STYLES[tool.color] ?? FILL_STYLES.green;
         
-        const isDangerous = tool.color === 'amber';
-        const isHolding   = holdingId === tool.id;
         const isError     = errorId === tool.id;
 
         const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (safehouse?.ramMod ?? 1)));
         const fillPercent = maxCooldown > 0 ? ((maxCooldown - cooldown) / maxCooldown) * 100 : 100;
 
-        // Determine if this specific button should glow as a tutorial breadcrumb
-        const isTutorialTarget = 
-          (tool.id === 'BYPASS' && tutorialFlags?.bypassPrompt) ||
-          (tool.id === 'SCAN'   && tutorialFlags?.scanPrompt) ||
-          (tool.id === 'PULSE'  && tutorialFlags?.pulsePrompt) ||
-          (tool.id === 'DECRYPT' && tutorialFlags?.decryptPrompt);
-
-        const tutorialGlow = isTutorialTarget && !disabled 
-          ? 'ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)] z-50 animate-pulse' 
-          : '';
-
         return (
           <button
             key={tool.id}
-            onPointerDown={() => handlePointerDown(tool.id, isDangerous, disabled)}
-            onPointerUp={handlePointerUp}
-            onPointerLeave={handlePointerUp}
-            onPointerCancel={handlePointerUp}
-            onContextMenu={(e) => { e.preventDefault(); handlePointerUp(); }}
+            onPointerDown={() => handlePointerDown(tool.id, disabled)}
+            onContextMenu={(e) => { e.preventDefault(); }}
             title={tool.description}
             className={[
               'flex-1 relative overflow-hidden min-h-[64px] py-4 px-4 rounded game-button touch-none',
               'font-mono text-[11px] font-bold uppercase tracking-widest text-center',
               'border border-b-[4px] transition-all duration-75 select-none',
               disabled ? styles.disabled : `${styles.active} active:border-b active:translate-y-1`,
-              isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
-              tutorialGlow
+              isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : ''
             ].join(' ')}
           >
             <div className="relative z-10">
@@ -327,12 +279,6 @@ export default function CommandBar() {
               </div>
             )}
 
-            {isHolding && (
-              <div 
-                className="absolute bottom-0 left-0 h-1 bg-amber-400 transition-all ease-linear z-40"
-                style={{ width: isHolding ? '100%' : '0%', transitionDuration: isHolding ? '400ms' : '0ms' }}
-              />
-            )}
           </button>
         );
       })}
