@@ -128,10 +128,7 @@ export default function CommandBar() {
   if (status === 'resolved') {
     if (transitOutcome === 'success') {
       return (
-        <div 
-          className="relative px-4 py-2 flex gap-3 justify-center items-stretch min-h-[100px]"
-          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
-        >
+        <div className="relative px-4 pt-2 pb-6 flex gap-3 justify-center items-stretch min-h-[100px]">
           <button
             onPointerDown={(e) => {
               e.target.setPointerCapture(e.pointerId);
@@ -213,10 +210,7 @@ export default function CommandBar() {
     }
 
     return (
-      <div 
-        className="relative px-4 py-2 flex justify-center items-stretch min-h-[100px]"
-        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
-      >
+      <div className="relative px-4 pt-2 pb-6 flex gap-2 sm:gap-3 justify-center items-end">
         <button
           onClick={() => {
             if (disconnectLocked) return;
