@@ -62,8 +62,6 @@ export default function CommandBar() {
   const digitalTrace     = useGameStore(s => s.digitalTrace);
   const leaveNode        = useGameStore(s => s.leaveNode);
   const siphonVault      = useGameStore(s => s.siphonVault);
-  const tutorialFlags    = useGameStore(s => s.tutorialFlags);
-  const firewallRevealed = useGameStore(s => s.firewallRevealed);
   const exposedTicks     = useGameStore(s => s.exposedTicks);
   
   const upgrades       = useGameStore(s => s.upgrades);
@@ -94,7 +92,7 @@ export default function CommandBar() {
     };
   }, [status, transitOutcome]);
 
-const handlePointerDown = (toolId, disabled) => {
+  const handlePointerDown = (toolId, disabled) => {
     if (disabled) {
       AudioManager.playSFX('error'); 
       if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -130,10 +128,13 @@ const handlePointerDown = (toolId, disabled) => {
   if (status === 'resolved') {
     if (transitOutcome === 'success') {
       return (
-        <div className="relative px-4 py-2 pb-4 flex gap-3 justify-center items-end h-[100px]">
+        <div 
+          className="relative px-4 py-2 flex gap-3 justify-center items-stretch min-h-[100px]"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
+        >
           <button
             onPointerDown={(e) => {
-              e.target.setPointerCapture(e.pointerId); // Locks the touch to this button
+              e.target.setPointerCapture(e.pointerId);
               startSiphon();
             }}
             onPointerUp={(e) => {
@@ -146,7 +147,7 @@ const handlePointerDown = (toolId, disabled) => {
             onPointerCancel={stopSiphon}
             onContextMenu={(e) => { e.preventDefault(); stopSiphon(); }}
             onTouchStart={(e) => { 
-              e.preventDefault(); // The silver bullet for Android/iOS text-selection interruption
+              e.preventDefault(); 
               startSiphon(); 
             }}
             onTouchEnd={(e) => { 
@@ -187,7 +188,7 @@ const handlePointerDown = (toolId, disabled) => {
               }
               leaveNode();
             }}
-            className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 shadow-xl touch-none select-none ${
+            className={`flex-1 relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
                 : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-2 active:translate-y-1 hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
@@ -212,7 +213,10 @@ const handlePointerDown = (toolId, disabled) => {
     }
 
     return (
-      <div className="relative px-4 py-2 pb-4 flex justify-center items-end">
+      <div 
+        className="relative px-4 py-2 flex justify-center items-stretch min-h-[100px]"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
+      >
         <button
           onClick={() => {
             if (disconnectLocked) return;
@@ -222,7 +226,7 @@ const handlePointerDown = (toolId, disabled) => {
             }
             leaveNode();
           }}
-          className={`w-full relative overflow-hidden group py-5 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
+          className={`w-full relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
             disconnectLocked 
               ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
               : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-2 active:translate-y-1 hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
@@ -249,7 +253,9 @@ const handlePointerDown = (toolId, disabled) => {
   const ramLevel = upgrades['RAM']?.level ?? 0;
 
   return (
-    <div className="relative px-4 py-2 pb-4 flex gap-3 justify-center items-end">
+    <div className="relative px-4 py-2 flex gap-2 sm:gap-3 justify-center items-end"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
+    >
       {toolsConfig.map((tool) => {
         const cooldown   = toolState[tool.id]?.cooldownRemaining ?? 0;
         const onCooldown = cooldown > 0;
