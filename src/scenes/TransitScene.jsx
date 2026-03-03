@@ -549,15 +549,18 @@ function JobFooter({ isLocked }) {
   const lockClass = isLocked ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'active:border-b active:translate-y-[2px]';
 
   return (
-    <div className="px-5 py-5 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-3 pb-6">
+    <div 
+      className="px-4 py-3 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2" 
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }} // <-- CRITICAL FIX: Pushes buttons above iPhone gesture bar
+    >
       <button
         onClick={() => startNewSession('skim')}
         disabled={isLocked}
-        className={`w-full py-3 px-6 rounded-lg font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button ${lockClass}`}
+        className={`w-full py-2 px-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button flex flex-col items-center justify-center ${lockClass}`}
       >
-        Initiate Data Skim
-        <span className="block px-2 text-[11px] font-normal text-green-300 mt-1.5 normal-case tracking-normal">
-          Low-sec target · Low intel · No story data
+        <span>Initiate Data Skim</span>
+        <span className="text-[9px] font-normal text-green-300/80 mt-0.5 normal-case tracking-normal">
+          Low-sec target · Low intel
         </span>
       </button>
 
@@ -565,11 +568,11 @@ function JobFooter({ isLocked }) {
         <button
           onClick={() => startNewSession('priority')}
           disabled={isLocked}
-          className={`w-full py-3 px-6 rounded-lg font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button ${lockClass}`}
+          className={`w-full py-2 px-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button flex flex-col items-center justify-center ${lockClass}`}
         >
-          Pursue Priority Lead
-          <span className="block px-2 text-[11px] font-normal text-violet-300 mt-1.5 normal-case tracking-normal">
-            Secure target · Higher intel · Unlocks story fragment
+          <span>Pursue Priority Lead</span>
+          <span className="text-[9px] font-normal text-violet-300/80 mt-0.5 normal-case tracking-normal">
+            Secure target · Unlocks story
           </span>
         </button>
       )}
@@ -578,11 +581,11 @@ function JobFooter({ isLocked }) {
         <button
           onClick={() => startNewSession('tartarus')}
           disabled={isLocked}
-          className={`w-full py-3 px-6 rounded-lg font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button ${lockClass}`}
+          className={`w-full py-2 px-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button flex flex-col items-center justify-center ${lockClass}`}
         >
-          Assault Tartarus Node
-          <span className="block px-2 text-[11px] font-normal text-red-300 mt-1.5 normal-case tracking-normal">
-            400 HP · TRACE_ACCELERATOR · One chance. No retreat.
+          <span>Assault Tartarus Node</span>
+          <span className="text-[9px] font-normal text-red-300/80 mt-0.5 normal-case tracking-normal">
+            400 HP · One chance. No retreat.
           </span>
         </button>
       )}
@@ -591,11 +594,11 @@ function JobFooter({ isLocked }) {
         <button
           onClick={() => startNewSession('darknet')}
           disabled={isLocked}
-          className={`w-full py-3 px-6 rounded-lg font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button ${lockClass}`}
+          className={`w-full py-2 px-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button flex flex-col items-center justify-center ${lockClass}`}
         >
-          Access Darknet Router
-          <span className="block px-2 text-[11px] font-normal text-fuchsia-300 mt-1.5 normal-case tracking-normal">
-            Tier {darknetTier} · {150 + darknetTier * 50} HP · Severe trace rate
+          <span>Access Darknet Router</span>
+          <span className="text-[9px] font-normal text-fuchsia-300/80 mt-0.5 normal-case tracking-normal">
+            Tier {darknetTier} · {150 + darknetTier * 50} HP
           </span>
         </button>
       )}
