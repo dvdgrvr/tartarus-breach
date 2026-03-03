@@ -218,7 +218,7 @@ const useGameStore = create(
       tartarusBeaten:    false,  // per-run flag, reset on new campaign
       darknetTier:       1,
       highestDarknetTier: 1,     // all-time best — never wiped by resetGame
-      consumables:       { zeroDay: 0, coolant: 0 },
+      consumables:       { rabbit: 0, ghost: 0 },
 
       // ── User settings ─────────────────────────────────────────────────────
       settings: {
@@ -343,8 +343,29 @@ tick: () => {
 
         const isTraceAccel    = s.currentNode?.specialDefense === 'TRACE_ACCELERATOR';
         const traceMultiplier = s.currentNode?.traceMultiplier ?? (isTraceAccel ? TRACE_ACCEL_MULTIPLIER : 1);
-        const traceGain       = (s.digitalTrace >= TRACE_ACCEL_THRESHOLD ? BASE_TRACE_HIGH : BASE_TRACE_LOW)
+        let traceGain         = (s.digitalTrace >= TRACE_ACCEL_THRESHOLD ? BASE_TRACE_HIGH : BASE_TRACE_LOW)
                                 * traceMultiplier * (s.currentSafehouse?.traceMod ?? 1);
+
+        // 4. VIRUS & CONSUMABLE LOGIC
+        let newRabbitTicks = Math.max(0, (s.rabbitTicks || 0) - 1);
+        let newGhostTicks  = Math.max(0, (s.ghostTicks || 0) - 1);
+        
+        let rabbitDamage = 0;
+        if (s.rabbitTicks > 0) {
+          rabbitDamage = 1; // 1 HP per tick = 10 HP per sec for 50 ticks = 50 total
+          if (newTickCount % 10 === 0) logMsg = '>> RABBIT VIRUS: EATING FW...';
+        }
+        
+        if (s.ghostTicks > 0) {
+          traceGain = 0;
+          daemonTrace = 0;
+          spikeTrace = 0;
+          if (newGhostTicks === 0) logMsg = '>> GHOST.sys EXPIRED. TRACE RESUMING.';
+        }
+
+        const prevFirewall = s.firewallHealth;
+        // DOT leaves FW at 1 HP so the player has to land the satisfying final blow!
+        const newFirewall  = Math.max(rabbitDamage > 0 ? 1 : 0, prevFirewall - rabbitDamage);
 
         const newToolState = Object.fromEntries(
           Object.entries(s.toolState).map(([id, ts]) => [id, { cooldownRemaining: Math.max(0, ts.cooldownRemaining - 1) }])
@@ -367,6 +388,9 @@ tick: () => {
           systemOverride: currentOverride,
           activeDaemon: currentDaemon,
           exposedTicks: newExposedTicks,
+          rabbitTicks: newRabbitTicks,
+          ghostTicks: newGhostTicks,
+          firewallHealth: newFirewall,
           terminalLog: newLog
         });
 
@@ -677,6 +701,8 @@ executeCommand: (toolId) => {
           packUpTrace:        s.digitalTrace,
           activeDaemon:       null,       // 'BLOODHOUND' | null
           exposedTicks:       0,          // How long the node remains exposed
+          rabbitTicks:        0,          // Duration of the Rabbit virus DOT
+          ghostTicks:         0,          // Duration of the Ghost.sys trace freeze
           intelFragments:     newBank,
           sessionIntelEarned: intelEarned,
           currentSafehouse:   nextSafehouse,
@@ -886,8 +912,6 @@ executeCommand: (toolId) => {
       },
 
       // ─── USE CONSUMABLE ───────────────────────────────────────────────
-      // Applies the item effect immediately; if zeroDay breaches the
-      // firewall the full breach path runs (mirrors executeCommand breach).
       useConsumable: (itemId) => {
         const s = get();
         if (s.status !== 'hacking') return;
@@ -901,87 +925,22 @@ executeCommand: (toolId) => {
           [itemId]: s.consumables[itemId] - 1,
         };
 
-        // ── COOLANT: reduce heat ──────────────────────────────────────
-        if (itemId === 'coolant') {
-          const newHeat = Math.max(0, s.physicalHeat - 30);
+        if (itemId === 'ghost') {
           set({
-            physicalHeat: newHeat,
-            consumables:  newConsumables,
-            terminalLog:  appendLog(s.terminalLog, `>> COOLANT FLUSH — HEAT: ${newHeat.toFixed(0)}%`),
+            ghostTicks:  40, // 4 seconds of trace freeze
+            consumables: newConsumables,
+            terminalLog: appendLog(s.terminalLog, '>> GHOST.sys INJECTED — TRACE FROZEN FOR 4 SECONDS.'),
           });
           return;
         }
 
-        // ── ZERO-DAY: deal 50 FW damage; may breach ──────────────────
-        if (itemId === 'zeroDay') {
-          const newFirewall = Math.max(0, s.firewallHealth - 50);
-          const baseLog     = appendLog(s.terminalLog, `>> ZER0-DAY PAYLOAD — FW: ${Math.ceil(newFirewall)}`);
-
-          if (newFirewall > 0) {
-            set({ firewallHealth: newFirewall, consumables: newConsumables, terminalLog: baseLog });
-            return;
-          }
-
-          // ── Firewall breached via Consumable ──
-          
-          // 1. Violent haptic shockwave
-          if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-             navigator.vibrate([100, 50, 150]);
-          }
-
-          const currentState = useGameStore.getState();
-          const isPerfect    = currentState.digitalTrace >= 90;
-          const intelEarned  = isPerfect
-            ? Math.floor(currentState.sessionPotentialIntel * 1.25)
-            : currentState.sessionPotentialIntel;
-          const isTartarus   = currentState.currentJobType === 'tartarus';
-          const isDarknet    = currentState.currentJobType === 'darknet';
-          const isPriority   = currentState.currentJobType === 'priority' || isTartarus;
-
-          let newArchive  = currentState.storyArchive;
-          let fragmentIdx = null;
-          if (isPriority && !currentState.isReplay && currentState.storyArchive.length < storyFragments.length) {
-            fragmentIdx = currentState.storyArchive.length;
-            newArchive  = [...currentState.storyArchive, fragmentIdx];
-          }
-
-          const newDarknetTier = isDarknet ? currentState.darknetTier + 1 : currentState.darknetTier;
-          const newHighestTier = Math.max(currentState.highestDarknetTier, newDarknetTier);
-
-          let log = appendLog(baseLog, `>> [ ACCESS GRANTED ]`);
-          const mashaLine = getMashaReaction('breach', currentState.digitalTrace);
-          if (mashaLine) log = appendLog(log, mashaLine);
-          if (isPerfect) {
-            log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
-          }
-          log = appendLog(log, `>> NODE BREACHED. PAYLOAD SECURED: +${intelEarned} IF.`);
-          if (fragmentIdx !== null) {
-            log = appendLog(log,
-              `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
-          }
-          log = appendLog(log, '// AWAITING MANUAL DISCONNECT...');
-
+        if (itemId === 'rabbit') {
           set({
-            status:             'resolved',
-            nextStatus:         isTartarus ? 'victory' : 'transit',
-            transitOutcome:     'success',
-            packUpHeat:         currentState.physicalHeat,
-            packUpTrace:        currentState.digitalTrace,
-            systemOverride:     null,
-            firewallHealth:     0,
-            intelFragments:     currentState.intelFragments + intelEarned,
-            sessionIntelEarned: intelEarned,
-            storyArchive:       newArchive,
-            hasBeatenGame:      currentState.hasBeatenGame || isTartarus,
-            tartarusBeaten:     currentState.tartarusBeaten || isTartarus,
-            darknetTier:        newDarknetTier,
-            highestDarknetTier: newHighestTier,
-            pendingFragmentIdx: currentState.isReplay ? null : fragmentIdx,
-            terminalLog:        log,
-            consumables:        newConsumables,
-            isPerfectBreach:    isPerfect,
-            isBreaching:        false,
+            rabbitTicks: 50, // 5 seconds of DOT
+            consumables: newConsumables,
+            terminalLog: appendLog(s.terminalLog, '>> RABBIT VIRUS INJECTED — THEY ARE MULTIPLYING.'),
           });
+          return;
         }
       },
 

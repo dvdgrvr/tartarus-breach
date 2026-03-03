@@ -26,6 +26,8 @@ function NodeStatusStrip() {
   const safehouse        = useGameStore(s => s.currentSafehouse);
   const activeDaemon     = useGameStore(s => s.activeDaemon); // NEW
   const exposedTicks     = useGameStore(s => s.exposedTicks); // NEW
+  const rabbitTicks      = useGameStore(s => s.rabbitTicks); // NEW
+  const ghostTicks       = useGameStore(s => s.ghostTicks); // NEW
 
   if (!node) return null;
 
@@ -47,6 +49,18 @@ function NodeStatusStrip() {
       <div className="flex items-center gap-2 shrink-0">
         
         {/* NEW COMBAT BADGES START */}
+        {rabbitTicks > 0 && (
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-green-400 border-green-500/50 bg-green-500/10 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]">
+            RABBIT.exe
+          </span>
+        )}
+        
+        {ghostTicks > 0 && (
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-slate-300 border-slate-400/50 bg-slate-400/10 animate-pulse shadow-[0_0_8px_rgba(148,163,184,0.5)]">
+            GHOST.sys
+          </span>
+        )}
+
         {activeDaemon && (
           <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-red-500 border-red-500/50 bg-red-500/10 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]">
             ! {activeDaemon} !
@@ -196,37 +210,40 @@ function ConsumableBar() {
   const consumables    = useGameStore(s => s.consumables);
   const useConsumable  = useGameStore(s => s.useConsumable);
   const hasBeatenGame  = useGameStore(s => s.hasBeatenGame);
-  const intelFragments = useGameStore(s => s.intelFragments);
-  const zeroDay        = consumables?.zeroDay ?? 0;
-  const coolant        = consumables?.coolant ?? 0;
+  const getCurrentAct  = useGameStore(s => s.getCurrentAct);
+  
+  const rabbit = consumables?.rabbit ?? 0;
+  const ghost  = consumables?.ghost ?? 0;
 
-  if (!hasBeatenGame || (intelFragments < 50 && zeroDay === 0 && coolant === 0)) return null;
+  // Show if they have beaten the game, OR they are in Act II+ and have items
+  const showBar = hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0;
+  if (!showBar) return null;
 
   return (
     <div className="flex gap-2 px-4 py-2 border-t border-zinc-800/40 pb-3">
       <button
-        onClick={() => useConsumable('zeroDay')}
-        disabled={zeroDay === 0}
+        onClick={() => useConsumable('rabbit')}
+        disabled={rabbit === 0}
         className={[
           'flex-1 py-3 px-4 rounded font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
-          zeroDay > 0
-            ? 'border-amber-500/60 border-b-amber-700 text-amber-400 bg-amber-500/5 hover:bg-amber-500/15'
+          rabbit > 0
+            ? 'border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green'
             : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed',
         ].join(' ')}
       >
-        ZER0-DAY [×{zeroDay}]
+        RABBIT [×{rabbit}]
       </button>
       <button
-        onClick={() => useConsumable('coolant')}
-        disabled={coolant === 0}
+        onClick={() => useConsumable('ghost')}
+        disabled={ghost === 0}
         className={[
           'flex-1 py-3 px-4 rounded font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
-          coolant > 0
-            ? 'border-blue-500/60 border-b-blue-700 text-blue-400 bg-blue-500/5 hover:bg-blue-500/15'
+          ghost > 0
+            ? 'border-slate-400/60 border-b-slate-600 text-slate-300 bg-slate-500/5 hover:bg-slate-500/15 glow-slate'
             : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed',
         ].join(' ')}
       >
-        COOLANT [×{coolant}]
+        GHOST.sys [×{ghost}]
       </button>
     </div>
   );

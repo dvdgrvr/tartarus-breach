@@ -196,7 +196,8 @@ function ConsumableItem({ itemId, label, description, cost }) {
 function BlackMarket() {
   const hasBeatenGame = useGameStore(s => s.hasBeatenGame);
   const archiveLen    = useGameStore(s => s.storyArchive.length);
-  const showConsumables = hasBeatenGame || archiveLen >= 12;
+  // Unlocks right when Act II begins!
+  const showConsumables = hasBeatenGame || archiveLen >= 4;
 
   return (
     <div className="mb-4">
@@ -212,20 +213,20 @@ function BlackMarket() {
       {showConsumables && (
         <div className="mt-6">
           <p className="font-mono text-xs font-bold uppercase tracking-widest text-violet-300 mb-3">
-            // Consumables
+            // Dirty Tricks
           </p>
           <div className="space-y-3">
             <ConsumableItem
-              itemId="zeroDay"
-              label="ZER0-DAY PAYLOAD"
-              description="Instant −50 FW damage on use"
-              cost={200}
+              itemId="rabbit"
+              label="RABBIT VIRUS"
+              description="Eats 50 FW HP over 5 seconds"
+              cost={150}
             />
             <ConsumableItem
-              itemId="coolant"
-              label="COOLANT FLUSH"
-              description="Instant −30% Physical Heat on use"
-              cost={200}
+              itemId="ghost"
+              label="GHOST.sys"
+              description="Freezes Trace generation for 4 seconds"
+              cost={150}
             />
           </div>
         </div>
