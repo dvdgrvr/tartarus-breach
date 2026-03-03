@@ -35,10 +35,10 @@ const SKIM_NODES = [
 const PRIORITY_NODES = [
   { id: 'PR_01', name: 'Meridian Corp. Relay', specialDefense: null,                firewallHP: 100 },
   { id: 'PR_02', name: 'Axiom Financial Hub',  specialDefense: null,                firewallHP: 120 },
-  { id: 'PR_03', name: 'Vault-7 Archive',      specialDefense: 'ENCRYPTED_LOGS',    firewallHP: 100 },
-  { id: 'PR_04', name: 'Helix Black Site',     specialDefense: 'ENCRYPTED_LOGS',    firewallHP: 110 },
-  { id: 'PR_05', name: 'Nexus Relay Station',  specialDefense: 'TRACE_ACCELERATOR', firewallHP: 100 },
-  { id: 'PR_06', name: 'DarkNet Gateway',      specialDefense: 'TRACE_ACCELERATOR', firewallHP: 130 },
+  { id: 'PR_03', name: 'Vertex Sub-Grid Delta',specialDefense: 'ENCRYPTED_LOGS',    firewallHP: 100 },
+  { id: 'PR_04', name: 'The AI Predictor Core',specialDefense: 'ENCRYPTED_LOGS',    firewallHP: 110 },
+  { id: 'PR_05', name: 'Tartarus Perimeter Wall', specialDefense: 'TRACE_ACCELERATOR', firewallHP: 100 },
+  { id: 'PR_06', name: 'Tartarus Internal Routing', specialDefense: 'TRACE_ACCELERATOR', firewallHP: 130 },
 ];
 
 // Milestone nodes keyed by storyArchive.length at time of job selection
@@ -182,6 +182,14 @@ const useGameStore = create(
       // ── Pulse mechanic ───────────────────────────────────────────────────
       tickCount:            0,         // persistent counter driving the pulse window
 
+      // ── Narrative State ──────────────────────────────────────────────────
+      getCurrentAct: () => {
+        const fragments = get().storyArchive.length;
+        if (fragments < 4) return 1;       // Act I: Neon Underground
+        if (fragments < 8) return 2;       // Act II: The Deep Trace
+        return 3;                          // Act III: The Zero-Day Event
+      },
+
       // ── Session state ────────────────────────────────────────────────────
       status:               'transit',  // 'loading' | 'hacking' | 'transit' | 'victory' | 'game_over'
       nextStatus:           'transit',  // Tracks where the Disconnect button should go
@@ -190,6 +198,8 @@ const useGameStore = create(
       isPaused:             false,
       pulseActive:          false,
       systemOverride:       null,       // ── PHASE 4: Override State
+      activeDaemon:         null,       // 'BLOODHOUND' | null
+      exposedTicks:         0,          // How long the node remains exposed
       transitOutcome:       'initial',  // 'initial' | 'success' | 'escaped' | 'trace_busted' | 'heat_busted'
       currentJobType:       'skim',     // 'skim' | 'priority' | 'tartarus'
       digitalTrace:         0,
@@ -285,11 +295,11 @@ triggerFirstBoot: () => {
         });
       },
 
-      tick: () => {
+tick: () => {
         const s = get();
         if (s.status !== 'hacking' || s.isPaused) return;
 
-        // ── PHASE 4: SYSTEM OVERRIDE TICK LOGIC ──
+        // 1. SYSTEM OVERRIDE Logic
         let currentOverride = s.systemOverride;
         let spikeTrace      = 0;
         let logMsg          = null;
@@ -297,48 +307,51 @@ triggerFirstBoot: () => {
         if (currentOverride !== null) {
           currentOverride -= 1;
           if (currentOverride <= 0) {
-            spikeTrace = 25; // Massive penalty for failing
+            spikeTrace = 25;
             currentOverride = null;
             logMsg = '!! ACTIVE COUNTER-MEASURE FAILED — TRACE SPIKE !!';
             AudioManager.playSFX('error');
             if (s.settings?.hapticsEnabled) haptic([200, 50, 200]);
           }
-        } else {
-          // 5% chance per tick to spawn an override if trace > 30% and not in low-sec
-          if (s.digitalTrace > 30 && s.currentJobType !== 'skim' && Math.random() < 0.05) {
-            currentOverride = 3; // 3 seconds to react
-            logMsg = '[!] WARNING: ACTIVE COUNTER-MEASURE DETECTED. INTERCEPT REQUIRED.';
-            AudioManager.playSFX('error');
-            if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
-          }
+        } else if (s.digitalTrace > 30 && s.currentJobType !== 'skim' && Math.random() < 0.05) {
+          currentOverride = 3;
+          logMsg = '[!] WARNING: ACTIVE COUNTER-MEASURE DETECTED. INTERCEPT REQUIRED.';
+          AudioManager.playSFX('error');
+          if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
         }
 
-        // Physical Heat — SIGNAL upgrade reduces rate by 10% per level
+        // 2. DAEMON & EXPOSURE Logic
+        let newExposedTicks = Math.max(0, (s.exposedTicks || 0) - 1);
+        let currentDaemon   = s.activeDaemon;
+        let daemonTrace     = 0;
+
+        if (s.exposedTicks === 1) logMsg = '> NODE HAS RECOVERED. TARGET HARDENED.';
+
+        if (currentDaemon === 'BLOODHOUND') {
+          daemonTrace = 2.0; 
+        } else if (!currentDaemon && s.digitalTrace > 20 && s.currentJobType !== 'skim' && Math.random() < 0.02) {
+          currentDaemon = 'BLOODHOUND';
+          logMsg = '!! WARNING: BLOODHOUND DAEMON INJECTED. TRACE SPIKING. RUN DECRYPT TO KILL !!';
+          AudioManager.playSFX('error');
+          if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
+        }
+
+        // 3. Stat Calculations
         const signalLevel    = s.upgrades['SIGNAL']?.level ?? 0;
         const heatMultiplier = Math.max(0, 1 - signalLevel * 0.10);
         const heatGain       = BASE_HEAT_PER_TICK * heatMultiplier * (s.currentSafehouse?.heatMod ?? 1);
 
-        // Digital Trace — node may supply its own traceMultiplier (darknet tiers);
-        // otherwise fall back to the TRACE_ACCELERATOR constant or 1.
         const isTraceAccel    = s.currentNode?.specialDefense === 'TRACE_ACCELERATOR';
-        const traceMultiplier = s.currentNode?.traceMultiplier
-          ?? (isTraceAccel ? TRACE_ACCEL_MULTIPLIER : 1);
-        const traceGain =
-          (s.digitalTrace >= TRACE_ACCEL_THRESHOLD ? BASE_TRACE_HIGH : BASE_TRACE_LOW)
-          * traceMultiplier
-          * (s.currentSafehouse?.traceMod ?? 1);
+        const traceMultiplier = s.currentNode?.traceMultiplier ?? (isTraceAccel ? TRACE_ACCEL_MULTIPLIER : 1);
+        const traceGain       = (s.digitalTrace >= TRACE_ACCEL_THRESHOLD ? BASE_TRACE_HIGH : BASE_TRACE_LOW)
+                                * traceMultiplier * (s.currentSafehouse?.traceMod ?? 1);
 
-        // Decrement all tool cooldowns
         const newToolState = Object.fromEntries(
-          Object.entries(s.toolState).map(([id, ts]) => [
-            id,
-            { cooldownRemaining: Math.max(0, ts.cooldownRemaining - 1) },
-          ])
+          Object.entries(s.toolState).map(([id, ts]) => [id, { cooldownRemaining: Math.max(0, ts.cooldownRemaining - 1) }])
         );
 
-        const newHeat  = Math.min(100, s.physicalHeat  + heatGain);
-        const newTrace = Math.min(100, s.digitalTrace + traceGain + spikeTrace);
-
+        const newHeat      = Math.min(100, s.physicalHeat  + heatGain);
+        const newTrace     = Math.min(100, s.digitalTrace + traceGain + spikeTrace + daemonTrace);
         const newTickCount = s.tickCount + 1;
         const isPulse      = (newTickCount % PULSE_INTERVAL_TICKS) < PULSE_WINDOW_TICKS;
 
@@ -352,10 +365,12 @@ triggerFirstBoot: () => {
           tickCount: newTickCount,
           pulseActive: isPulse,
           systemOverride: currentOverride,
+          activeDaemon: currentDaemon,
+          exposedTicks: newExposedTicks,
           terminalLog: newLog
         });
 
-      // ── In-World Tutorial Prompts (Only triggers during the first node) ──
+        // ── In-World Tutorial Prompts (Only triggers during the first node) ──
         if (newTrace >= 40 && !s.tutorialFlags.scanPrompt && !s.tutorialFlags.siphonWarning) {
           set(cur => ({
             terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'Watch your Trace meter! If it hits 100%, they kill the uplink. Use [ SCAN ] to drop it.'"),
@@ -368,7 +383,7 @@ triggerFirstBoot: () => {
             tutorialFlags: { ...cur.tutorialFlags, heatTutorial: true },
           }));
         }
-        if (s.pulseActive && !s.tutorialFlags.pulsePrompt && !s.tutorialFlags.siphonWarning) {
+        if (isPulse && !s.tutorialFlags.pulsePrompt && !s.tutorialFlags.siphonWarning) {
           set(cur => ({
             terminalLog: appendLog(cur.terminalLog, "// MASHA: 'See the Trace bar pulsing? Hit [ PULSE ] when it says SYNC and drop Trace twice as fast!'"),
             tutorialFlags: { ...cur.tutorialFlags, pulsePrompt: true },
@@ -389,8 +404,7 @@ triggerFirstBoot: () => {
           }));
         }
 
-        // Heat bust is more severe (bank wipe) — check first
-        if (newHeat  >= 100) { get().packUp('heat_busted');  return; }
+        if (newHeat >= 100) { get().packUp('heat_busted');  return; }
         if (newTrace >= 100) { get().packUp('trace_busted'); return; }
       },
 
@@ -409,7 +423,7 @@ triggerFirstBoot: () => {
       },
 
       // ─── EXECUTE COMMAND ──────────────────────────────────────────────
-      executeCommand: (toolId) => {
+executeCommand: (toolId) => {
         const s = get();
         if (s.status !== 'hacking') return;
 
@@ -451,79 +465,92 @@ triggerFirstBoot: () => {
         const traceGain    = tool.baseEffect.traceGain      ?? 0;
         const heatGain     = tool.baseEffect.heatGain       ?? 0;
 
-        // BYPASS_STRENGTH upgrade adds +10 damage per level
+        // ── DECRYPT TACTICAL PATH ───────────────────────────────────────
+        if (toolId === 'DECRYPT') {
+          let log = appendLog(s.terminalLog, `> DECRYPT // +${heatGain}% HEAT | TRACE: ${Math.min(100, s.digitalTrace + traceGain).toFixed(0)}%`);
+          
+          // 1. Kill Active Daemons
+          if (s.activeDaemon) {
+            log = appendLog(log, `>> DAEMON '${s.activeDaemon}' KILLED.`);
+          }
+          
+          // 2. Reveal Hidden FW HP
+          const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
+          if (isEncrypted && !s.firewallRevealed) {
+            log = appendLog(log, `>> ENCRYPTED LOGS CRACKED — FW: ${s.firewallHealth}`);
+          }
+          
+          // 3. Apply 'EXPOSED' debuff for 4 ticks (approx 4 seconds)
+          log = appendLog(log, '>> TARGET EXPOSED. CRITICAL STRIKE WINDOW OPEN.');
+
+          set({
+            physicalHeat:     Math.min(100, s.physicalHeat + heatGain),
+            digitalTrace:     Math.min(100, s.digitalTrace + traceGain),
+            firewallRevealed: isEncrypted ? true : s.firewallRevealed,
+            activeDaemon:     null,
+            exposedTicks:     4,
+            terminalLog:      log,
+            toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
+          });
+
+          if (s.physicalHeat + heatGain >= 100) get().packUp('heat_busted');
+          return;
+        }
+
+        // ── BYPASS TACTICAL PATH ───────────────────────────────────────
         if (toolId === 'BYPASS') {
           const bsLevel = s.upgrades['BYPASS_STRENGTH']?.level ?? 0;
           firewallDamage += bsLevel * 10;
 
-        // Hardware Alert — warn once if FW is hidden and player hasn't run DECRYPT
-        if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
-          set(cur => ({
-            terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics are hidden. Run DECRYPT to reveal FW health.'),
-            tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true, decryptPrompt: true }, // Add prompt here
-          }));
-        }
+          // RIPOSTE: If the node is exposed, deal double damage and consume the exposure!
+          if (s.exposedTicks > 0) {
+            firewallDamage *= 2;
+            set({ exposedTicks: 0 }); // Consume the exposure
+          }
+
+          // Hardware Alert — warn once if FW is hidden and player hasn't run DECRYPT
+          if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
+            set(cur => ({
+              terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics are hidden. Run DECRYPT to reveal FW health.'),
+              tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true, decryptPrompt: true }, // Add prompt here
+            }));
+          }
 
           // Narrative flavor — fires once on the player's very first BYPASS
           if (!s.hasFirstBypass) {
             set(cur => ({
-              terminalLog:    appendLog(cur.terminalLog, '// OPERATOR: First breach established. The grid is watching. Move fast.'),
+              terminalLog: appendLog(cur.terminalLog, '// OPERATOR: First breach established. The grid is watching. Move fast.'),
               hasFirstBypass: true,
             }));
           }
         }
 
-        // Safehouse damage modifier (ECHO: −10%, WRAITH: +20%)
-        const nodeDmgMod = s.currentNode?.damageMod ?? 1;
+        // Safehouse damage modifier
         firewallDamage = Math.floor(firewallDamage * (s.currentSafehouse?.dmgMod ?? 1));
 
         // Compute resulting values
         const prevFirewall = s.firewallHealth;
         const newFirewall  = Math.max(0, prevFirewall - firewallDamage);
-        const newTrace     = Math.min(100, Math.max(0, s.digitalTrace + traceGain));
-        const newHeat      = Math.min(100, s.physicalHeat + heatGain);
+        
+        // Handle Perfect Sync for PULSE
+        const isPerfectSync = toolId === 'PULSE' && s.pulseActive;
+        const finalTrace    = isPerfectSync
+          ? Math.max(0, s.digitalTrace + (traceGain * 2))
+          : Math.min(100, Math.max(0, s.digitalTrace + traceGain));
 
-        // ── DECRYPT special path ───────────────────────────────────────
-        if (toolId === 'DECRYPT') {
-          const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
-          const alreadyDone = s.firewallRevealed;
+        if (isPerfectSync && s.settings?.hapticsEnabled) haptic([30, 50, 30]);
 
-          let log = appendLog(s.terminalLog,
-            `> DECRYPT // +${heatGain}% HEAT | TRACE: ${newTrace.toFixed(0)}%`);
-
-          if (isEncrypted && !alreadyDone) {
-            log = appendLog(log, `>> ENCRYPTED LOGS CRACKED — FW: ${s.firewallHealth}`);
-          } else if (isEncrypted && alreadyDone) {
-            log = appendLog(log, '>> ALREADY DECRYPTED — HEAT WASTED');
-          } else {
-            log = appendLog(log, '>> NO ENCRYPTED LOGS ON THIS NODE — HEAT WASTED');
-          }
-
-          set({
-            physicalHeat:     newHeat,
-            digitalTrace:     newTrace,
-            firewallRevealed: isEncrypted ? true : s.firewallRevealed,
-            terminalLog:      log,
-            toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
-          });
-
-          if (newHeat >= 100) get().packUp('heat_busted');
-          return;
-        }
+        const newHeat = Math.min(100, s.physicalHeat + heatGain);
 
         // ── Win condition — firewall breached ─────────────────────────
-        const breached = prevFirewall > 0 && newFirewall <= 0;
-
-        if (breached) {
-          // 1. Violent haptic shockwave for the breach
+        if (newFirewall <= 0 && prevFirewall > 0) {
+          // Violent haptic shockwave for the breach
           if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
              navigator.vibrate([100, 50, 150]);
           }
 
-          const isPerfect    = newTrace >= 90;
-          const intelEarned  = isPerfect
-            ? Math.floor(s.sessionPotentialIntel * 1.25)
-            : s.sessionPotentialIntel;
+          const isPerfect    = finalTrace >= 90;
+          const intelEarned  = isPerfect ? Math.floor(s.sessionPotentialIntel * 1.25) : s.sessionPotentialIntel;
           const isTartarus   = s.currentJobType === 'tartarus';
           const isDarknet    = s.currentJobType === 'darknet';
           const isPriority   = s.currentJobType === 'priority' || isTartarus;
@@ -538,32 +565,26 @@ triggerFirstBoot: () => {
           const newDarknetTier = isDarknet ? s.darknetTier + 1 : s.darknetTier;
           const newHighestTier = Math.max(s.highestDarknetTier, newDarknetTier);
 
-          let log = appendLog(s.terminalLog,
-            `> ${toolId} // FW: 0 | TRACE: ${newTrace.toFixed(0)}%`);
+          let log = appendLog(s.terminalLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`);
           log = appendLog(log, `>> [ ACCESS GRANTED ]`);
 
-          const mashaLine = getMashaReaction('breach', newTrace);
+          const mashaLine = getMashaReaction('breach', finalTrace);
           if (mashaLine) log = appendLog(log, mashaLine);
 
-          if (isPerfect) {
-            log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
-          }
+          if (isPerfect) log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
           log = appendLog(log, `>> NODE BREACHED. PAYLOAD SECURED: +${intelEarned} IF.`);
-          if (fragmentIdx !== null) {
-            log = appendLog(log,
-              `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
-          }
+          if (fragmentIdx !== null) log = appendLog(log, `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
           log = appendLog(log, '// AWAITING MANUAL DISCONNECT...');
 
           set({
-            status:             'resolved', // Pauses the hacking loop without leaving the screen
+            status:             'resolved',
             nextStatus:         isTartarus ? 'victory' : 'transit',
             transitOutcome:     'success',
-            packUpHeat:         s.physicalHeat, // Freeze heat gauge
-            packUpTrace:        newTrace,       // Freeze trace gauge
+            packUpHeat:         s.physicalHeat,
+            packUpTrace:        finalTrace,
             systemOverride:     null,
             firewallHealth:     0,
-            digitalTrace:       newTrace,
+            digitalTrace:       finalTrace,
             intelFragments:     s.intelFragments + intelEarned,
             sessionIntelEarned: intelEarned,
             storyArchive:       newArchive,
@@ -575,7 +596,7 @@ triggerFirstBoot: () => {
             terminalLog:        log,
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
             isPerfectBreach:    isPerfect,
-            isBreaching:        false, // Remove overlay logic
+            isBreaching:        false,
           });
           return;
         }
@@ -584,19 +605,8 @@ triggerFirstBoot: () => {
         const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
         const fwDisplay   = (isEncrypted && !s.firewallRevealed) ? '???' : `${Math.ceil(newFirewall)}`;
 
-        // Perfect Sync: PULSE during pulse window negates and doubles the trace cost
-        const isPerfectSync = toolId === 'PULSE' && s.pulseActive;
-        const finalTrace    = isPerfectSync
-          ? Math.max(0, s.digitalTrace + (traceGain * 2))
-          : newTrace;
-
-        if (isPerfectSync && s.settings?.hapticsEnabled) haptic([30, 50, 30]);
-
-        let log = appendLog(s.terminalLog,
-          `> ${toolId} // FW: ${fwDisplay} | TRACE: ${finalTrace.toFixed(0)}%`);
-        if (isPerfectSync) {
-          log = appendLog(log, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
-        }
+        let log = appendLog(s.terminalLog, `> ${toolId} // FW: ${fwDisplay} | TRACE: ${finalTrace.toFixed(0)}%`);
+        if (isPerfectSync) log = appendLog(log, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
 
         set({
           firewallHealth: newFirewall,
@@ -665,6 +675,8 @@ triggerFirstBoot: () => {
           systemOverride:     null,
           packUpHeat:         s.physicalHeat, 
           packUpTrace:        s.digitalTrace,
+          activeDaemon:       null,       // 'BLOODHOUND' | null
+          exposedTicks:       0,          // How long the node remains exposed
           intelFragments:     newBank,
           sessionIntelEarned: intelEarned,
           currentSafehouse:   nextSafehouse,
@@ -745,6 +757,8 @@ triggerFirstBoot: () => {
           currentJobType:        jobType,
           isReplay,
           digitalTrace:          0,
+          activeDaemon:          null,       // 'BLOODHOUND' | null
+          exposedTicks:          0,          // How long the node remains exposed
           physicalHeat:          0,
           firewallHealth:        firewallHP,
           currentNode:           sessionNode,
@@ -785,6 +799,8 @@ triggerFirstBoot: () => {
           sessionPotentialIntel: 0,
           packUpHeat:            0,
           packUpTrace:           0,
+          activeDaemon:          null,       // 'BLOODHOUND' | null
+          exposedTicks:          0,          // How long the node remains exposed
           systemOverride:        null, // Reset Phase 4
           tartarusBeaten:        false,      // per-run flag — reset each campaign
           darknetTier:           1,          // streak resets; highestDarknetTier + hasBeatenGame persist
@@ -969,32 +985,51 @@ triggerFirstBoot: () => {
         }
       },
 
-    // ─── SIPHON VAULT (Push Your Luck) ────────────────────────────────
+    // ─── SIPHON VAULT / UPLOAD SKELETON KEY (Push Your Luck) ──────────
       siphonVault: () => {
         const s = get();
         if (s.status !== 'resolved' || s.transitOutcome !== 'success') return;
 
-        const tracePenalty = 3.5; 
+        const isTartarus = s.currentJobType === 'tartarus';
+        const tracePenalty = isTartarus ? 15 : 3.5; // Uploading the key is much more dangerous
         const intelReward  = 1;   
 
         const newTrace = s.digitalTrace + tracePenalty;
 
+        // If they hit 100% Trace...
         if (newTrace >= 100) {
-          get().packUp('trace_busted');
-          set(cur => ({
-            terminalLog: appendLog(cur.terminalLog, "// MEMO_FROM_MASHA: 'You stayed too long! I told you to get out!'")
-          }));
+          if (isTartarus) {
+            // THEY DID IT. THEY UPLOADED THE KEY AND FRIED THE DECK.
+            set({
+              digitalTrace: 100,
+              packUpTrace: 100,
+              hasBeatenGame: true,
+              tartarusBeaten: true,
+              status: 'victory', // Immediately trigger the victory screen
+              terminalLog: appendLog(s.terminalLog, ">> SKELETON KEY INJECTED. TARTARUS NODE OVERWRITTEN. SYSTEM OFFLINE.")
+            });
+          } else {
+            // Normal siphon greed bust
+            get().packUp('trace_busted');
+            set(cur => ({
+              terminalLog: appendLog(cur.terminalLog, "// MEMO_FROM_MASHA: 'You stayed too long! I told you to get out!'")
+            }));
+          }
           return;
         }
 
-        if (s.settings?.hapticsEnabled) haptic(10); 
+        if (s.settings?.hapticsEnabled) haptic(isTartarus ? [50, 50] : 10); 
 
         set({
           digitalTrace:       newTrace,
           packUpTrace:        newTrace, 
           sessionIntelEarned: s.sessionIntelEarned + intelReward,
           intelFragments:     s.intelFragments + intelReward, 
-          terminalLog:        appendLog(s.terminalLog, `>> SIPHONING... TRACE: ${newTrace.toFixed(0)}% (+${intelReward} IF)`),
+          terminalLog:        appendLog(s.terminalLog, 
+            isTartarus 
+              ? `>> INJECTING KEY... TRACE: ${newTrace.toFixed(0)}% [WARNING: FATAL KERNEL ERROR IMMINENT]` 
+              : `>> SIPHONING... TRACE: ${newTrace.toFixed(0)}% (+${intelReward} IF)`
+          ),
         });
       },
 

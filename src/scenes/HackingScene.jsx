@@ -24,6 +24,8 @@ function NodeStatusStrip() {
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
   const heat             = useGameStore(s => s.physicalHeat);
   const safehouse        = useGameStore(s => s.currentSafehouse);
+  const activeDaemon     = useGameStore(s => s.activeDaemon); // NEW
+  const exposedTicks     = useGameStore(s => s.exposedTicks); // NEW
 
   if (!node) return null;
 
@@ -43,6 +45,21 @@ function NodeStatusStrip() {
       </span>
 
       <div className="flex items-center gap-2 shrink-0">
+        
+        {/* NEW COMBAT BADGES START */}
+        {activeDaemon && (
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-red-500 border-red-500/50 bg-red-500/10 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+            ! {activeDaemon} !
+          </span>
+        )}
+        
+        {exposedTicks > 0 && (
+          <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-amber-300 border-amber-400/50 bg-amber-400/10 shadow-[0_0_8px_rgba(251,191,36,0.5)]">
+            EXPOSED
+          </span>
+        )}
+        {/* NEW COMBAT BADGES END */}
+
         {showTrait && (
           <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${traitColor}`}
                 title={safehouse.desc}>
@@ -228,6 +245,7 @@ export default function HackingScene() {
 
   const systemOverride  = useGameStore(s => s.systemOverride);
   const resolveOverride = useGameStore(s => s.resolveOverride);
+  const getCurrentAct   = useGameStore(s => s.getCurrentAct);
 
   const [popupDismissed, setPopupDismissed] = useState(false);
 
@@ -346,10 +364,14 @@ export default function HackingScene() {
                 {transitOutcome === 'success' ? (
                   <div className="flex flex-col items-center gap-1">
                     <span className="font-mono text-[11px] font-black text-fuchsia-400 uppercase tracking-[0.15em] animate-pulse">
-                      HOLD [SIPHON] TO DRAIN VAULT
+                      {useGameStore.getState().currentJobType === 'tartarus' 
+                        ? "HOLD [UPLOAD] TO INJECT SKELETON KEY" 
+                        : "HOLD [SIPHON] TO DRAIN VAULT"}
                     </span>
                     <span className="font-mono text-[11px] font-bold text-cyan-400/90 uppercase tracking-widest">
-                      OR [DISCONNECT] TO SECURE
+                      {useGameStore.getState().currentJobType === 'tartarus' 
+                        ? "OR [DISCONNECT] TO ABORT MISSION" 
+                        : "OR [DISCONNECT] TO SECURE"}
                     </span>
                   </div>
                 ) : (
@@ -369,10 +391,14 @@ export default function HackingScene() {
               className="w-full py-6 bg-red-950/95 backdrop-blur-md border-2 border-red-500 border-b-[6px] active:border-b-2 active:translate-y-1 rounded-lg shadow-[0_0_40px_rgba(239,68,68,0.6)] flex flex-col items-center justify-center danger-shake"
             >
               <span className="font-mono text-xl font-black text-red-500 uppercase tracking-[0.2em] animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
-                SYSTEM OVERRIDE
+                {getCurrentAct() === 1 ? "SYSTEM OVERRIDE" : 
+                 getCurrentAct() === 2 ? "PATTERN RECOGNIZED" : 
+                 "I SEE YOU, BUG"}
               </span>
               <span className="font-mono text-[11px] font-bold text-white uppercase tracking-widest mt-2 bg-red-600/90 px-3 py-1 rounded">
-                TAP TO INTERCEPT // {systemOverride}s
+                {getCurrentAct() === 1 ? "TAP TO INTERCEPT // " : 
+                 getCurrentAct() === 2 ? "EVADE ALCHEMIST // " : 
+                 "KERNEL OVERWRITING // "}{systemOverride}s
               </span>
             </button>
           </div>
