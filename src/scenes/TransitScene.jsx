@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import useGameStore from '../store/useGameStore';
 import upgradesConfig from '../data/upgradesConfig.json';
 import storyFragments from '../data/storyFragments.json';
+import toolsConfig from '../data/toolsConfig.json';
 
 // ─── Corrupt Text ─────────────────────────────────────────────────────────────
 
@@ -315,6 +316,188 @@ function NarrativeArchive() {
   );
 }
 
+// ─── Deck Manual (Hero Abilities Screen) ──────────────────────────────────────
+
+const TOOL_CARD_COLORS = {
+  green: "border-green-500/30 bg-green-500/10",
+  blue:  "border-blue-500/30 bg-blue-500/10",
+  amber: "border-amber-500/30 bg-amber-500/10"
+};
+
+const TOOL_TEXT_COLORS = {
+  green: "text-green-400",
+  blue:  "text-blue-400",
+  amber: "text-amber-400"
+};
+
+function DeckManual() {
+  const upgrades      = useGameStore(s => s.upgrades);
+  const safehouse     = useGameStore(s => s.currentSafehouse);
+  const archiveLen    = useGameStore(s => s.storyArchive.length);
+  const hasBeatenGame = useGameStore(s => s.hasBeatenGame);
+
+  // Pull dynamic upgrade levels
+  const ramLevel      = upgrades['RAM']?.level ?? 0;
+  const bypassLevel   = upgrades['BYPASS_STRENGTH']?.level ?? 0;
+  
+  // Pull dynamic safehouse modifiers
+  const ramMod = safehouse?.ramMod ?? 1;
+  const dmgMod = safehouse?.dmgMod ?? 1;
+
+  // Real-time calculation helpers
+  const getCooldown = (base) => Math.max(1, Math.floor(base * (1 - ramLevel * 0.10) * ramMod));
+  const getDmg = (toolId, base) => {
+    let dmg = base;
+    if (toolId === 'BYPASS') dmg += bypassLevel * 10;
+    return Math.floor(dmg * dmgMod);
+  };
+
+  const showConsumables = hasBeatenGame || archiveLen >= 4;
+
+  return (
+    <div className="space-y-6 pb-6">
+      
+      {/* ── CORE TOOLKIT ── */}
+      <div>
+        <p className="font-mono text-xs font-bold uppercase tracking-widest text-violet-400 mb-3 flex items-center justify-between">
+          <span>// Core Toolkit</span>
+          {(ramLevel > 0 || bypassLevel > 0) && (
+            <span className="text-[9px] text-zinc-500 normal-case">Live stats w/ Black Market upgrades</span>
+          )}
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {toolsConfig.map(tool => {
+             const actualCd  = getCooldown(tool.baseCooldown);
+             const actualDmg = getDmg(tool.id, tool.baseEffect.firewallDamage);
+             const traceGain = tool.baseEffect.traceGain;
+             const heatGain  = tool.baseEffect.heatGain;
+             
+             const cardStyle = TOOL_CARD_COLORS[tool.color] || "border-zinc-500/30 bg-zinc-500/10";
+             const textStyle = TOOL_TEXT_COLORS[tool.color] || "text-zinc-400";
+             
+             return (
+               <div key={tool.id} className={`glass-panel rounded-lg p-4 border ${cardStyle}`}>
+                 <div className="flex justify-between items-start mb-2">
+                   <span className={`font-mono text-sm font-bold ${textStyle}`}>{tool.label}</span>
+                   <span className="font-mono text-[10px] font-bold text-zinc-400 bg-zinc-950/50 px-2 py-0.5 rounded border border-zinc-800/50">
+                     {actualCd}s CD
+                   </span>
+                 </div>
+                 <p className="font-mono text-[11px] text-zinc-300 leading-relaxed mb-3 min-h-[48px]">
+                   {tool.description}
+                 </p>
+                 <div className="flex gap-2 font-mono text-[9px] font-bold uppercase tracking-widest flex-wrap">
+                   {actualDmg > 0 && (
+                     <span className="bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded border border-violet-500/30 shadow-[0_0_8px_rgba(139,92,246,0.2)]">
+                       {actualDmg} DMG
+                     </span>
+                   )}
+                   {traceGain !== 0 && (
+                     <span className={`${traceGain > 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'} px-1.5 py-0.5 rounded border`}>
+                       {traceGain > 0 ? '+' : ''}{traceGain}% TRACE
+                     </span>
+                   )}
+                   {heatGain > 0 && (
+                     <span className="bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded border border-orange-500/30">
+                       +{heatGain}% HEAT
+                     </span>
+                   )}
+                 </div>
+               </div>
+             );
+          })}
+        </div>
+      </div>
+
+      {/* ── TACTICS & SYNERGIES ── */}
+      <div>
+        <p className="font-mono text-xs font-bold uppercase tracking-widest text-cyan-400 mb-3">
+          // Tactics & Synergies
+        </p>
+        <div className="space-y-3">
+          <div className="glass-panel rounded-lg p-4 border border-zinc-700/50 bg-zinc-800/10">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-mono text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded">DECRYPT</span>
+              <span className="text-zinc-500 text-xs font-bold">»</span>
+              <span className="font-mono text-[10px] font-bold bg-green-500/20 text-green-400 border border-green-500/30 px-1.5 py-0.5 rounded">BYPASS</span>
+            </div>
+            <p className="font-mono text-[11px] text-zinc-100 font-bold mb-1">The Riposte Strike</p>
+            <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
+              Using <span className="text-amber-400">DECRYPT</span> applies the <span className="text-amber-300 border border-amber-400/30 px-1 rounded bg-amber-400/10">EXPOSED</span> status to the node for 4 seconds. Landing a <span className="text-green-400">BYPASS</span> while exposed consumes the status to deal <span className="text-white font-bold">CRITICAL (2.0x) DAMAGE</span>.
+            </p>
+          </div>
+
+          <div className="glass-panel rounded-lg p-4 border border-zinc-700/50 bg-zinc-800/10">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="font-mono text-[10px] font-bold text-cyan-300 animate-pulse">SYNC WINDOW</span>
+              <span className="text-zinc-500 text-xs font-bold">»</span>
+              <span className="font-mono text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded">PULSE</span>
+            </div>
+            <p className="font-mono text-[11px] text-zinc-100 font-bold mb-1">Perfect Sync</p>
+            <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
+              When the Trace meter flashes <span className="text-cyan-300 font-bold">SYNC</span>, hitting <span className="text-cyan-400">PULSE</span> triggers a Perfect Sync, doubling the amount of Trace removed.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── THREAT RESPONSE ── */}
+      <div>
+        <p className="font-mono text-xs font-bold uppercase tracking-widest text-red-400 mb-3">
+          // Threat Response
+        </p>
+        <div className="space-y-3">
+          <div className="glass-panel rounded-lg p-4 border border-red-900/40 bg-red-950/20">
+            <p className="font-mono text-[11px] text-red-400 font-bold mb-1">Active Daemons</p>
+            <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
+              Nodes will actively inject defensive DAEMONS into your deck (e.g., <span className="text-red-400 font-bold">BLOODHOUND</span>) which rapidly spike your Trace. <span className="text-amber-400 font-bold">DECRYPT</span> is the only tool capable of isolating and killing an active Daemon.
+            </p>
+          </div>
+          <div className="glass-panel rounded-lg p-4 border border-red-900/40 bg-red-950/20">
+            <p className="font-mono text-[11px] text-red-400 font-bold mb-1">System Overrides</p>
+            <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
+              If the screen flashes red and a <span className="text-red-500 font-bold">SYSTEM OVERRIDE</span> prompt appears, tap the massive red button repeatedly to intercept the counter-measure before the timer expires.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── DIRTY TRICKS (CONSUMABLES) ── */}
+      <div>
+        <p className="font-mono text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
+          // Dirty Tricks (Consumables)
+        </p>
+        {showConsumables ? (
+           <div className="space-y-3">
+            <div className="glass-panel rounded-lg p-4 border border-zinc-700/50 bg-zinc-800/10">
+              <span className="font-mono text-[11px] text-green-400 font-bold mb-1 block">RABBIT.exe</span>
+              <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
+                A highly aggressive, replicating daemon. Injects directly into the target node, eating <span className="text-white font-bold">10 Firewall HP per second for 5 seconds</span>. Note: Cannot land the killing blow; leaves target at 1 HP.
+              </p>
+            </div>
+            <div className="glass-panel rounded-lg p-4 border border-zinc-700/50 bg-zinc-800/10">
+              <span className="font-mono text-[11px] text-slate-300 font-bold mb-1 block">GHOST.sys</span>
+              <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
+                A thermal-trace suppression script. <span className="text-white font-bold">Freezes all Trace generation for 4 seconds</span>, creating a massive window for aggressive hacking.
+              </p>
+            </div>
+           </div>
+        ) : (
+           <div className="glass-panel rounded-lg p-6 border border-zinc-800 bg-zinc-900/30 flex flex-col items-center justify-center text-center opacity-70">
+             <span className="text-zinc-500 text-xl mb-3">🔒</span>
+             <p className="font-mono text-xs font-bold text-zinc-400 tracking-widest">ENCRYPTED BLACK MARKET SECTOR</p>
+             <p className="font-mono text-[10px] text-zinc-500 mt-2 uppercase tracking-widest border border-zinc-700 px-3 py-1 rounded bg-zinc-800/50 shadow-inner">
+               Reach Act II (4 Fragments) to unlock
+             </p>
+           </div>
+        )}
+      </div>
+
+    </div>
+  );
+}
+
 // ─── Tab Bar ──────────────────────────────────────────────────────────────────
 
 function TabBar({ active, onChange }) {
@@ -322,6 +505,7 @@ function TabBar({ active, onChange }) {
 
   const tabs = [
     { id: 'debrief', label: 'DEBRIEF' },
+    { id: 'deck',    label: 'DECK MANUAL' }, // <-- NEW TAB
     { id: 'archive', label: 'ARCHIVE', showDot: collected > 0 },
   ];
 
@@ -332,7 +516,7 @@ function TabBar({ active, onChange }) {
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={[
-            'flex-1 relative py-3.5 font-mono text-xs font-bold uppercase tracking-widest',
+            'flex-1 relative py-3.5 font-mono text-[11px] sm:text-xs font-bold uppercase tracking-widest',
             'transition-colors duration-150',
             active === tab.id
               ? 'text-green-400 border-b-2 border-green-500 -mb-px'
@@ -505,15 +689,15 @@ const phase = archiveLen >= 11 ? 3 : archiveLen >= 8 ? 2 : archiveLen >= 4 ? 1 :
 
       <TabBar active={activeTab} onChange={setActiveTab} />
 
-      <div className="flex-1 overflow-y-auto px-5 py-5 scrollbar-thin">
-        {activeTab === 'debrief' ? (
+<div className="flex-1 overflow-y-auto px-5 py-5 scrollbar-thin">
+        {activeTab === 'debrief' && (
           <>
             <SessionSummary />
             <BlackMarket />
           </>
-        ) : (
-          <NarrativeArchive />
         )}
+        {activeTab === 'deck' && <DeckManual />}
+        {activeTab === 'archive' && <NarrativeArchive />}
       </div>
 
       <JobFooter isLocked={isLocked} />
