@@ -505,18 +505,18 @@ function TabBar({ active, onChange }) {
 
   const tabs = [
     { id: 'debrief', label: 'DEBRIEF' },
-    { id: 'deck',    label: 'DECK MANUAL' }, // <-- NEW TAB
+    { id: 'deck',    label: 'DECK' }, // <-- Shortened for iPhone screens
     { id: 'archive', label: 'ARCHIVE', showDot: collected > 0 },
   ];
 
   return (
-    <div className="flex px-5 gap-3 border-b border-zinc-800 shrink-0">
+    <div className="flex px-2 sm:px-5 gap-1 sm:gap-3 border-b border-zinc-800 shrink-0">
       {tabs.map(tab => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={[
-            'flex-1 relative py-3.5 font-mono text-[11px] sm:text-xs font-bold uppercase tracking-widest',
+            'flex-1 relative py-3 sm:py-3.5 font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest',
             'transition-colors duration-150',
             active === tab.id
               ? 'text-green-400 border-b-2 border-green-500 -mb-px'
@@ -525,7 +525,7 @@ function TabBar({ active, onChange }) {
         >
           {tab.label}
           {tab.showDot && active !== tab.id && (
-            <span className="absolute top-3 right-[calc(50%-22px)] w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]" />
+            <span className="absolute top-2 right-[calc(50%-24px)] w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]" />
           )}
         </button>
       ))}
@@ -649,7 +649,14 @@ const phase = archiveLen >= 11 ? 3 : archiveLen >= 8 ? 2 : archiveLen >= 4 ? 1 :
   const headerAnim  = phase === 1 ? 'transit-header-flicker' : '';
 
   return (
-    <div className={containerClass} style={containerBg}>
+    <div 
+      className={containerClass} 
+      style={{
+        ...containerBg,
+        paddingTop: 'max(env(safe-area-inset-top), 0px)', // <-- Pushes Safehouse down below iPhone Notch
+        paddingBottom: 'max(env(safe-area-inset-bottom), 0px)' // <-- Pushes Footer above gesture bar
+      }}
+    >
       <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0">
         <p className={`font-mono text-xs uppercase tracking-widest ${statusClass}`}>
           {statusText}
@@ -689,18 +696,25 @@ const phase = archiveLen >= 11 ? 3 : archiveLen >= 8 ? 2 : archiveLen >= 4 ? 1 :
 
       <TabBar active={activeTab} onChange={setActiveTab} />
 
-<div className="flex-1 overflow-y-auto px-5 py-5 scrollbar-thin">
-        {activeTab === 'debrief' && (
-          <>
-            <SessionSummary />
-            <BlackMarket />
-          </>
-        )}
-        {activeTab === 'deck' && <DeckManual />}
-        {activeTab === 'archive' && <NarrativeArchive />}
+      <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-5 scrollbar-thin flex flex-col items-center">
+        <div className="w-full max-w-md"> {/* <-- This stops wide-screen stretching */}
+          {activeTab === 'debrief' && (
+            <>
+              <SessionSummary />
+              <BlackMarket />
+            </>
+          )}
+          {activeTab === 'deck' && <DeckManual />}
+          {activeTab === 'archive' && <NarrativeArchive />}
+        </div>
       </div>
 
-      <JobFooter isLocked={isLocked} />
+      {/* The Footer is now also wrapped to respect max-width so it matches the scroll content */}
+      <div className="w-full bg-zinc-950/90 backdrop-blur-sm shrink-0 border-t border-zinc-800 flex justify-center">
+        <div className="w-full max-w-md">
+          <JobFooter isLocked={isLocked} />
+        </div>
+      </div>
     </div>
   );
 }
