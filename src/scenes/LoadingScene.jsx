@@ -2,11 +2,17 @@ import useGameStore from '../store/useGameStore';
 
 export default function LoadingScene({ onComplete }) {
   const initializeDeck = useGameStore(s => s.initializeDeck);
+  const reducedMotion  = useGameStore(s => s.settings?.reducedMotion);
 
   const handleBoot = (isReduced) => {
     initializeDeck(isReduced);
     onComplete(); 
   };
+
+  // --- NEW DYNAMIC LOGO STYLING ---
+  const logoStyle = reducedMotion 
+    ? "text-cyan-500 drop-shadow-[0_0_4px_rgba(6,182,212,0.4)]" // Calm, static, cool blue
+    : "text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] animate-logo-flicker animate-logo-shift"; // Aggressive, glitchy red
 
   return (
     <div className="flex flex-col h-full bg-zinc-950 px-6 py-12 font-mono">
@@ -14,8 +20,10 @@ export default function LoadingScene({ onComplete }) {
         
         {/* Boot Sequence Header */}
         <div className="space-y-4">
-          {/* THE ASCII LOGO */}
-          <pre className="text-red-500 font-mono text-[8px] sm:text-[10px] leading-none tracking-tight font-bold drop-shadow-[0_0_8px_rgba(239,68,68,0.8)] select-none animate-logo-flicker animate-logo-shift">
+          
+          {/* THE ASCII LOGO - Responsive & Centered */}
+          <div className="w-full flex justify-center overflow-hidden">
+            <pre className={`font-mono text-[5.5px] min-[380px]:text-[7px] sm:text-[10px] leading-none tracking-tighter font-bold select-none whitespace-pre ${logoStyle}`}>
 {`
 ████████╗ █████╗ ██████╗ ████████╗ █████╗ ██████╗ ██╗   ██╗███████╗
 ╚══██╔══╝██╔══██╗██╔══██╗╚══██╔══╝██╔══██╗██╔══██╗██║   ██║██╔════╝
@@ -24,8 +32,9 @@ export default function LoadingScene({ onComplete }) {
    ██║   ██║  ██║██║  ██║   ██║   ██║  ██║██║  ██║╚██████╔╝███████╗
    ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝
 `}
-          </pre>
-
+            </pre>
+          </div>
+          
           <div className="space-y-1">
             <p className="text-cyan-400 text-[10px] tracking-widest uppercase animate-pulse">
               // KERNEL_LOAD_V10.2
