@@ -268,6 +268,53 @@ function ConsumableBar() {
   );
 }
 
+// ─── VISUAL VIRUS: THE CORRUPTED RABBIT SWARM ──────────────────────────────────
+
+function VisualRabbits({ ticks }) {
+  if (ticks <= 0) return null;
+  
+  // A variety of small ASCII bunnies for a more varied swarming effect
+  const RABBIT_ARTS = [ '(\\_/)', '(*^.^*)', ' < Chew >', '(\\__/)', ' < Yum! >' ];
+
+  const rabbits = Array.from({ length: 15 }).map((_, i) => {
+    const left     = Math.random() * 100;
+    const delay    = Math.random() * -3; 
+    const duration = 1.5 + Math.random() * 2; 
+    
+    // Pick a random appearance for this bunny
+    const chosenArt = RABBIT_ARTS[Math.floor(Math.random() * RABBIT_ARTS.length)];
+    
+    return (
+      <div 
+        key={i} 
+        className="absolute text-green-400 font-mono font-bold text-lg pointer-events-none animate-rabbit z-30"
+        style={{
+          left: `${left}%`,
+          animationDelay: `${delay}s`,
+          animationDuration: `${duration}s`,
+        }}
+      >
+        {chosenArt}
+      </div>
+    );
+  });
+
+  return <div className="absolute inset-0 pointer-events-none overflow-hidden">{rabbits}</div>;
+}
+
+// ─── THE TAUNTING ALCHEMIST SKULL ───────────────────────────────────────────
+// A simpler, menancing classic hacker symbol face for the override
+
+const MENACING_SKULL_FACE = `
+      _____
+     /     \
+    | X   X |  // YOU LOSE...
+     \_____/
+     ||   ||
+     ||___||
+      \\_/\\_/
+`;
+
 // ─── JUICE FIX #2: DAEMON ALERTS & CRITICAL SCREEN TEAR ──────────────────────
 
 export default function HackingScene() {
@@ -289,6 +336,7 @@ export default function HackingScene() {
   const exposedTicks   = useGameStore(s => s.exposedTicks);
   const firewallHealth = useGameStore(s => s.firewallHealth);
   const activeDaemon   = useGameStore(s => s.activeDaemon); // <-- Added
+  const rabbitTicks    = useGameStore(s => s.rabbitTicks);  // <-- Added for visual virus
   
   const [isCritical, setIsCritical] = useState(false);
   const [daemonFlash, setDaemonFlash] = useState(false); // <-- Added
@@ -383,10 +431,19 @@ export default function HackingScene() {
 
   return (
     <div className={`flex flex-col h-full bg-zinc-950 relative ${activeTearClass}`}>
-      {/* Dynamic Environmental Overlays */}
+      
+      {/* 1. THE GIBSON 3D GRID */}
+      {!reducedMotion && (
+        <div className="gibson-environment">
+          <div className="gibson-grid" />
+        </div>
+      )}
+
+      {/* 2. THE VISUAL VIRUS SWARM */}
+      <VisualRabbits ticks={rabbitTicks} />
+
       {(isHeatDanger && !reducedMotion) && <div className="siren-vignette" />}
       
-      {/* THE DAEMON FLASH OVERLAY */}
       {daemonFlash && !reducedMotion && (
         <div className="absolute inset-0 bg-red-600/30 mix-blend-overlay pointer-events-none z-40 animate-pulse" />
       )}
@@ -397,6 +454,7 @@ export default function HackingScene() {
         
         {status === 'resolved' && popupConfig && !popupDismissed && (
           <div className={`absolute top-[40%] left-6 right-6 -translate-y-1/2 z-50 bg-zinc-950 border ${popupConfig.border} ${popupConfig.shadow} flex flex-col shadow-2xl`}>
+            {/* Header Bar */}
             <div className={`px-3 py-1.5 flex justify-between items-center ${popupConfig.headerBg} border-b ${popupConfig.border}`}>
               <span className="font-mono text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
                 SYS_DIALOG.exe
@@ -404,6 +462,7 @@ export default function HackingScene() {
               <button 
                 onClick={handleDismissPopup}
                 className="w-6 h-6 flex items-center justify-center hover:bg-black/20 rounded transition-colors"
+                aria-label="Close Dialog"
               >
                 <div className={`w-3 h-3 border ${popupConfig.border} flex items-center justify-center`}>
                   <span className={`text-[8px] font-bold leading-none ${popupConfig.titleColor}`}>x</span>
@@ -411,6 +470,7 @@ export default function HackingScene() {
               </button>
             </div>
             
+            {/* Body */}
             <div className="p-5 flex flex-col items-center text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
               
@@ -426,6 +486,7 @@ export default function HackingScene() {
                 {popupConfig.intel}
               </p>
               
+            {/* Informational Prompt - Sharpened for Readability */}
               <div className="mt-5 pt-4 border-t border-zinc-800/80 w-full relative z-10 flex flex-col items-center gap-2">
                 <div className="flex items-center gap-2 opacity-90">
                   <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
@@ -457,21 +518,23 @@ export default function HackingScene() {
           </div>
         )}
 
+        {/* 3. THE MENACING SKULL GLITCH */}
         {systemOverride !== null && (
-          <div className="absolute inset-x-6 top-[20%] z-50 flex flex-col">
+          <div className="absolute inset-x-4 top-[15%] bottom-[20%] z-50 flex flex-col justify-center relative overflow-hidden">
+            
+            <pre className="absolute inset-0 flex items-center justify-center font-mono text-[8px] sm:text-[10px] leading-tight text-red-500/20 animate-skull pointer-events-none select-none z-0">
+              {MENACING_SKULL_FACE}
+            </pre>
+
             <button
               onPointerDown={(e) => { e.preventDefault(); resolveOverride(); }}
-              className="w-full py-6 bg-red-950/95 backdrop-blur-md border-2 border-red-500 border-b-[6px] active:border-b-2 active:translate-y-1 rounded-lg shadow-[0_0_40px_rgba(239,68,68,0.6)] flex flex-col items-center justify-center danger-shake"
+              className="relative z-10 w-full py-8 bg-red-950/80 backdrop-blur-md border-2 border-red-500 border-b-[8px] active:border-b-2 active:translate-y-1.5 rounded-xl shadow-[0_0_60px_rgba(239,68,68,0.8)] flex flex-col items-center justify-center danger-shake"
             >
               <span className="font-mono text-xl font-black text-red-500 uppercase tracking-[0.2em] animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
-                {getCurrentAct() === 1 ? "SYSTEM OVERRIDE" : 
-                 getCurrentAct() === 2 ? "PATTERN RECOGNIZED" : 
-                 "I SEE YOU, BUG"}
+                {getCurrentAct() === 1 ? "SYSTEM OVERRIDE" : getCurrentAct() === 2 ? "PATTERN RECOGNIZED" : "I SEE YOU, BUG"}
               </span>
-              <span className="font-mono text-[11px] font-bold text-white uppercase tracking-widest mt-2 bg-red-600/90 px-3 py-1 rounded">
-                {getCurrentAct() === 1 ? "TAP TO INTERCEPT // " : 
-                 getCurrentAct() === 2 ? "EVADE ALCHEMIST // " : 
-                 "KERNEL OVERWRITING // "}{systemOverride}s
+              <span className="font-mono text-[11px] font-bold text-white uppercase tracking-widest mt-3 bg-red-600/90 px-4 py-1.5 rounded">
+                {getCurrentAct() === 1 ? "TAP TO INTERCEPT // " : getCurrentAct() === 2 ? "EVADE ALCHEMIST // " : "KERNEL OVERWRITING // "}{systemOverride}s
               </span>
             </button>
           </div>
@@ -479,14 +542,20 @@ export default function HackingScene() {
 
         <NodeStatusStrip />
 
-        <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />
+        {/* Terminal — Confined Virus Swarm and glitch applied */}
+        <div className="flex-1 relative overflow-hidden flex flex-col min-h-0">
+          <VisualRabbits ticks={rabbitTicks} />
+          <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />
+        </div>
 
-        <div className="border-t border-zinc-800/60 pt-1 pb-0.5">
+        <div className="border-t border-zinc-800/60 pt-1 pb-0.5 bg-zinc-950/60 backdrop-blur-sm">
           <FirewallRow />
           <TraceRow />
         </div>
 
-        <ConsumableBar />
+        <div className="bg-zinc-950/60 backdrop-blur-sm">
+          <ConsumableBar />
+        </div>
 
         <CommandBar />
       </div>

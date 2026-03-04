@@ -143,14 +143,21 @@ export default function CommandBar() {
             onPointerLeave={stopSiphon}
             onPointerCancel={stopSiphon}
             onContextMenu={(e) => { e.preventDefault(); stopSiphon(); }}
+            
+            // --- THE MOBILE FIX ---
+            // Explicitly handling native touch events prevents iOS/Android 
+            // from swallowing the hold state.
             onTouchStart={(e) => { 
-              e.preventDefault(); 
+              // Prevent default ONLY if it's cancelable to avoid passive event warnings
+              if (e.cancelable) e.preventDefault(); 
               startSiphon(); 
             }}
             onTouchEnd={(e) => { 
-              e.preventDefault(); 
+              if (e.cancelable) e.preventDefault(); 
               stopSiphon(); 
             }}
+            onTouchCancel={stopSiphon}
+            
             className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 touch-none select-none ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 

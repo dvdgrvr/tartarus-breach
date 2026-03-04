@@ -344,14 +344,12 @@ tick: () => {
         
         let rabbitDamage = 0;
         if (s.rabbitTicks > 0) {
-          rabbitDamage = 1; 
-          // Every 5 ticks (0.5 seconds), the rabbits multiply and eat data
-          if (newTickCount % 5 === 0) {
-            const rabbitMultiplier = Math.floor((50 - s.rabbitTicks) / 10) + 1;
-            const bunnies = "(\\_/) ".repeat(Math.min(rabbitMultiplier, 5));
-            logMsg = `>> ${bunnies} *chomp* [ DATA_CONSUMED ]`;
-            if (s.settings?.hapticsEnabled) haptic(10); // Tiny nibble haptics
-          }
+          rabbitDamage = 10; // Was 1! Now deals 10 damage per tick (50 total)
+          
+          const rabbitMultiplier = Math.min(5, 6 - s.rabbitTicks);
+          const bunnies = "(\\_/) ".repeat(rabbitMultiplier);
+          logMsg = `>> ${bunnies} *chomp* [ DATA_CONSUMED ]`;
+          if (s.settings?.hapticsEnabled) haptic(10); 
         }
         
         if (s.ghostTicks > 0) {
@@ -916,16 +914,16 @@ executeCommand: (toolId) => {
 
         if (itemId === 'ghost') {
           set({
-            ghostTicks:  40, // 4 seconds of trace freeze
+            ghostTicks:  4, // 4 seconds of trace freeze
             consumables: newConsumables,
-            terminalLog: appendLog(s.terminalLog, '>> GHOST.sys INJECTED — TRACE FROZEN FOR 4 SECONDS.'),
+            terminalLog: appendLog(s.terminalLog, '>> GHOST.sys ACTIVATED. TRACE METRICS FROZEN.'),
           });
           return;
         }
 
         if (itemId === 'rabbit') {
           set({
-            rabbitTicks: 50, // 5 seconds of DOT
+            rabbitTicks: 5, // 5 seconds of DOT
             consumables: newConsumables,
             terminalLog: appendLog(s.terminalLog, '>> RABBIT VIRUS INJECTED — THEY ARE MULTIPLYING.'),
           });
