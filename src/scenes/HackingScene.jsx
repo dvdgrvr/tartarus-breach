@@ -364,6 +364,7 @@ export default function HackingScene() {
 
   const systemOverride  = useGameStore(s => s.systemOverride);
   const resolveOverride = useGameStore(s => s.resolveOverride);
+  const retrySession    = useGameStore(s => s.retrySession);
   const getCurrentAct   = useGameStore(s => s.getCurrentAct);
 
   const exposedTicks   = useGameStore(s => s.exposedTicks);
@@ -377,6 +378,32 @@ export default function HackingScene() {
   const prevExposed = useRef(exposedTicks);
   const prevFW = useRef(firewallHealth);
   const prevDaemon = useRef(activeDaemon);
+
+  // ─── THE HAPTIC HEARTBEAT (TACTILE TENSION) ─────────────
+  const hapticsEnabled = useGameStore(s => s.settings?.hapticsEnabled);
+
+  useEffect(() => {
+    // Only pulse while actively hacking and if haptics are enabled
+    if (status !== 'hacking' || !hapticsEnabled || typeof navigator === 'undefined' || !navigator.vibrate) {
+      return;
+    }
+
+    const maxDanger = Math.max(trace, heat);
+    
+    // Heartbeat only starts when danger is critical (75%+)
+    if (maxDanger < 75) return;
+
+    // The closer to 100%, the faster it beats. 
+    // At 75% it beats every 1000ms. At 99% it beats every ~300ms.
+    const intervalTime = Math.max(300, 1000 - ((maxDanger - 75) * 28));
+
+    const interval = setInterval(() => {
+      // A classic "lub-dub" heartbeat vibration pattern
+      navigator.vibrate([15, 60, 20]);
+    }, intervalTime);
+
+    return () => clearInterval(interval);
+  }, [trace, heat, status, hapticsEnabled]);
 
   useEffect(() => {
     if (prevExposed.current > 0 && exposedTicks === 0 && firewallHealth < prevFW.current) {

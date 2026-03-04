@@ -275,6 +275,27 @@ const useGameStore = create(
         isPerfectBreach: false
       })),
 
+      // ── THE REPLAY ACTION ──
+      // Instantly resets the current run and launches a new one of the exact same type
+      retrySession: () => {
+        const s = get();
+        // If it's the end of the game, route them to the proper ending screen instead
+        if (s.nextStatus === 'game_over' || s.nextStatus === 'victory') {
+          set({ status: s.nextStatus });
+          return;
+        }
+        
+        // Clear out lingering physical heat/trace states before rebooting
+        set({
+          physicalHeat: 0,
+          digitalTrace: 0,
+          isPerfectBreach: false
+        });
+        
+        // Instantly launch the same job type
+        get().startNewSession(s.currentJobType, s.isReplay, s.currentReplayLevel);
+      },
+
 triggerFirstBoot: () => {
         set(cur => {
           let log = appendLog(cur.terminalLog, '// KERNEL_INITIALIZED: Safehouse ALPHA online.');
@@ -288,11 +309,11 @@ triggerFirstBoot: () => {
         });
       },
 
-tick: () => {
+// ─── TICK ─────────────────────────────────────────────────────────
+      tick: () => {
         const s = get();
         if (s.status !== 'hacking' || s.isPaused) return;
 
-        // 1. SYSTEM OVERRIDE Logic
         let currentOverride = s.systemOverride;
         let spikeTrace      = 0;
         let logMsg          = null;
@@ -313,7 +334,6 @@ tick: () => {
           if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
         }
 
-        // 2. DAEMON & EXPOSURE Logic
         let newExposedTicks = Math.max(0, (s.exposedTicks || 0) - 1);
         let currentDaemon   = s.activeDaemon;
         let daemonTrace     = 0;
@@ -329,7 +349,6 @@ tick: () => {
           if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
         }
 
-        // 3. Stat Calculations
         const signalLevel    = s.upgrades['SIGNAL']?.level ?? 0;
         const heatMultiplier = Math.max(0, 1 - signalLevel * 0.10);
         const heatGain       = BASE_HEAT_PER_TICK * heatMultiplier * (s.currentSafehouse?.heatMod ?? 1);
@@ -339,17 +358,16 @@ tick: () => {
         let traceGain         = (s.digitalTrace >= TRACE_ACCEL_THRESHOLD ? BASE_TRACE_HIGH : BASE_TRACE_LOW)
                                 * traceMultiplier * (s.currentSafehouse?.traceMod ?? 1);
 
-        // ── THE FIX: Define newTickCount before the virus tries to use it! ──
+        if (s.currentNode?.mutator?.id === 'SNIFFER') traceGain *= 1.5;
+
         const newTickCount = s.tickCount + 1;
 
-        // 4. VIRUS & CONSUMABLE LOGIC
         let newRabbitTicks = Math.max(0, (s.rabbitTicks || 0) - 1);
         let newGhostTicks  = Math.max(0, (s.ghostTicks || 0) - 1);
         
         let rabbitDamage = 0;
         if (s.rabbitTicks > 0) {
-          rabbitDamage = 10; // Was 1! Now deals 10 damage per tick (50 total)
-          
+          rabbitDamage = 10; 
           const rabbitMultiplier = Math.min(5, 6 - s.rabbitTicks);
           const bunnies = "(\\_/) ".repeat(rabbitMultiplier);
           logMsg = `>> ${bunnies} *chomp* [ DATA_CONSUMED ]`;
@@ -364,8 +382,17 @@ tick: () => {
         }
 
         const prevFirewall = s.firewallHealth;
-        // DOT leaves FW at 1 HP so the player has to land the satisfying final blow!
-        const newFirewall  = Math.max(rabbitDamage > 0 ? 1 : 0, prevFirewall - rabbitDamage);
+        
+        let architectHeal = 0;
+        if (s.currentNode?.mutator?.id === 'ARCHITECT' && prevFirewall > 0) {
+          architectHeal = 2; 
+        }
+
+        let newFirewall = prevFirewall - rabbitDamage + architectHeal;
+        newFirewall = Math.max(rabbitDamage > 0 ? 1 : 0, newFirewall);
+        if (s.currentNode?.maxFirewallHP) {
+          newFirewall = Math.min(s.currentNode.maxFirewallHP, newFirewall);
+        }
 
         const newToolState = Object.fromEntries(
           Object.entries(s.toolState).map(([id, ts]) => [id, { cooldownRemaining: Math.max(0, ts.cooldownRemaining - 1) }])
@@ -374,7 +401,6 @@ tick: () => {
         const newHeat      = Math.min(100, s.physicalHeat  + heatGain);
         const newTrace     = Math.min(100, s.digitalTrace + traceGain + spikeTrace + daemonTrace);
         
-        // ── (Remove the old newTickCount definition from down here!) ──
         const isPulse      = (newTickCount % PULSE_INTERVAL_TICKS) < PULSE_WINDOW_TICKS;
 
         let newLog = s.terminalLog;
@@ -395,7 +421,6 @@ tick: () => {
           terminalLog: newLog
         });
 
-        // ── Narrative Operator Prompts (Only triggers once per save) ──
         if (newTrace >= 50 && !s.tutorialFlags.scanPrompt) {
           set(cur => ({
             terminalLog:  appendLog(cur.terminalLog, "// MASHA: 'They are sniffing our packets. Mask your signature before they trace the uplink.'"),
@@ -415,7 +440,6 @@ tick: () => {
           }));
         }
 
-        // ── Hardware Alerts ───────────
         if (newTrace > 80 && !s.tutorialFlags.traceWarning) {
           set(cur => ({
             terminalLog:  appendLog(cur.terminalLog, '[!] STROBE_DETECTION: Firewall is actively mapping your IP.'),
@@ -448,7 +472,7 @@ tick: () => {
       },
 
       // ─── EXECUTE COMMAND ──────────────────────────────────────────────
-executeCommand: (toolId) => {
+      executeCommand: (toolId) => {
         const s = get();
         if (s.status !== 'hacking') return;
 
@@ -456,50 +480,48 @@ executeCommand: (toolId) => {
         if (!tool) return;
         if ((s.toolState[toolId]?.cooldownRemaining ?? 0) > 0) return;
 
-        // Tool is firing — SFX + Asymmetric Haptics
         AudioManager.playSFX('thock');
         if (s.settings?.hapticsEnabled) {
           if (toolId === 'SCAN') {
-            haptic(10); // Light, snappy click
+            haptic(10); 
           } else if (toolId === 'BYPASS') {
-            haptic([30, 40, 30]); // Heavy double-thud
+            haptic([30, 40, 30]); 
           } else if (toolId === 'PULSE') {
-            haptic([15, 20, 15]); // Quick flutter
+            haptic([15, 20, 15]); 
           } else if (toolId === 'DECRYPT') {
-            haptic(50); // Sharp, heavy strike upon successful completion of the hold
+            haptic(50); 
           } else {
-            haptic(15); // Fallback
+            haptic(15); 
           }
         }
 
-        // RAM upgrade reduces cooldown by 10% per level; TANGO safehouse adds 10%
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
-        const actualCooldown = Math.max(
+        let actualCooldown = Math.max(
           1,
           Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (s.currentSafehouse?.ramMod ?? 1))
         );
 
-        // Base effects from config
         let firewallDamage = tool.baseEffect.firewallDamage ?? 0;
         const traceGain    = tool.baseEffect.traceGain      ?? 0;
         const heatGain     = tool.baseEffect.heatGain       ?? 0;
 
-        // ── DECRYPT TACTICAL PATH ───────────────────────────────────────
         if (toolId === 'DECRYPT') {
           let log = appendLog(s.terminalLog, `> DECRYPT // +${heatGain}% HEAT | TRACE: ${Math.min(100, s.digitalTrace + traceGain).toFixed(0)}%`);
           
-          // 1. Kill Active Daemons
+          if (s.currentNode?.mutator?.id === 'ICE_WALL') {
+            actualCooldown = 1; 
+            log = appendLog(log, '>> ICE-WALL BRITTLE. DECRYPT RAPIDLY RECHARGED.');
+          }
+
           if (s.activeDaemon) {
             log = appendLog(log, `>> DAEMON '${s.activeDaemon}' KILLED.`);
           }
           
-          // 2. Reveal Hidden FW HP
           const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
           if (isEncrypted && !s.firewallRevealed) {
             log = appendLog(log, `>> ENCRYPTED LOGS CRACKED — FW: ${s.firewallHealth}`);
           }
           
-          // 3. Apply 'EXPOSED' debuff for 4 ticks (approx 4 seconds)
           log = appendLog(log, '>> TARGET EXPOSED. CRITICAL STRIKE WINDOW OPEN.');
 
           set({
@@ -516,20 +538,18 @@ executeCommand: (toolId) => {
           return;
         }
 
-        // ── BYPASS TACTICAL PATH ───────────────────────────────────────
         if (toolId === 'BYPASS') {
           const bsLevel = s.upgrades['BYPASS_STRENGTH']?.level ?? 0;
           firewallDamage += bsLevel * 10;
 
-          // RIPOSTE: If the node is exposed, deal double damage and consume the exposure!
           if (s.exposedTicks > 0) {
             firewallDamage *= 2;
             set(cur => ({ 
               exposedTicks: 0,
               terminalLog: appendLog(cur.terminalLog, `>> [!!] CRITICAL OVERRIDE [!!] — 2.0x MULTIPLIER APPLIED`)
             })); 
-            if (s.settings?.hapticsEnabled) haptic([50, 80, 50]); // Heavy critical hit recoil
-            AudioManager.playSFX('thock'); // Double up the sound for impact
+            if (s.settings?.hapticsEnabled) haptic([50, 80, 50]); 
+            AudioManager.playSFX('thock'); 
           }
 
           if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
@@ -547,14 +567,15 @@ executeCommand: (toolId) => {
           }
         }
 
-        // Safehouse damage modifier
         firewallDamage = Math.floor(firewallDamage * (s.currentSafehouse?.dmgMod ?? 1));
 
-        // Compute resulting values
+        if (toolId === 'BYPASS' && s.currentNode?.mutator?.id === 'ICE_WALL') {
+          firewallDamage = Math.floor(firewallDamage * 0.5);
+        }
+
         const prevFirewall = s.firewallHealth;
         const newFirewall  = Math.max(0, prevFirewall - firewallDamage);
         
-        // Handle Perfect Sync for PULSE
         const isPerfectSync = toolId === 'PULSE' && s.pulseActive;
         const finalTrace    = isPerfectSync
           ? Math.max(0, s.digitalTrace + (traceGain * 2))
@@ -564,9 +585,7 @@ executeCommand: (toolId) => {
 
         const newHeat = Math.min(100, s.physicalHeat + heatGain);
 
-        // ── Win condition — firewall breached ─────────────────────────
         if (newFirewall <= 0 && prevFirewall > 0) {
-          // Violent haptic shockwave for the breach
           if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
              navigator.vibrate([100, 50, 150]);
           }
@@ -623,7 +642,6 @@ executeCommand: (toolId) => {
           return;
         }
 
-        // ── Ongoing hack — firewall still standing ─────────────────────
         const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
         const fwDisplay   = (isEncrypted && !s.firewallRevealed) ? '???' : `${Math.ceil(newFirewall)}`;
 
@@ -710,27 +728,19 @@ executeCommand: (toolId) => {
       },
 
       // ─── START NEW SESSION ────────────────────────────────────────────
-      // jobType:     'skim' | 'priority' | 'tartarus' | 'darknet'
-      // isReplay:    when true, halve intel and suppress the narrative modal
-      // replayLevel: 1-based fragment level for replay runs (sets FW difficulty
-      //              to that archived mission's level rather than the frontier)
       startNewSession: (jobType = 'skim', isReplay = false, replayLevel = null) => {
         const s = get();
 
-        // Current story frontier (1-based): the level the *next* fragment sits at.
-        // All dynamic FW calculations use this as the baseline for live runs.
         const frontierLevel = s.storyArchive.length + 1;
 
         let nextNode;
         let firewallHP;
 
         if (jobType === 'tartarus') {
-          // Tartarus is a fixed-difficulty endgame node — not subject to curve scaling.
-          nextNode    = TARTARUS_NODE_DEF;
-          firewallHP  = TARTARUS_NODE_DEF.firewallHP;
+          nextNode   = TARTARUS_NODE_DEF;
+          firewallHP = TARTARUS_NODE_DEF.firewallHP;
 
         } else if (jobType === 'darknet') {
-          // Darknet has its own tier-based scaling independent of the story curve.
           const tier = s.darknetTier;
           nextNode   = {
             id:              `DARKNET_T${tier}`,
@@ -742,10 +752,6 @@ executeCommand: (toolId) => {
           firewallHP = nextNode.firewallHP;
 
         } else if (jobType === 'priority') {
-          // Priority Lead: use the 1.15× curve.
-          // - First-time run → frontier level (next fragment to unlock).
-          // - Archive replay  → the specific fragment's original level, so older
-          //   missions stay at their recorded difficulty, not the current frontier.
           const level = (isReplay && replayLevel !== null) ? replayLevel : frontierLevel;
           nextNode   = pickPriorityNode(s.storyArchive.length);
           firewallHP = calcScaledFW(level);
@@ -755,35 +761,45 @@ executeCommand: (toolId) => {
           firewallHP = Math.floor(calcScaledFW(frontierLevel) * 0.70);
         }
 
-        // Darknet intel scales with tier; others use config ranges.
         const basePotential = jobType === 'darknet'
           ? 100 + s.darknetTier * 25
           : calcPotentialIntel(jobType);
 
-        // Replay penalty: 50% intel to prevent archive-grind exploits.
-        const potentialIntel = isReplay
+        let potentialIntel = isReplay
           ? Math.floor(basePotential * 0.5)
           : basePotential;
 
-        // --- ADMIN KEY LOGIC ---
         let activeMods = [...s.activeModifiers];
         if (activeMods.includes('ADMIN_KEY')) {
           firewallHP = Math.floor(firewallHP * 0.5);
-          activeMods = activeMods.filter(m => m !== 'ADMIN_KEY'); // Consume it
+          activeMods = activeMods.filter(m => m !== 'ADMIN_KEY'); 
         }
 
-        // Sync firewallHP back onto the node object so any reader of
-        // currentNode.firewallHP gets the correct dynamic value.
-        const sessionNode = { ...nextNode, firewallHP };
+        let mutator = null;
+        if (jobType !== 'tartarus' && Math.random() < 0.40) {
+          const MUTATORS = [
+            { id: 'ARCHITECT', name: 'The Architect', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
+            { id: 'SNIFFER',   name: 'The Sniffer',   color: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10' },
+            { id: 'ICE_WALL',  name: 'Ice-Wall',      color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' }
+          ];
+          mutator = MUTATORS[Math.floor(Math.random() * MUTATORS.length)];
+          
+          if (mutator.id === 'SNIFFER') {
+            potentialIntel = Math.floor(potentialIntel * 1.5);
+          }
+        }
+
+        const sessionNode = { ...nextNode, firewallHP, maxFirewallHP: firewallHP, mutator };
 
         set({
           status:                'hacking',
           nextStatus:            'transit',
           currentJobType:        jobType,
+          currentReplayLevel:    replayLevel,
           isReplay,
           digitalTrace:          0,
-          activeDaemon:          null,       // 'BLOODHOUND' | null
-          exposedTicks:          0,          // How long the node remains exposed
+          activeDaemon:          null,
+          exposedTicks:          0,
           physicalHeat:          0,
           firewallHealth:        firewallHP,
           currentNode:           sessionNode,
@@ -792,7 +808,8 @@ executeCommand: (toolId) => {
           sessionPotentialIntel: potentialIntel,
           packUpHeat:            0,
           packUpTrace:           0,
-          systemOverride:        null, // Reset Phase 4
+          systemOverride:        null, 
+          activeModifiers:       activeMods,
           terminalLog:           appendLog(
             nodeBootLog(sessionNode),
             `// SAFEHOUSE ${s.currentSafehouse?.id ?? 'ALPHA'} ACTIVE: ${(s.currentSafehouse?.trait ?? 'Standard').toUpperCase()} PROTOCOLS ENGAGED.`

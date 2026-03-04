@@ -61,6 +61,7 @@ export default function CommandBar() {
   const settings         = useGameStore(s => s.settings); 
   const digitalTrace     = useGameStore(s => s.digitalTrace);
   const leaveNode        = useGameStore(s => s.leaveNode);
+  const retrySession     = useGameStore(s => s.retrySession);
   const siphonVault      = useGameStore(s => s.siphonVault);
   const exposedTicks     = useGameStore(s => s.exposedTicks);
   
@@ -102,8 +103,6 @@ export default function CommandBar() {
       setTimeout(() => setErrorId(null), 200);
       return;
     }
-
-    // Instant execution for snappy combat
     executeCommand(toolId);
   };
 
@@ -128,36 +127,23 @@ export default function CommandBar() {
   if (status === 'resolved') {
     if (transitOutcome === 'success') {
       return (
-        <div className="relative px-4 pt-2 pb-6 flex gap-3 justify-center items-stretch min-h-[100px]">
+        <div className="relative px-4 pt-2 pb-6 flex gap-2 sm:gap-3 justify-center items-stretch min-h-[100px]">
+          {/* SIPHON BUTTON (flex-1) */}
           <button
             onPointerDown={(e) => {
               e.target.setPointerCapture(e.pointerId);
               startSiphon();
             }}
             onPointerUp={(e) => {
-              if (e.target.hasPointerCapture(e.pointerId)) {
-                e.target.releasePointerCapture(e.pointerId);
-              }
+              if (e.target.hasPointerCapture(e.pointerId)) e.target.releasePointerCapture(e.pointerId);
               stopSiphon();
             }}
             onPointerLeave={stopSiphon}
             onPointerCancel={stopSiphon}
             onContextMenu={(e) => { e.preventDefault(); stopSiphon(); }}
-            
-            // --- THE MOBILE FIX ---
-            // Explicitly handling native touch events prevents iOS/Android 
-            // from swallowing the hold state.
-            onTouchStart={(e) => { 
-              // Prevent default ONLY if it's cancelable to avoid passive event warnings
-              if (e.cancelable) e.preventDefault(); 
-              startSiphon(); 
-            }}
-            onTouchEnd={(e) => { 
-              if (e.cancelable) e.preventDefault(); 
-              stopSiphon(); 
-            }}
+            onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); startSiphon(); }}
+            onTouchEnd={(e) => { if (e.cancelable) e.preventDefault(); stopSiphon(); }}
             onTouchCancel={stopSiphon}
-            
             className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 touch-none select-none ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
@@ -165,31 +151,28 @@ export default function CommandBar() {
             }`}
           >
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
-            
             <div 
               className="absolute bottom-0 left-0 w-full bg-fuchsia-500/20 transition-all ease-linear"
               style={{ height: isSiphoning ? '100%' : '0%', transitionDuration: isSiphoning ? '2000ms' : '200ms' }}
             />
-
-            <span className={`relative z-10 font-mono text-sm font-black uppercase tracking-[0.2em] transition-colors ${
+            <span className={`relative z-10 font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] transition-colors ${
               disconnectLocked ? 'text-zinc-600' : 'text-fuchsia-400 group-hover:text-fuchsia-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.4)]'
             }`}>
               {disconnectLocked ? '[ SECURING ]' : '[ SIPHON ]'}
             </span>
-            <span className={`relative z-10 font-mono text-[9px] font-bold tracking-widest mt-1 uppercase transition-colors ${
+            <span className={`relative z-10 font-mono text-[8px] font-bold tracking-widest mt-1 uppercase transition-colors ${
               disconnectLocked ? 'text-zinc-700' : 'text-fuchsia-600 group-hover:text-fuchsia-400'
             }`}>
-              {disconnectLocked ? '// Awaiting_Sync' : '// Hold to Drain'}
+              {disconnectLocked ? '// Sync' : '// Hold to Drain'}
             </span>
           </button>
 
+          {/* DISCONNECT BUTTON (flex-1) */}
           <button
             onClick={() => {
               if (disconnectLocked) return;
               AudioManager.playSFX('thock');
-              if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-                navigator.vibrate([30, 20, 10]);
-              }
+              if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([30, 20, 10]);
               leaveNode();
             }}
             className={`flex-1 relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
@@ -201,33 +184,54 @@ export default function CommandBar() {
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
             
-            <span className={`relative z-10 font-mono text-sm font-black uppercase tracking-[0.2em] transition-colors ${
+            <span className={`relative z-10 font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] transition-colors ${
               disconnectLocked ? 'text-zinc-600' : 'text-cyan-400 group-hover:text-white drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]'
             }`}>
               {disconnectLocked ? '[ SECURING ]' : '[ DISCONNECT ]'}
             </span>
-            <span className={`relative z-10 font-mono text-[9px] font-bold tracking-widest mt-1 uppercase transition-colors ${
+            <span className={`relative z-10 font-mono text-[8px] font-bold tracking-widest mt-1 uppercase transition-colors ${
               disconnectLocked ? 'text-zinc-700' : 'text-cyan-600 group-hover:text-cyan-400'
             }`}>
-              {disconnectLocked ? '// Awaiting_Sync' : '// Sever_Uplink'}
+              {disconnectLocked ? '// Sync' : '// Sever Connection'}
             </span>
+          </button>
+
+          {/* REPLAY BUTTON (Fixed small width) */}
+          <button
+            onClick={() => {
+              if (disconnectLocked) return;
+              AudioManager.playSFX('thock');
+              retrySession();
+            }}
+            title="Replay Mission"
+            className={`w-14 sm:w-16 shrink-0 relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
+              disconnectLocked 
+                ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
+                : 'bg-emerald-950/30 border-emerald-700/80 active:border-b-2 active:translate-y-1 hover:bg-emerald-900/50 hover:border-emerald-500 cursor-pointer'
+            }`}
+          >
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`relative z-10 transition-colors ${disconnectLocked ? 'text-zinc-600' : 'text-emerald-400 group-hover:text-white drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]'}`}>
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+              <path d="M3 3v5h5"/>
+            </svg>
           </button>
         </div>
       );
     }
 
+    // FAILURE STATE
     return (
-      <div className="relative px-4 pt-2 pb-6 flex gap-2 sm:gap-3 justify-center items-end">
+      <div className="relative px-4 pt-2 pb-6 flex gap-2 sm:gap-3 justify-center items-stretch min-h-[100px]">
+        {/* DISCONNECT BUTTON (flex-1) */}
         <button
           onClick={() => {
             if (disconnectLocked) return;
             AudioManager.playSFX('thock');
-            if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-              navigator.vibrate([30, 20, 10]);
-            }
+            if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([30, 20, 10]);
             leaveNode();
           }}
-          className={`w-full relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
+          className={`flex-1 relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
             disconnectLocked 
               ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
               : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-2 active:translate-y-1 hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
@@ -246,6 +250,28 @@ export default function CommandBar() {
           }`}>
             {disconnectLocked ? '// Awaiting_Sync' : '// Sever_Uplink'}
           </span>
+        </button>
+
+        {/* REPLAY BUTTON (Fixed width) */}
+        <button
+          onClick={() => {
+            if (disconnectLocked) return;
+            AudioManager.playSFX('thock');
+            retrySession();
+          }}
+          title="Replay Mission"
+          className={`w-16 sm:w-20 shrink-0 relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
+            disconnectLocked 
+              ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
+              : 'bg-emerald-950/30 border-emerald-700/80 active:border-b-2 active:translate-y-1 hover:bg-emerald-900/50 hover:border-emerald-500 cursor-pointer'
+          }`}
+        >
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className={`relative z-10 transition-colors ${disconnectLocked ? 'text-zinc-600' : 'text-emerald-400 group-hover:text-white drop-shadow-[0_0_8px_rgba(52,211,153,0.4)]'}`}>
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+            <path d="M3 3v5h5"/>
+          </svg>
         </button>
       </div>
     );
@@ -289,14 +315,11 @@ export default function CommandBar() {
               <GlitchLabel text={tool.label} isDanger={digitalTrace >= 85 && (settings?.glitchEnabled ?? true)} />
             </div>
             
-            {/* The fill div is always rendered to allow CSS transitions to finish smoothly */}
             <div 
               className={`absolute bottom-0 left-0 w-full transition-all ease-linear z-20 ${activeFill}`}
               style={{ 
                 height: `${fillPercent}%`,
-                // Snap to 0 instantly when clicked, then smoothly slide up
                 transitionDuration: cooldown === maxCooldown ? '0ms' : '1000ms',
-                // Fade out softly as it hits 100% instead of instantly popping out of existence
                 opacity: cooldown > 0 ? 1 : 0
               }} 
             />
