@@ -335,6 +335,9 @@ tick: () => {
         let traceGain         = (s.digitalTrace >= TRACE_ACCEL_THRESHOLD ? BASE_TRACE_HIGH : BASE_TRACE_LOW)
                                 * traceMultiplier * (s.currentSafehouse?.traceMod ?? 1);
 
+        // ── THE FIX: Define newTickCount before the virus tries to use it! ──
+        const newTickCount = s.tickCount + 1;
+
         // 4. VIRUS & CONSUMABLE LOGIC
         let newRabbitTicks = Math.max(0, (s.rabbitTicks || 0) - 1);
         let newGhostTicks  = Math.max(0, (s.ghostTicks || 0) - 1);
@@ -368,7 +371,8 @@ tick: () => {
 
         const newHeat      = Math.min(100, s.physicalHeat  + heatGain);
         const newTrace     = Math.min(100, s.digitalTrace + traceGain + spikeTrace + daemonTrace);
-        const newTickCount = s.tickCount + 1;
+        
+        // ── (Remove the old newTickCount definition from down here!) ──
         const isPulse      = (newTickCount % PULSE_INTERVAL_TICKS) < PULSE_WINDOW_TICKS;
 
         let newLog = s.terminalLog;

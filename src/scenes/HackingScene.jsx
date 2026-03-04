@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { TopBorder, BottomBorder } from '../components/PeripheralBorder';
 import TerminalLog from '../components/TerminalLog';
 import CommandBar from '../components/CommandBar';
@@ -24,10 +24,10 @@ function NodeStatusStrip() {
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
   const heat             = useGameStore(s => s.physicalHeat);
   const safehouse        = useGameStore(s => s.currentSafehouse);
-  const activeDaemon     = useGameStore(s => s.activeDaemon); // NEW
-  const exposedTicks     = useGameStore(s => s.exposedTicks); // NEW
-  const rabbitTicks      = useGameStore(s => s.rabbitTicks); // NEW
-  const ghostTicks       = useGameStore(s => s.ghostTicks); // NEW
+  const activeDaemon     = useGameStore(s => s.activeDaemon);
+  const exposedTicks     = useGameStore(s => s.exposedTicks);
+  const rabbitTicks      = useGameStore(s => s.rabbitTicks);
+  const ghostTicks       = useGameStore(s => s.ghostTicks);
 
   if (!node) return null;
 
@@ -47,8 +47,6 @@ function NodeStatusStrip() {
       </span>
 
       <div className="flex items-center gap-2 shrink-0">
-        
-        {/* NEW COMBAT BADGES START */}
         {rabbitTicks > 0 && (
           <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-green-400 border-green-500/50 bg-green-500/10 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]">
             RABBIT.exe
@@ -72,29 +70,21 @@ function NodeStatusStrip() {
             EXPOSED
           </span>
         )}
-        {/* NEW COMBAT BADGES END */}
 
         {showTrait && (
-          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${traitColor}`}
-                title={safehouse.desc}>
+          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${traitColor}`} title={safehouse.desc}>
             {safehouse.trait}
           </span>
         )}
 
         {isHeatWarning && (
-          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${
-            isHeatCritical ? 'text-red-400 bg-red-500/10 animate-pulse' : 'text-orange-400 bg-orange-500/10'
-          }`}>
+          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded ${isHeatCritical ? 'text-red-400 bg-red-500/10 animate-pulse' : 'text-orange-400 bg-orange-500/10'}`}>
             HEAT: {heat.toFixed(0)}%
           </span>
         )}
 
         {badge && (
-          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${
-            showDecryptedBadge
-              ? 'text-green-400 border-green-500/30 bg-green-500/10'
-              : badge.color
-          }`}>
+          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${showDecryptedBadge ? 'text-green-400 border-green-500/30 bg-green-500/10' : badge.color}`}>
             {showDecryptedBadge ? 'DECRYPTED' : badge.label}
           </span>
         )}
@@ -103,10 +93,26 @@ function NodeStatusStrip() {
   );
 }
 
+// ─── JUICE FIX #1: THE FIREWALL IMPACT ────────────────────────────────────────
+
 function FirewallRow() {
   const firewallHealth   = useGameStore(s => s.firewallHealth);
   const node             = useGameStore(s => s.currentNode);
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
+
+  const [isHit, setIsHit] = useState(false);
+  const prevHP = useRef(firewallHealth);
+
+  // Watch for drops in Firewall HP to trigger the shatter effect
+  useEffect(() => {
+    if (firewallHealth < prevHP.current) {
+      setIsHit(true);
+      const timer = setTimeout(() => setIsHit(false), 150); // Flash for 150ms
+      prevHP.current = firewallHealth;
+      return () => clearTimeout(timer);
+    }
+    prevHP.current = firewallHealth;
+  }, [firewallHealth]);
 
   const isHidden = node?.specialDefense === 'ENCRYPTED_LOGS' && !firewallRevealed;
   const maxHP    = node?.firewallHP ?? 100;
@@ -116,8 +122,8 @@ function FirewallRow() {
   const activeBlocks = Math.ceil(hpPercentage * totalBlocks);
 
   return (
-    <div className="flex items-center gap-4 px-4 py-1.5">
-      <span className="font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 text-zinc-400 font-bold">
+    <div className={`flex items-center gap-4 px-4 py-1.5 transition-colors duration-150 ${isHit ? 'bg-white/5' : ''}`}>
+      <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-400'}`}>
         FW_HP
       </span>
 
@@ -135,15 +141,17 @@ function FirewallRow() {
             return (
               <div
                 key={i}
-                className={`flex-1 h-full transition-all duration-150 ${
+                className={`flex-1 h-full transition-all duration-75 ${
                   isActive 
-                    ? 'bg-violet-500 border-y border-violet-400 shadow-[0_0_5px_rgba(139,92,246,0.3)]' 
+                    ? isHit
+                      ? 'fw-block-hit' // The CSS white shatter effect
+                      : 'bg-violet-500 border-y border-violet-400 shadow-[0_0_5px_rgba(139,92,246,0.3)]' 
                     : 'bg-zinc-800/50 border-y border-zinc-800'
                 }`}
               />
             );
           })}
-          <span className="font-mono text-[11px] tabular-nums w-8 text-right text-zinc-300 font-bold ml-1 shrink-0">
+          <span className={`font-mono text-[11px] tabular-nums w-8 text-right font-bold ml-1 shrink-0 transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-300'}`}>
             {Math.ceil(firewallHealth)}
           </span>
         </div>
@@ -157,6 +165,18 @@ function TraceRow() {
   const node          = useGameStore(s => s.currentNode);
   const pulseActive   = useGameStore(s => s.pulseActive);
   const settings      = useGameStore(s => s.settings);
+  const log           = useGameStore(s => s.terminalLog); // <-- Added to listen for the sync
+
+  const [syncFlash, setSyncFlash] = useState(false);
+
+  // Watch the terminal log for the Perfect Sync text
+  useEffect(() => {
+    if (log.length > 0 && log[log.length - 1].includes('PERFECT SYNC')) {
+      setSyncFlash(true);
+      const timer = setTimeout(() => setSyncFlash(false), 600); // matches CSS duration
+      return () => clearTimeout(timer);
+    }
+  }, [log]);
   
   const shakeEnabled  = settings?.shakeEnabled ?? true;
   const glitchEnabled = settings?.glitchEnabled ?? true;
@@ -190,7 +210,7 @@ function TraceRow() {
       </span>
 
       <div className={`flex-1 h-2.5 bg-black rounded-full overflow-hidden border shadow-inner relative transition-all duration-150 ${
-        pulseActive ? 'border-cyan-500/60 shadow-[0_0_6px_rgba(34,211,238,0.3)]' : 'border-zinc-800'
+        syncFlash ? 'animate-sync-pulse z-10' : pulseActive ? 'border-cyan-500/60 shadow-[0_0_6px_rgba(34,211,238,0.3)]' : 'border-zinc-800'
       }`}>
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
         <div
@@ -215,7 +235,6 @@ function ConsumableBar() {
   const rabbit = consumables?.rabbit ?? 0;
   const ghost  = consumables?.ghost ?? 0;
 
-  // Show if they have beaten the game, OR they are in Act II+ and have items
   const showBar = hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0;
   if (!showBar) return null;
 
@@ -249,6 +268,8 @@ function ConsumableBar() {
   );
 }
 
+// ─── JUICE FIX #2: DAEMON ALERTS & CRITICAL SCREEN TEAR ──────────────────────
+
 export default function HackingScene() {
   const trace = useGameStore(s => s.digitalTrace);
   const heat  = useGameStore(s => s.physicalHeat);
@@ -264,12 +285,45 @@ export default function HackingScene() {
   const resolveOverride = useGameStore(s => s.resolveOverride);
   const getCurrentAct   = useGameStore(s => s.getCurrentAct);
 
+  // Critical Tear Logic
+  const exposedTicks   = useGameStore(s => s.exposedTicks);
+  const firewallHealth = useGameStore(s => s.firewallHealth);
+  const activeDaemon   = useGameStore(s => s.activeDaemon); // <-- Added
+  
+  const [isCritical, setIsCritical] = useState(false);
+  const [daemonFlash, setDaemonFlash] = useState(false); // <-- Added
+  
+  const prevExposed = useRef(exposedTicks);
+  const prevFW = useRef(firewallHealth);
+  const prevDaemon = useRef(activeDaemon);
+
+  useEffect(() => {
+    if (prevExposed.current > 0 && exposedTicks === 0 && firewallHealth < prevFW.current) {
+      setIsCritical(true);
+      const timer = setTimeout(() => setIsCritical(false), 350); 
+      prevExposed.current = exposedTicks;
+      prevFW.current = firewallHealth;
+      return () => clearTimeout(timer);
+    }
+    prevExposed.current = exposedTicks;
+    prevFW.current = firewallHealth;
+  }, [exposedTicks, firewallHealth]);
+
+  // Watch for Daemons injecting into the node
+  useEffect(() => {
+    if (activeDaemon && !prevDaemon.current) {
+      setDaemonFlash(true);
+      const timer = setTimeout(() => setDaemonFlash(false), 400);
+      prevDaemon.current = activeDaemon;
+      return () => clearTimeout(timer);
+    }
+    prevDaemon.current = activeDaemon;
+  }, [activeDaemon]);
+
   const [popupDismissed, setPopupDismissed] = useState(false);
 
   useEffect(() => {
-    if (status !== 'resolved') {
-      setPopupDismissed(false);
-    }
+    if (status !== 'resolved') setPopupDismissed(false);
   }, [status]);
 
   const handleDismissPopup = () => {
@@ -289,6 +343,8 @@ export default function HackingScene() {
       ? "contrast-[1.15] saturate-150 brightness-90 transition-all duration-500"
       : "contrast-[1.15] saturate-150 hue-rotate-[15deg] brightness-90 transition-all duration-500"
     : "transition-all duration-300 ease-in";
+
+  const activeTearClass = isCritical && !reducedMotion ? "animate-critical" : breachTearClass;
 
   let popupConfig = null;
   if (status === 'resolved') {
@@ -326,18 +382,21 @@ export default function HackingScene() {
   }
 
   return (
-    <div className={`flex flex-col h-full bg-zinc-950 relative ${breachTearClass}`}>
-      {/* Siren vignette — pointer-events-none, pulses when heat is critical */}
+    <div className={`flex flex-col h-full bg-zinc-950 relative ${activeTearClass}`}>
+      {/* Dynamic Environmental Overlays */}
       {(isHeatDanger && !reducedMotion) && <div className="siren-vignette" />}
+      
+      {/* THE DAEMON FLASH OVERLAY */}
+      {daemonFlash && !reducedMotion && (
+        <div className="absolute inset-0 bg-red-600/30 mix-blend-overlay pointer-events-none z-40 animate-pulse" />
+      )}
 
       <TopBorder />
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         
-        {/* ── OLD SCHOOL OS DIALOG POPUP ── */}
         {status === 'resolved' && popupConfig && !popupDismissed && (
-          <div className={`absolute top-[40%] left-6 right-6 -translate-y-1/2 z-40 bg-zinc-950 border ${popupConfig.border} ${popupConfig.shadow} flex flex-col shadow-2xl`}>
-            {/* Header Bar */}
+          <div className={`absolute top-[40%] left-6 right-6 -translate-y-1/2 z-50 bg-zinc-950 border ${popupConfig.border} ${popupConfig.shadow} flex flex-col shadow-2xl`}>
             <div className={`px-3 py-1.5 flex justify-between items-center ${popupConfig.headerBg} border-b ${popupConfig.border}`}>
               <span className="font-mono text-[10px] font-bold text-zinc-300 uppercase tracking-widest">
                 SYS_DIALOG.exe
@@ -345,7 +404,6 @@ export default function HackingScene() {
               <button 
                 onClick={handleDismissPopup}
                 className="w-6 h-6 flex items-center justify-center hover:bg-black/20 rounded transition-colors"
-                aria-label="Close Dialog"
               >
                 <div className={`w-3 h-3 border ${popupConfig.border} flex items-center justify-center`}>
                   <span className={`text-[8px] font-bold leading-none ${popupConfig.titleColor}`}>x</span>
@@ -353,7 +411,6 @@ export default function HackingScene() {
               </button>
             </div>
             
-            {/* Body */}
             <div className="p-5 flex flex-col items-center text-center relative overflow-hidden">
               <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
               
@@ -369,7 +426,6 @@ export default function HackingScene() {
                 {popupConfig.intel}
               </p>
               
-            {/* Informational Prompt - Sharpened for Readability */}
               <div className="mt-5 pt-4 border-t border-zinc-800/80 w-full relative z-10 flex flex-col items-center gap-2">
                 <div className="flex items-center gap-2 opacity-90">
                   <div className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
@@ -423,7 +479,6 @@ export default function HackingScene() {
 
         <NodeStatusStrip />
 
-        {/* Terminal — digital-glitch applied when trace is critical */}
         <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />
 
         <div className="border-t border-zinc-800/60 pt-1 pb-0.5">
