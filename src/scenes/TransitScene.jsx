@@ -818,6 +818,13 @@ export default function TransitScene() {
     return () => clearTimeout(timer);
   }, []);
 
+  // NEW: Auto-dismiss the comms intercept after 15 seconds to free up screen space
+  useEffect(() => {
+    if (memoDismissed) return;
+    const autoDismiss = setTimeout(() => setMemoDismissed(true), 15000);
+    return () => clearTimeout(autoDismiss);
+  }, [memoDismissed]);
+
   const intelFragments     = useGameStore(s => s.intelFragments);
   const archiveLen         = useGameStore(s => s.storyArchive.length);
   const currentSafehouse   = useGameStore(s => s.currentSafehouse);
@@ -897,39 +904,46 @@ export default function TransitScene() {
       )}
 
       {/* --- COMPACT TERMINAL INTERCEPT --- */}
-      {!memoDismissed && (
-        <div className="px-4 pt-4 pb-1 z-20 relative animate-slide-down hacker-flicker">
-          <div className={`border-l-2 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)] flex flex-col gap-1 relative overflow-hidden backdrop-blur-md ${
-            isAlchemist ? 'bg-red-950/40 border-red-500' : 'bg-fuchsia-950/20 border-fuchsia-500'
-          }`}>
-            
-            {/* Header Row */}
-            <div className="flex justify-between items-center w-full">
-              <div className="flex items-center gap-2">
-                 <span className={`w-1.5 h-1.5 animate-pulse ${isAlchemist ? 'bg-red-500' : 'bg-fuchsia-500'}`} />
-                 <span className={`font-mono text-[9px] font-black tracking-[0.2em] uppercase ${isAlchemist ? 'text-red-500' : 'text-fuchsia-500'}`}>
-                   {isAlchemist ? 'PRIORITY_THREAT' : 'SYS_COMMS'}
-                 </span>
-              </div>
-              <button 
-                onClick={() => { AudioManager.playSFX('thock'); setMemoDismissed(true); }}
-                className="font-mono text-[9px] text-zinc-500 hover:text-white font-bold px-2"
-              >
-                [x]
-              </button>
-            </div>
+      <div className="px-4 pt-4 pb-1 z-20 relative animate-slide-down">
+        {memoDismissed ? (
+           // THE "GHOSTED" STATE (Takes up very little space, prevents layout jumping)
+           <div className="border-l-2 p-1 pl-2 border-zinc-800 flex items-center gap-2 opacity-50">
+             <span className="w-1.5 h-1.5 bg-zinc-700" />
+             <span className="font-mono text-[8px] font-bold tracking-[0.2em] text-zinc-600 uppercase">
+               [ COMM_LINK_CLOSED ]
+             </span>
+           </div>
+        ) : (
+           // THE ACTIVE STATE (Types out the message)
+           <div className={`border-l-2 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)] flex flex-col gap-1 relative overflow-hidden backdrop-blur-md hacker-flicker ${
+             isAlchemist ? 'bg-red-950/40 border-red-500' : 'bg-fuchsia-950/20 border-fuchsia-500'
+           }`}>
+             {/* Header Row */}
+             <div className="flex justify-between items-center w-full">
+               <div className="flex items-center gap-2">
+                  <span className={`w-1.5 h-1.5 animate-pulse ${isAlchemist ? 'bg-red-500' : 'bg-fuchsia-500'}`} />
+                  <span className={`font-mono text-[9px] font-black tracking-[0.2em] uppercase ${isAlchemist ? 'text-red-500' : 'text-fuchsia-500'}`}>
+                    {isAlchemist ? 'PRIORITY_THREAT' : 'SYS_COMMS'}
+                  </span>
+               </div>
+               <button 
+                 onClick={() => { AudioManager.playSFX('thock'); setMemoDismissed(true); }}
+                 className="font-mono text-[9px] text-zinc-500 hover:text-white font-bold px-2"
+               >
+                 [x]
+               </button>
+             </div>
 
-            {/* Typewriter Text Row */}
-            <p className="font-mono text-[10px] leading-snug text-zinc-300 min-h-[14px]">
-              <span className={isAlchemist ? "text-red-400" : "text-fuchsia-400 font-bold"}>{"> "}</span>
-              <TypewriterText text={statusText} speed={15} />
-            </p>
+             {/* Typewriter Text Row */}
+             <p className="font-mono text-[10px] leading-snug text-zinc-300 min-h-[14px]">
+               <span className={isAlchemist ? "text-red-400" : "text-fuchsia-400 font-bold"}>{"> "}</span>
+               <TypewriterText text={statusText} speed={15} />
+             </p>
+           </div>
+        )}
+      </div>
 
-          </div>
-        </div>
-      )}
-
-      <div className={`px-5 shrink-0 relative z-10 ${memoDismissed ? 'py-4 pt-6' : 'py-2'}`}>
+      <div className="px-5 shrink-0 relative z-10 py-2">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-zinc-100">

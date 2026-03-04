@@ -42,7 +42,8 @@ export default function TerminalLog({ className = '' }) {
   };
 
   return (
-    <div className={`flex-1 overflow-hidden relative border-t border-zinc-800/40 bg-black ${className}`}>
+    <div className={`flex-1 overflow-hidden relative border-t border-zinc-800/40 bg-transparent ${className}`}>
+      
       {/* Scanline overlay - reduced opacity so it doesn't fight the text */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] pointer-events-none z-10" />
       
