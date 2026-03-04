@@ -20,19 +20,11 @@ const SAFEHOUSE_TRAIT_COLOR = {
 };
 
 function NodeStatusStrip() {
-  const node             = useGameStore(s => s.currentNode);
-  const firewallRevealed = useGameStore(s => s.firewallRevealed);
-  const heat             = useGameStore(s => s.physicalHeat);
-  const safehouse        = useGameStore(s => s.currentSafehouse);
-  const activeDaemon     = useGameStore(s => s.activeDaemon);
-  const exposedTicks     = useGameStore(s => s.exposedTicks);
-  const rabbitTicks      = useGameStore(s => s.rabbitTicks);
-  const ghostTicks       = useGameStore(s => s.ghostTicks);
+  const node      = useGameStore(s => s.currentNode);
+  const heat      = useGameStore(s => s.physicalHeat);
+  const safehouse = useGameStore(s => s.currentSafehouse);
 
   if (!node) return null;
-
-  const badge = node.specialDefense ? DEFENSE_BADGE[node.specialDefense] : null;
-  const showDecryptedBadge = badge && node.specialDefense === 'ENCRYPTED_LOGS' && firewallRevealed;
 
   const isHeatWarning  = heat >= 50;
   const isHeatCritical = heat >= 80;
@@ -47,30 +39,6 @@ function NodeStatusStrip() {
       </span>
 
       <div className="flex items-center gap-2 shrink-0">
-        {rabbitTicks > 0 && (
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-green-400 border-green-500/50 bg-green-500/10 animate-pulse shadow-[0_0_8px_rgba(74,222,128,0.5)]">
-            RABBIT.exe
-          </span>
-        )}
-        
-        {ghostTicks > 0 && (
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-slate-300 border-slate-400/50 bg-slate-400/10 animate-pulse shadow-[0_0_8px_rgba(148,163,184,0.5)]">
-            GHOST.sys
-          </span>
-        )}
-
-        {activeDaemon && (
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-red-500 border-red-500/50 bg-red-500/10 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]">
-            ! {activeDaemon} !
-          </span>
-        )}
-        
-        {exposedTicks > 0 && (
-          <span className="font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-amber-300 border-amber-400/50 bg-amber-400/10 shadow-[0_0_8px_rgba(251,191,36,0.5)]">
-            EXPOSED
-          </span>
-        )}
-
         {showTrait && (
           <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${traitColor}`} title={safehouse.desc}>
             {safehouse.trait}
@@ -82,12 +50,6 @@ function NodeStatusStrip() {
             HEAT: {heat.toFixed(0)}%
           </span>
         )}
-
-        {badge && (
-          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border ${showDecryptedBadge ? 'text-green-400 border-green-500/30 bg-green-500/10' : badge.color}`}>
-            {showDecryptedBadge ? 'DECRYPTED' : badge.label}
-          </span>
-        )}
       </div>
     </div>
   );
@@ -97,6 +59,8 @@ function FirewallRow() {
   const firewallHealth   = useGameStore(s => s.firewallHealth);
   const node             = useGameStore(s => s.currentNode);
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
+  const exposedTicks     = useGameStore(s => s.exposedTicks);
+  const rabbitTicks      = useGameStore(s => s.rabbitTicks);
 
   const [isHit, setIsHit] = useState(false);
   const prevHP = useRef(firewallHealth);
@@ -119,40 +83,63 @@ function FirewallRow() {
   const activeBlocks = Math.ceil(hpPercentage * totalBlocks);
 
   return (
-    <div className={`flex items-center gap-4 px-4 py-1.5 transition-colors duration-150 ${isHit ? 'bg-white/5' : ''}`}>
-      <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-400'}`}>
-        FW_HP
-      </span>
-
-      {isHidden ? (
-        <div className="flex-1 flex gap-0.5 h-3">
-          <div className="h-full w-full bg-amber-500/40 opacity-80 animate-pulse border border-amber-500/50" />
-          <span className="font-mono text-[11px] font-bold tabular-nums w-7 text-right text-amber-500/80 ml-2">
-            ??
-          </span>
-        </div>
-      ) : (
-        <div className="flex-1 flex gap-0.5 h-3">
-          {Array.from({ length: totalBlocks }).map((_, i) => {
-            const isActive = i < activeBlocks;
-            return (
-              <div
-                key={i}
-                className={`flex-1 h-full transition-all duration-75 ${
-                  isActive 
-                    ? isHit
-                      ? 'fw-block-hit'
-                      : 'bg-violet-500 border-y border-violet-400 shadow-[0_0_5px_rgba(139,92,246,0.3)]' 
-                    : 'bg-zinc-800/50 border-y border-zinc-800'
-                }`}
-              />
-            );
-          })}
-          <span className={`font-mono text-[11px] tabular-nums w-8 text-right font-bold ml-1 shrink-0 transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-300'}`}>
-            {Math.ceil(firewallHealth)}
-          </span>
+    <div className="flex flex-col px-4 py-1">
+      {/* Offense Context Zone */}
+      {(exposedTicks > 0 || rabbitTicks > 0 || isHidden) && (
+        <div className="flex gap-2 mb-1 pl-16">
+          {isHidden && (
+             <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-amber-400 border-amber-500/30 bg-amber-500/10">
+               ENCRYPTED
+             </span>
+          )}
+          {exposedTicks > 0 && (
+             <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-amber-300 border-amber-400/50 bg-amber-400/10 shadow-[0_0_8px_rgba(251,191,36,0.5)] animate-pulse">
+               EXPOSED [{exposedTicks}s]
+             </span>
+          )}
+          {rabbitTicks > 0 && (
+             <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-green-400 border-green-500/50 bg-green-500/10 shadow-[0_0_8px_rgba(74,222,128,0.5)]">
+               RABBIT.exe [{rabbitTicks}s]
+             </span>
+          )}
         </div>
       )}
+
+      <div className={`flex items-center gap-4 transition-colors duration-150 ${isHit ? 'bg-white/5' : ''}`}>
+        <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-400'}`}>
+          FW_HP
+        </span>
+
+        {isHidden ? (
+          <div className="flex-1 flex gap-0.5 h-3">
+            <div className="h-full w-full bg-amber-500/40 opacity-80 animate-pulse border border-amber-500/50" />
+            <span className="font-mono text-[11px] font-bold tabular-nums w-7 text-right text-amber-500/80 ml-2">
+              ??
+            </span>
+          </div>
+        ) : (
+          <div className="flex-1 flex gap-0.5 h-3">
+            {Array.from({ length: totalBlocks }).map((_, i) => {
+              const isActive = i < activeBlocks;
+              return (
+                <div
+                  key={i}
+                  className={`flex-1 h-full transition-all duration-75 ${
+                    isActive 
+                      ? isHit
+                        ? 'fw-block-hit'
+                        : 'bg-violet-500 border-y border-violet-400 shadow-[0_0_5px_rgba(139,92,246,0.3)]' 
+                      : 'bg-zinc-800/50 border-y border-zinc-800'
+                  }`}
+                />
+              );
+            })}
+            <span className={`font-mono text-[11px] tabular-nums w-8 text-right font-bold ml-1 shrink-0 transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-300'}`}>
+              {Math.ceil(firewallHealth)}
+            </span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -163,6 +150,8 @@ function TraceRow() {
   const pulseActive   = useGameStore(s => s.pulseActive);
   const settings      = useGameStore(s => s.settings);
   const log           = useGameStore(s => s.terminalLog);
+  const activeDaemon  = useGameStore(s => s.activeDaemon);
+  const ghostTicks    = useGameStore(s => s.ghostTicks);
 
   const [syncFlash, setSyncFlash] = useState(false);
 
@@ -189,33 +178,60 @@ function TraceRow() {
         ? 'text-orange-400'
         : 'text-zinc-400';
 
-  const barGradient = isDanger
-    ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]'
-    : isWarning
-      ? 'bg-gradient-to-r from-orange-600 to-orange-400'
-      : pulseActive
-        ? 'bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]'
-        : 'bg-gradient-to-r from-blue-700 to-blue-500';
+  // If Ghost is active, tint the bar freezing blue/white
+  const barGradient = ghostTicks > 0
+    ? 'bg-gradient-to-r from-slate-400 to-white shadow-[0_0_8px_rgba(255,255,255,0.8)]'
+    : isDanger
+      ? 'bg-gradient-to-r from-red-600 to-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]'
+      : isWarning
+        ? 'bg-gradient-to-r from-orange-600 to-orange-400'
+        : pulseActive
+          ? 'bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.5)]'
+          : 'bg-gradient-to-r from-blue-700 to-blue-500';
 
   return (
-    <div className={`flex items-center gap-4 px-4 py-1.5 ${isDanger && shakeEnabled ? 'danger-shake' : ''}`}>
-      <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${(isDanger || pulseActive) && glitchEnabled ? 'animate-pulse' : ''}`}>
-        {isDanger ? '[!]TR' : pulseActive ? 'SYNC' : isAccelerated ? 'TR x2' : 'TRACE'}
-      </span>
+    <div className={`flex flex-col px-4 py-1 ${isDanger && shakeEnabled ? 'danger-shake' : ''}`}>
+      
+      {/* Defense Context Zone */}
+      {(activeDaemon || ghostTicks > 0 || isAccelerated) && (
+        <div className="flex gap-2 mb-1 pl-16">
+          {activeDaemon && (
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-red-500 border-red-500/50 bg-red-500/10 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+              ! {activeDaemon} ACTIVE !
+            </span>
+          )}
+          {ghostTicks > 0 && (
+            <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-slate-300 border-slate-400/50 bg-slate-400/10 shadow-[0_0_8px_rgba(148,163,184,0.5)]">
+              GHOST.sys [{ghostTicks}s]
+            </span>
+          )}
+          {isAccelerated && !ghostTicks && (
+             <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border text-red-400 border-red-500/30 bg-red-500/10">
+               TRACE x2
+             </span>
+          )}
+        </div>
+      )}
 
-      <div className={`flex-1 h-2.5 bg-black rounded-full overflow-hidden border shadow-inner relative transition-all duration-150 ${
-        syncFlash ? 'animate-sync-pulse z-10' : pulseActive ? 'border-cyan-500/60 shadow-[0_0_6px_rgba(34,211,238,0.3)]' : 'border-zinc-800'
-      }`}>
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
-        <div
-          className={`h-full rounded-full transition-all duration-300 ${barGradient} ${isAccelerated && !isDanger && !pulseActive && glitchEnabled ? 'opacity-80 animate-pulse' : ''}`}
-          style={{ width: `${Math.min(100, trace)}%` }}
-        />
+      <div className="flex items-center gap-4">
+        <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${(isDanger || pulseActive) && glitchEnabled ? 'animate-pulse' : ''}`}>
+          {isDanger ? '[!]TR' : pulseActive ? 'SYNC' : 'TRACE'}
+        </span>
+
+        <div className={`flex-1 h-2.5 bg-black rounded-full overflow-hidden border shadow-inner relative transition-all duration-150 ${
+          syncFlash ? 'animate-sync-pulse z-10' : pulseActive ? 'border-cyan-500/60 shadow-[0_0_6px_rgba(34,211,238,0.3)]' : 'border-zinc-800'
+        }`}>
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${barGradient} ${isAccelerated && !isDanger && !pulseActive && glitchEnabled && !ghostTicks ? 'opacity-80 animate-pulse' : ''}`}
+            style={{ width: `${Math.min(100, trace)}%` }}
+          />
+        </div>
+
+        <span className={`font-mono text-[11px] tabular-nums w-8 text-right font-bold shrink-0 ${labelColor}`}>
+          {trace.toFixed(0)}%
+        </span>
       </div>
-
-      <span className={`font-mono text-[11px] tabular-nums w-8 text-right font-bold shrink-0 ${labelColor}`}>
-        {trace.toFixed(0)}%
-      </span>
     </div>
   );
 }
@@ -560,7 +576,7 @@ export default function HackingScene() {
           <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />
         </div>
 
-        <div className="border-t border-zinc-800/60 pt-1 pb-0.5 bg-zinc-950/60 backdrop-blur-sm">
+        <div className="border-t border-zinc-800/60 py-1 bg-zinc-950/60 backdrop-blur-sm">
           <FirewallRow />
           <TraceRow />
         </div>
