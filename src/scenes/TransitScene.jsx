@@ -581,17 +581,20 @@ function JobFooter({ isLocked, onJackIn }) {
   const showDarknet     = hasBeatenGame;
   const showPriority    = !showTartarus;
 
-  const lockClass = isLocked ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'active:border-b active:translate-y-[2px]';
+  // Gives a deeper "press" effect when the thicker button is clicked
+  const lockClass = isLocked 
+    ? 'opacity-50 cursor-not-allowed pointer-events-none' 
+    : 'active:border-b-[1px] active:translate-y-[3px]';
 
   return (
-    <div className="px-4 pt-3 pb-6 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
+    <div className="px-5 pt-4 pb-8 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-3" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
       <button
         onClick={() => onJackIn('skim')}
         disabled={isLocked}
-        className={`w-full py-2 px-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button flex flex-col items-center justify-center ${lockClass}`}
+        className={`w-full py-4 px-4 rounded-xl font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button flex flex-col items-center justify-center ${lockClass}`}
       >
         <span>Initiate Data Skim</span>
-        <span className="text-[9px] font-normal text-green-300/80 mt-0.5 normal-case tracking-normal">
+        <span className="text-[10px] font-normal text-green-300/80 mt-1 normal-case tracking-normal">
           Low-sec target · Low intel
         </span>
       </button>
@@ -600,10 +603,10 @@ function JobFooter({ isLocked, onJackIn }) {
         <button
           onClick={() => onJackIn('priority')}
           disabled={isLocked}
-          className={`w-full py-2 px-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button flex flex-col items-center justify-center ${lockClass}`}
+          className={`w-full py-4 px-4 rounded-xl font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button flex flex-col items-center justify-center ${lockClass}`}
         >
           <span>Pursue Priority Lead</span>
-          <span className="text-[9px] font-normal text-violet-300/80 mt-0.5 normal-case tracking-normal">
+          <span className="text-[10px] font-normal text-violet-300/80 mt-1 normal-case tracking-normal">
             Secure target · Unlocks story
           </span>
         </button>
@@ -613,10 +616,10 @@ function JobFooter({ isLocked, onJackIn }) {
         <button
           onClick={() => onJackIn('tartarus')}
           disabled={isLocked}
-          className={`w-full py-2 px-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button flex flex-col items-center justify-center ${lockClass}`}
+          className={`w-full py-4 px-4 rounded-xl font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button flex flex-col items-center justify-center ${lockClass}`}
         >
           <span>Assault Tartarus Node</span>
-          <span className="text-[9px] font-normal text-red-300/80 mt-0.5 normal-case tracking-normal">
+          <span className="text-[10px] font-normal text-red-300/80 mt-1 normal-case tracking-normal">
             400 HP · One chance. No retreat.
           </span>
         </button>
@@ -626,10 +629,10 @@ function JobFooter({ isLocked, onJackIn }) {
         <button
           onClick={() => onJackIn('darknet')}
           disabled={isLocked}
-          className={`w-full py-2 px-3 rounded-lg font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button flex flex-col items-center justify-center ${lockClass}`}
+          className={`w-full py-4 px-4 rounded-xl font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button flex flex-col items-center justify-center ${lockClass}`}
         >
           <span>Access Darknet Router</span>
-          <span className="text-[9px] font-normal text-fuchsia-300/80 mt-0.5 normal-case tracking-normal">
+          <span className="text-[10px] font-normal text-fuchsia-300/80 mt-1 normal-case tracking-normal">
             Tier {darknetTier} · {150 + darknetTier * 50} HP
           </span>
         </button>
@@ -637,7 +640,7 @@ function JobFooter({ isLocked, onJackIn }) {
     </div>
   );
 }
-
+          
 // ─── Transit Scene (main) ─────────────────────────────────────────────────────
 
 export default function TransitScene() {
