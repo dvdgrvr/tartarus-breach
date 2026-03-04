@@ -25,11 +25,9 @@ function NumberScrambler({ value, className = "" }) {
       const progress = Math.min(elapsed / duration, 1);
       
       if (progress < 0.8) {
-        // Frantic digital noise before settling
         const noise = Math.floor(Math.random() * (Math.abs(end - start) + 10));
         setDisplayValue(Math.floor(start + (end - start) * progress) + (Math.random() > 0.5 ? noise : -noise));
       } else {
-        // Smooth settle
         const ease = 1 - Math.pow(1 - progress, 3);
         setDisplayValue(Math.floor(start + (end - start) * ease));
       }
@@ -75,15 +73,11 @@ function SessionSummary() {
 
   const badge = OUTCOME_BADGE[outcome] ?? OUTCOME_BADGE.escaped;
   
-  // --- SIGNAL-TO-NOISE FILTER ---
-  // Strip out repetitive Siphon spam and UI prompts so the Black Box 
-  // only shows the dramatic breach/escape/bust sequence.
   const filteredLogs = terminal.filter(log => 
     !log.includes('SIPHONING...') && 
     !log.includes('AWAITING MANUAL DISCONNECT')
   );
   
-  // Grab the last 4 *meaningful* lines
   const finalLogs = filteredLogs.slice(-4);
   const isGhostExit = outcome === 'escaped' && (trace >= 95 || heat >= 95);
 
@@ -346,13 +340,10 @@ function LootInventory() {
             const colorClass = item.rarity === 'epic' ? 'text-yellow-400' : item.rarity === 'rare' ? 'text-cyan-400' : 'text-zinc-200';
             const borderClass = item.rarity === 'epic' ? 'border-yellow-500/30' : item.rarity === 'rare' ? 'border-cyan-500/30' : 'border-zinc-700/50';
             
-            // Highlight: We identify items that must be used during the hack
             const isInRunOnly = item.id === 'LIQUID_COOLER' || item.id === 'SIGNAL_BOOSTER';
 
             return (
               <div key={idx} className={`glass-panel rounded-lg p-3 border ${borderClass} bg-zinc-800/20 flex justify-between items-center gap-3`}>
-                
-                {/* Removed the 'truncate' class from the description and added pr-2 for spacing */}
                 <div className="flex-1 min-w-0 pr-2">
                   <p className={`font-mono text-sm font-bold truncate ${colorClass}`}>
                     {item.name}
@@ -722,7 +713,6 @@ function JobFooter({ isLocked, onJackIn }) {
   const showDarknet     = hasBeatenGame;
   const showPriority    = !showTartarus;
 
-  // Gives a deeper "press" effect when the thicker button is clicked
   const lockClass = isLocked 
     ? 'opacity-50 cursor-not-allowed pointer-events-none' 
     : 'active:border-b-[1px] active:translate-y-[3px]';
@@ -788,6 +778,7 @@ export default function TransitScene() {
   const [activeTab, setActiveTab] = useState('logs');
   const [isLocked, setIsLocked]   = useState(true);
   const [isJackingIn, setIsJackingIn] = useState(false);
+  const [memoDismissed, setMemoDismissed] = useState(false); // <--- State added
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLocked(false), 1000);
@@ -803,7 +794,6 @@ export default function TransitScene() {
   const setPaused           = useGameStore(s => s.setPaused);
   const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
   const reducedMotion       = useGameStore(s => s.settings?.reducedMotion);
-  const getCurrentAct       = useGameStore(s => s.getCurrentAct);
 
   // ── THE JACK IN FUNCTION ──
   const handleJackIn = (type, isReplay = false, level = null) => {
@@ -817,7 +807,6 @@ export default function TransitScene() {
     
     setIsJackingIn(true);
     
-    // Wait 400ms for the CSS animation to complete before changing state
     setTimeout(() => {
       useGameStore.getState().startNewSession(type, isReplay, level);
     }, 400); 
@@ -849,20 +838,15 @@ export default function TransitScene() {
   ];
 
   let statusText = MASHA_MEMOS[Math.min(archiveLen, MASHA_MEMOS.length - 1)];
-  let statusClass = "text-fuchsia-400 font-bold"; // Neon Purple for Masha
 
-  // If Alchemist takes over or endgame is reached
   if (archiveLen >= 11) {
     statusText = "!! ALCHEMIST: YOUR MAC ADDRESS IS LOGGED. THERE IS NO ESCAPE. !!";
-    statusClass = "text-orange-500 red-blink font-bold"; // Safety Orange for Alchemist
   }
   if (hasBeatenGame) {
     statusText = "// MASHA: The mirror is broken. Vertex is blind. We actually did it. [OFFLINE]";
-    statusClass = "text-fuchsia-400 font-bold opacity-70";
   }
 
-  const headerColor = phase >= 2 ? 'text-red-500' : 'text-zinc-100';
-  const headerAnim  = phase === 1 ? 'transit-header-flicker' : '';
+  const isAlchemist = archiveLen >= 11 && !hasBeatenGame;
 
   return (
     <div 
@@ -877,13 +861,58 @@ export default function TransitScene() {
         <div className="absolute inset-0 bg-cyan-300/20 mix-blend-overlay pointer-events-none z-50 animate-pulse" />
       )}
 
-      <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0">
-        <p className={`font-mono text-xs uppercase tracking-widest ${statusClass}`}>
-          {statusText}
-        </p>
-        <div className="flex items-center justify-between mt-1.5">
+      {/* --- CYBERDECK PUSH NOTIFICATION --- */}
+      {!memoDismissed && (
+        <div className="px-4 pt-5 pb-2 z-20 relative animate-slide-down">
+          <div className="glass-panel rounded-2xl p-3 border border-zinc-700/60 bg-zinc-900/85 shadow-[0_8px_30px_rgba(0,0,0,0.6)] flex items-start gap-3 backdrop-blur-xl relative overflow-hidden">
+            
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+
+            <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center relative shadow-inner ${
+              isAlchemist ? 'bg-red-950/60 border-red-700/50 text-red-500' : 'bg-fuchsia-950/60 border-fuchsia-700/50 text-fuchsia-400'
+            }`}>
+              <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-900 animate-pulse ${
+                isAlchemist ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'bg-fuchsia-400 shadow-[0_0_8px_rgba(217,70,239,0.8)]'
+              }`} />
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="current-color">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </div>
+
+            <div className="flex-1 min-w-0 py-0.5">
+              <div className="flex justify-between items-baseline mb-0.5 relative z-10">
+                <span className={`font-mono text-[10px] font-bold tracking-wide ${isAlchemist ? 'text-red-400' : 'text-zinc-200'}`}>
+                  {isAlchemist ? 'SYS_THREAT' : 'SYS_MESSAGE'}
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono text-[9px] text-zinc-400 uppercase tracking-widest">
+                    just now
+                  </span>
+                  {/* DISMISS BUTTON */}
+                  <button 
+                    onClick={() => {
+                      AudioManager.playSFX('thock');
+                      setMemoDismissed(true);
+                    }}
+                    className="w-5 h-5 flex items-center justify-center bg-black/20 hover:bg-black/40 rounded-full text-zinc-400 hover:text-white transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+              </div>
+              <p className="font-mono text-[11px] leading-snug text-zinc-300 break-words relative z-10 pr-2">
+                {statusText}
+              </p>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      <div className={`px-5 shrink-0 relative z-10 ${memoDismissed ? 'py-4 pt-6' : 'py-2'}`}>
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className={`font-mono text-base font-bold uppercase tracking-widest ${headerColor} ${headerAnim}`}>
+            <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-zinc-100">
               Safe House // {currentSafehouse?.id ?? 'ALPHA'}
             </h2>
             {hasBeatenGame && (

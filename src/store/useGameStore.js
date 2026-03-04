@@ -994,18 +994,20 @@ triggerFirstBoot: () => {
 
         if (s.settings?.hapticsEnabled) haptic(isTartarus ? [50, 50] : 10); 
 
-        // --- LOOT ROLL LOGIC ---
+        // --- FIXED LOOT ROLL LOGIC ---
         let foundItem = null;
         let newAccumulator = s.lootAccumulator + intelReward;
         let lootLog = null;
 
-        // Roll for loot every 40 IF siphoned (Tartarus has no loot)
-        if (!isTartarus && newAccumulator >= 40) {
+        // 1. Lowered threshold to 20 so you can actually get loot in a single greedy run!
+        if (!isTartarus && newAccumulator >= 20) {
           const roll = Math.random();
           foundItem = modifiersData.find(m => roll < m.chance);
-          newAccumulator = 0; // Reset the counter back to 0
 
+          // 2. ONLY reset the accumulator if you actually win an item!
+          // If you fail the roll, it stays at 20+, so it rolls again on the very next tick!
           if (foundItem) {
+            newAccumulator = 0; 
             lootLog = `>> [LOOT_FOUND]: ${foundItem.name} extracted.`;
           }
         }
