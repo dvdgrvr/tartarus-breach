@@ -248,6 +248,79 @@ function ConsumableItem({ itemId, label, description, cost }) {
   );
 }
 
+// ─── Loot Inventory (Hardware Stash) ──────────────────────────────────────────
+
+function LootInventory() {
+  const inventory = useGameStore(s => s.inventory || []);
+  const activeModifiers = useGameStore(s => s.activeModifiers || []);
+  const useHardware = useGameStore(s => s.useHardware);
+
+  return (
+    <div className="mb-6">
+      <p className="font-mono text-xs font-bold uppercase tracking-widest text-cyan-400 mb-3">
+        // Hardware Stash
+      </p>
+      
+      {activeModifiers.includes('ADMIN_KEY') && (
+        <div className="glass-panel rounded-lg p-3 mb-3 border border-yellow-500/50 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.15)]">
+          <p className="font-mono text-[11px] text-yellow-400 font-bold flex items-center gap-2 tracking-widest uppercase">
+            <span className="animate-pulse text-sm">⚠</span> ADMIN KEY ACTIVE: Next node FW HP halved.
+          </p>
+        </div>
+      )}
+
+      {inventory.length === 0 ? (
+        <div className="glass-panel rounded-lg p-5 border border-zinc-800/50 bg-zinc-900/30 text-center opacity-70">
+          <p className="font-mono text-[11px] text-zinc-500 uppercase tracking-widest font-bold">Stash is empty</p>
+          <p className="font-mono text-[10px] text-zinc-600 mt-1 uppercase">Siphon nodes to extract hardware</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {inventory.map((item, idx) => {
+            const colorClass = item.rarity === 'epic' ? 'text-yellow-400' : item.rarity === 'rare' ? 'text-cyan-400' : 'text-zinc-200';
+            const borderClass = item.rarity === 'epic' ? 'border-yellow-500/30' : item.rarity === 'rare' ? 'border-cyan-500/30' : 'border-zinc-700/50';
+            
+            // Highlight: We identify items that must be used during the hack
+            const isInRunOnly = item.id === 'LIQUID_COOLER' || item.id === 'SIGNAL_BOOSTER';
+
+            return (
+              <div key={idx} className={`glass-panel rounded-lg p-3 border ${borderClass} bg-zinc-800/20 flex justify-between items-center gap-3`}>
+                
+                {/* Removed the 'truncate' class from the description and added pr-2 for spacing */}
+                <div className="flex-1 min-w-0 pr-2">
+                  <p className={`font-mono text-sm font-bold truncate ${colorClass}`}>
+                    {item.name}
+                  </p>
+                  <p className="font-mono text-[10px] text-zinc-400 mt-0.5 leading-snug">
+                    {item.description}
+                  </p>
+                </div>
+                
+                {isInRunOnly ? (
+                  <span className="shrink-0 px-2 py-1 font-mono text-[9px] font-bold uppercase tracking-widest text-cyan-500/60 border border-cyan-900/30 bg-cyan-950/20 rounded text-center">
+                    LOADS IN<br/>NODE
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => useHardware(idx)}
+                    className={`shrink-0 px-4 py-2 rounded font-mono text-[10px] font-bold uppercase tracking-widest transition-all duration-150 border border-b-[2px] active:translate-y-[1px] active:border-b ${
+                      item.id === 'RED_ONION' 
+                        ? 'border-red-900 text-red-500 bg-red-950/30 hover:bg-red-900/50'
+                        : 'border-yellow-700/60 text-yellow-300 bg-yellow-900/20 hover:bg-yellow-800/40 hover:text-white'
+                    }`}
+                  >
+                    {item.id === 'RED_ONION' ? 'EXECUTE' : 'EQUIP'}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Black Market ─────────────────────────────────────────────────────────────
 
 function BlackMarket() {
@@ -538,21 +611,23 @@ function DeckManual() {
 
 function TabBar({ active, onChange }) {
   const collected = useGameStore(s => s.storyArchive.length);
+  const inventory = useGameStore(s => s.inventory || []);
 
   const tabs = [
-    { id: 'debrief', label: 'DEBRIEF' },
-    { id: 'deck',    label: 'DECK MANUAL' }, 
-    { id: 'archive', label: 'ARCHIVE', showDot: collected > 0 },
+    { id: 'logs',  label: 'LOGS' },
+    { id: 'stash', label: 'STASH', showDot: inventory.length > 0 }, 
+    { id: 'deck',  label: 'DECK' }, 
+    { id: 'data',  label: 'DATA',  showDot: collected > 0 },
   ];
 
   return (
-    <div className="flex px-2 sm:px-5 gap-1 sm:gap-3 border-b border-zinc-800 shrink-0">
+    <div className="flex px-2 sm:px-5 gap-1 sm:gap-2 border-b border-zinc-800 shrink-0">
       {tabs.map(tab => (
         <button
           key={tab.id}
           onClick={() => onChange(tab.id)}
           className={[
-            'flex-1 relative py-3 sm:py-3.5 font-mono text-[10px] sm:text-xs font-bold uppercase tracking-widest',
+            'flex-1 relative py-3 sm:py-3.5 font-mono text-[11px] sm:text-xs font-bold uppercase tracking-widest',
             'transition-colors duration-150',
             active === tab.id
               ? 'text-green-400 border-b-2 border-green-500 -mb-px'
@@ -561,7 +636,7 @@ function TabBar({ active, onChange }) {
         >
           {tab.label}
           {tab.showDot && active !== tab.id && (
-            <span className="absolute top-2 right-[calc(50%-24px)] w-2 h-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.8)]" />
+            <span className="absolute top-2 right-[calc(50%-16px)] sm:right-[calc(50%-24px)] w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" />
           )}
         </button>
       ))}
@@ -644,7 +719,7 @@ function JobFooter({ isLocked, onJackIn }) {
 // ─── Transit Scene (main) ─────────────────────────────────────────────────────
 
 export default function TransitScene() {
-  const [activeTab, setActiveTab] = useState('debrief');
+  const [activeTab, setActiveTab] = useState('logs');
   const [isLocked, setIsLocked]   = useState(true);
   const [isJackingIn, setIsJackingIn] = useState(false);
 
@@ -779,14 +854,18 @@ export default function TransitScene() {
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-5 scrollbar-thin flex flex-col items-center">
         <div className="w-full max-w-md">
-          {activeTab === 'debrief' && (
+          {activeTab === 'logs' && <SessionSummary />}
+          
+          {activeTab === 'stash' && (
             <>
-              <SessionSummary />
+              <LootInventory />
               <BlackMarket />
             </>
           )}
+          
           {activeTab === 'deck' && <DeckManual />}
-          {activeTab === 'archive' && <NarrativeArchive onJackIn={handleJackIn} />}
+          
+          {activeTab === 'data' && <NarrativeArchive onJackIn={handleJackIn} />}
         </div>
       </div>
 

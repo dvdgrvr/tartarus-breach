@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import toolsConfig    from '../data/toolsConfig.json';
 import upgradesConfig from '../data/upgradesConfig.json';
 import storyFragments from '../data/storyFragments.json';
+import modifiersData  from '../data/modifiers.json';
 import AudioManager   from '../utils/audioManager';
 import {
   BASE_HEAT_PER_TICK,
@@ -161,6 +162,9 @@ const useGameStore = create(
 
       // ── Player resources ─────────────────────────────────────────────────
       intelFragments: 0,
+      inventory: [],           // <--- NEW: Holds looted hardware
+      activeModifiers: [],     // <--- NEW: Holds active buffs like Admin Key
+      lootAccumulator: 0,      // <--- NEW: Tracks how much data you've siphoned
 
       // ── Upgrades ─────────────────────────────────────────────────────────
       upgrades: buildInitialUpgradeState(),
@@ -761,6 +765,13 @@ executeCommand: (toolId) => {
           ? Math.floor(basePotential * 0.5)
           : basePotential;
 
+        // --- ADMIN KEY LOGIC ---
+        let activeMods = [...s.activeModifiers];
+        if (activeMods.includes('ADMIN_KEY')) {
+          firewallHP = Math.floor(firewallHP * 0.5);
+          activeMods = activeMods.filter(m => m !== 'ADMIN_KEY'); // Consume it
+        }
+
         // Sync firewallHP back onto the node object so any reader of
         // currentNode.firewallHP gets the correct dynamic value.
         const sessionNode = { ...nextNode, firewallHP };
@@ -804,6 +815,9 @@ executeCommand: (toolId) => {
           storyArchive:          [],
           currentJobType:        'skim',
           digitalTrace:          0,
+          inventory:             [],
+          activeModifiers:       [],
+          lootAccumulator:       0,
           physicalHeat:          0,
           firewallHealth:        freshNode.firewallHP,
           currentNode:           freshNode,
@@ -937,25 +951,22 @@ executeCommand: (toolId) => {
         if (s.status !== 'resolved' || s.transitOutcome !== 'success') return;
 
         const isTartarus = s.currentJobType === 'tartarus';
-        const tracePenalty = isTartarus ? 15 : 3.5; // Uploading the key is much more dangerous
+        const tracePenalty = isTartarus ? 15 : 3.5; 
         const intelReward  = 1;   
 
         const newTrace = s.digitalTrace + tracePenalty;
 
-        // If they hit 100% Trace...
         if (newTrace >= 100) {
           if (isTartarus) {
-            // THEY DID IT. THEY UPLOADED THE KEY AND FRIED THE DECK.
             set({
               digitalTrace: 100,
               packUpTrace: 100,
               hasBeatenGame: true,
               tartarusBeaten: true,
-              status: 'victory', // Immediately trigger the victory screen
+              status: 'victory', 
               terminalLog: appendLog(s.terminalLog, ">> SKELETON KEY INJECTED. TARTARUS NODE OVERWRITTEN. SYSTEM OFFLINE.")
             });
           } else {
-            // Normal siphon greed bust
             get().packUp('trace_busted');
             set(cur => ({
               terminalLog: appendLog(cur.terminalLog, "// MEMO_FROM_MASHA: 'You stayed too long! I told you to get out!'")
@@ -966,17 +977,72 @@ executeCommand: (toolId) => {
 
         if (s.settings?.hapticsEnabled) haptic(isTartarus ? [50, 50] : 10); 
 
+        // --- LOOT ROLL LOGIC ---
+        let foundItem = null;
+        let newAccumulator = s.lootAccumulator + intelReward;
+        let lootLog = null;
+
+        // Roll for loot every 40 IF siphoned (Tartarus has no loot)
+        if (!isTartarus && newAccumulator >= 40) {
+          const roll = Math.random();
+          foundItem = modifiersData.find(m => roll < m.chance);
+          newAccumulator = 0; // Reset the counter back to 0
+
+          if (foundItem) {
+            lootLog = `>> [LOOT_FOUND]: ${foundItem.name} extracted.`;
+          }
+        }
+
+        let newLog = appendLog(s.terminalLog, 
+          isTartarus 
+            ? `>> INJECTING KEY... TRACE: ${newTrace.toFixed(0)}% [WARNING: FATAL KERNEL ERROR IMMINENT]` 
+            : `>> SIPHONING... TRACE: ${newTrace.toFixed(0)}% (+${intelReward} IF)`
+        );
+
+        if (lootLog) newLog = appendLog(newLog, lootLog);
+
         set({
           digitalTrace:       newTrace,
           packUpTrace:        newTrace, 
           sessionIntelEarned: s.sessionIntelEarned + intelReward,
           intelFragments:     s.intelFragments + intelReward, 
-          terminalLog:        appendLog(s.terminalLog, 
-            isTartarus 
-              ? `>> INJECTING KEY... TRACE: ${newTrace.toFixed(0)}% [WARNING: FATAL KERNEL ERROR IMMINENT]` 
-              : `>> SIPHONING... TRACE: ${newTrace.toFixed(0)}% (+${intelReward} IF)`
-          ),
+          lootAccumulator:    newAccumulator,
+          inventory:          foundItem ? [...s.inventory, foundItem] : s.inventory,
+          terminalLog:        newLog,
         });
+      },
+
+      // ─── USE HARDWARE / LOOT ──────────────────────────────────────────
+      useHardware: (inventoryIndex) => {
+        const s = get();
+        if (inventoryIndex < 0 || inventoryIndex >= s.inventory.length) return;
+
+        const item = s.inventory[inventoryIndex];
+        const newInventory = [...s.inventory];
+        newInventory.splice(inventoryIndex, 1); // Remove the used item
+
+        let update = { inventory: newInventory };
+        let logMsg = `>> [HARDWARE_USED]: ${item.name} activated.`;
+
+        if (item.id === 'LIQUID_COOLER') {
+          update.physicalHeat = 0;
+          update.packUpHeat = 0;
+        } else if (item.id === 'SIGNAL_BOOSTER') {
+          update.digitalTrace = Math.max(0, s.digitalTrace - 30);
+          update.packUpTrace = Math.max(0, s.packUpTrace - 30);
+        } else if (item.id === 'ADMIN_KEY') {
+          update.activeModifiers = [...s.activeModifiers, 'ADMIN_KEY'];
+        } else if (item.id === 'RED_ONION') {
+          logMsg = `// MEMO_FROM_MASHA: 'Ugh, delete that. Nobody wants RED_ONION.exe in the system.'`;
+        }
+
+        if (s.settings?.hapticsEnabled) haptic(15);
+        AudioManager.playSFX('thock');
+
+        set(state => ({
+          ...update,
+          terminalLog: appendLog(state.terminalLog, logMsg)
+        }));
       },
 
       // ─── PURCHASE UPGRADE ─────────────────────────────────────────────

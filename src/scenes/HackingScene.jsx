@@ -223,41 +223,69 @@ function TraceRow() {
 function ConsumableBar() {
   const consumables    = useGameStore(s => s.consumables);
   const useConsumable  = useGameStore(s => s.useConsumable);
+  const inventory      = useGameStore(s => s.inventory || []);
+  const useHardware    = useGameStore(s => s.useHardware);
   const hasBeatenGame  = useGameStore(s => s.hasBeatenGame);
   const getCurrentAct  = useGameStore(s => s.getCurrentAct);
   
   const rabbit = consumables?.rabbit ?? 0;
   const ghost  = consumables?.ghost ?? 0;
 
-  const showBar = hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0;
+  // Find all emergency hardware in the stash and map their original index
+  const activeHardware = inventory.map((item, idx) => ({ ...item, originalIndex: idx }))
+    .filter(item => item.id === 'LIQUID_COOLER' || item.id === 'SIGNAL_BOOSTER');
+
+  const showBar = hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0 || activeHardware.length > 0;
   if (!showBar) return null;
 
   return (
-    <div className="flex gap-2 px-4 py-2 border-t border-zinc-800/40 pb-3">
-      <button
-        onClick={() => useConsumable('rabbit')}
-        disabled={rabbit === 0}
-        className={[
-          'flex-1 py-3 px-4 rounded font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
-          rabbit > 0
-            ? 'border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green'
-            : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed',
-        ].join(' ')}
-      >
-        RABBIT [×{rabbit}]
-      </button>
-      <button
-        onClick={() => useConsumable('ghost')}
-        disabled={ghost === 0}
-        className={[
-          'flex-1 py-3 px-4 rounded font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
-          ghost > 0
-            ? 'border-slate-400/60 border-b-slate-600 text-slate-300 bg-slate-500/5 hover:bg-slate-500/15 glow-slate'
-            : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed',
-        ].join(' ')}
-      >
-        GHOST.sys [×{ghost}]
-      </button>
+    <div className="flex flex-col gap-2 px-4 py-2 border-t border-zinc-800/40 pb-3">
+      
+      {/* 1. Core Black Market Consumables */}
+      {(hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0) && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => useConsumable('rabbit')}
+            disabled={rabbit === 0}
+            className={[
+              'flex-1 py-3 px-4 rounded font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
+              rabbit > 0
+                ? 'border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green'
+                : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed',
+            ].join(' ')}
+          >
+            RABBIT [×{rabbit}]
+          </button>
+          <button
+            onClick={() => useConsumable('ghost')}
+            disabled={ghost === 0}
+            className={[
+              'flex-1 py-3 px-4 rounded font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
+              ghost > 0
+                ? 'border-slate-400/60 border-b-slate-600 text-slate-300 bg-slate-500/5 hover:bg-slate-500/15 glow-slate'
+                : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed',
+            ].join(' ')}
+          >
+            GHOST.sys [×{ghost}]
+          </button>
+        </div>
+      )}
+
+      {/* 2. Emergency Stash Loot */}
+      {activeHardware.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto scrollbar-none snap-x mt-1">
+          {activeHardware.map((item, i) => (
+             <button
+               key={`${item.id}-${i}`}
+               onClick={() => useHardware(item.originalIndex)}
+               className="shrink-0 flex-1 min-w-[120px] py-2.5 px-3 rounded font-mono text-[10px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] active:border-b active:translate-y-[2px] border-cyan-500/50 border-b-cyan-700 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 snap-center shadow-[0_0_10px_rgba(34,211,238,0.15)]"
+             >
+               INJECT {item.name}
+             </button>
+          ))}
+        </div>
+      )}
+      
     </div>
   );
 }

@@ -1,0 +1,34 @@
+[
+  {
+    "id": "LIQUID_COOLER",
+    "name": "Liquid-Cooled Heat Sink",
+    "type": "hardware",
+    "description": "One-time use: Instantly resets Rig Heat to 0%.",
+    "rarity": "rare",
+    "chance": 0.08
+  },
+  {
+    "id": "ADMIN_KEY",
+    "name": "Vertex Admin Key",
+    "type": "hardware",
+    "description": "Next node firewall starts at 50% HP.",
+    "rarity": "epic",
+    "chance": 0.04
+  },
+  {
+    "id": "SIGNAL_BOOSTER",
+    "name": "Signal Booster",
+    "type": "hardware",
+    "description": "One-time use: Instantly reduces Trace by 30.",
+    "rarity": "common",
+    "chance": 0.15
+  },
+  {
+    "id": "RED_ONION",
+    "name": "RED_ONION.exe",
+    "type": "junk",
+    "description": "A completely useless, stinking piece of code.",
+    "rarity": "common",
+    "chance": 0.12
+  }
+]
