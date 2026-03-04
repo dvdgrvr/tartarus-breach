@@ -207,19 +207,23 @@ export default function App() {
     <div className={roomClass}>
       
       {/* ── HARDWARE BEZEL (The physical device) ── */}
-      <div className="h-[95svh] max-w-md w-full p-2 sm:p-3 bg-zinc-900 border-t border-zinc-700 border-x border-zinc-800 border-b-[8px] border-b-black rounded-[32px] flex flex-col relative" style={deviceStyle}>
+      {/* ON MOBILE: It spans 100% height/width. ON DESKTOP (sm:): It looks like a physical deck device. */}
+      <div 
+        className="flex flex-col relative w-full h-[100dvh] bg-black sm:h-[95svh] sm:max-w-md sm:p-3 sm:bg-zinc-900 sm:border-t sm:border-zinc-700 sm:border-x sm:border-zinc-800 sm:border-b-[8px] sm:border-b-black sm:rounded-[32px]" 
+        style={deviceStyle}
+      >
         
-        {/* Device Texture overlay */}
-        <div className="absolute inset-0 rounded-[32px] bg-[url('/noise.png')] opacity-10 pointer-events-none mix-blend-overlay" />
+        {/* Device Texture overlay - Hidden on mobile */}
+        <div className="hidden sm:block absolute inset-0 rounded-[32px] bg-[url('/noise.png')] opacity-10 pointer-events-none mix-blend-overlay" />
 
-        {/* Top Hardware Details (Sensors / Mic array) */}
-        <div className="absolute top-2.5 left-1/2 -translate-x-1/2 flex items-center gap-3 opacity-40 z-10">
+        {/* Top Hardware Details (Sensors / Mic array) - Hidden on mobile */}
+        <div className="hidden sm:flex absolute top-2.5 left-1/2 -translate-x-1/2 items-center gap-3 opacity-40 z-10">
           <div className="w-1.5 h-1.5 rounded-full bg-black shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)]" />
           <div className="w-12 h-1.5 rounded-full bg-black shadow-[inset_0_1px_2px_rgba(255,255,255,0.2)]" />
         </div>
 
         {/* ── SCREEN CONTAINER (The recessed glass display) ── */}
-        <div className="mt-4 flex-1 w-full relative ring-4 ring-black rounded-[20px] overflow-hidden bg-black shadow-[0_0_10px_rgba(0,0,0,1)]">
+        <div className="flex-1 w-full relative overflow-hidden bg-black sm:mt-4 sm:ring-4 sm:ring-black sm:rounded-[20px] sm:shadow-[0_0_10px_rgba(0,0,0,1)]">
           <div className={`h-full w-full flex flex-col relative ${cyberdeliaMode ? 'cyberdelia-vibe' : ''} ${settings?.crtEnabled ? 'crt-hardware' : ''}`} style={screenStyle}>
             
             {settings?.crtEnabled && <div className="crt-scanlines" />}
@@ -232,8 +236,8 @@ export default function App() {
           </div>
         </div>
 
-        {/* Bottom Hardware Details (Speaker Grill) */}
-        <div className="h-3 w-full mt-2.5 mb-0.5 flex justify-center items-center gap-2 opacity-30 z-10">
+        {/* Bottom Hardware Details (Speaker Grill) - Hidden on mobile */}
+        <div className="hidden sm:flex h-3 w-full mt-2.5 mb-0.5 justify-center items-center gap-2 opacity-30 z-10">
           {[...Array(6)].map((_, i) => (
              <div key={i} className="w-1 h-3 bg-black rounded-sm shadow-[inset_0_1px_0px_rgba(255,255,255,0.3)]" />
           ))}
