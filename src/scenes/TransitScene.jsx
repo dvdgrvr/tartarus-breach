@@ -1,9 +1,51 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useGameStore from '../store/useGameStore';
 import upgradesConfig from '../data/upgradesConfig.json';
 import storyFragments from '../data/storyFragments.json';
 import toolsConfig from '../data/toolsConfig.json';
 import AudioManager from '../utils/audioManager';
+
+// ─── Number Scrambler (The Juice #3) ──────────────────────────────────────────
+
+function NumberScrambler({ value, className = "" }) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const lastValue = useRef(value);
+
+  useEffect(() => {
+    if (value === lastValue.current) return;
+
+    const start = lastValue.current;
+    const end = value;
+    const duration = 600; 
+    const startTime = performance.now();
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      if (progress < 0.8) {
+        // Frantic digital noise before settling
+        const noise = Math.floor(Math.random() * (Math.abs(end - start) + 10));
+        setDisplayValue(Math.floor(start + (end - start) * progress) + (Math.random() > 0.5 ? noise : -noise));
+      } else {
+        // Smooth settle
+        const ease = 1 - Math.pow(1 - progress, 3);
+        setDisplayValue(Math.floor(start + (end - start) * ease));
+      }
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setDisplayValue(end);
+        lastValue.current = end;
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [value]);
+
+  return <span className={className}>{displayValue}</span>;
+}
 
 // ─── Corrupt Text ─────────────────────────────────────────────────────────────
 
@@ -55,7 +97,7 @@ function SessionSummary() {
         <div className="flex justify-between items-center">
           <span className="font-mono text-sm text-zinc-300">Intel Harvested</span>
           <span className="font-mono text-base font-bold text-green-400">
-            +{earned} <span className="text-green-400/90 text-xs">IF</span>
+            +<NumberScrambler value={earned} /> <span className="text-green-400/90 text-xs">IF</span>
           </span>
         </div>
         <div className="flex justify-between items-center">
@@ -84,7 +126,7 @@ function LevelPips({ current, max }) {
         <div
           key={i}
           className={`w-2 h-2 rounded-sm transition-colors duration-300 ${
-            i < current ? 'bg-green-400' : 'bg-zinc-600'
+            i < current ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.4)]' : 'bg-zinc-600'
           }`}
         />
       ))}
@@ -98,52 +140,64 @@ function UpgradeCard({ cfg }) {
   const intelFragments  = useGameStore(s => s.intelFragments);
   const level           = useGameStore(s => s.upgrades[cfg.id]?.level ?? 0);
   const purchaseUpgrade = useGameStore(s => s.purchaseUpgrade);
+  const [isPurchasing, setIsPurchasing] = useState(false);
 
   const isMaxed   = level >= cfg.maxLevel;
   const cost      = isMaxed ? null : calcUpgradeCost(cfg, level);
   const canAfford = !isMaxed && intelFragments >= cost;
 
+  const handlePurchase = () => {
+    if (!canAfford) return;
+    AudioManager.playSFX('thock'); 
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([15, 30]);
+    setIsPurchasing(true);
+    setTimeout(() => setIsPurchasing(false), 300);
+    purchaseUpgrade(cfg.id);
+  };
+
   const cardClass = isMaxed
-    ? 'border-green-500/25 bg-green-500/5'
-    : canAfford
-      ? 'border-white/10 bg-white/5 hover:border-violet-500/40'
-      : 'border-zinc-700/50 bg-zinc-800/20';
+    ? 'border-green-500/25 bg-green-500/5 opacity-80'
+    : isPurchasing 
+      ? 'animate-purchase border-white bg-white/20' 
+      : canAfford
+        ? 'border-white/10 bg-white/5 hover:border-violet-500/40'
+        : 'border-zinc-700/50 bg-zinc-800/20';
 
   return (
-    <div className={`glass-panel rounded-lg p-3 border transition-colors duration-200 ${cardClass}`}>
-      <div className="flex items-start justify-between gap-2 mb-1.5">
-        <div className="flex items-center gap-2">
-          <span className="text-lg leading-none">{cfg.icon}</span>
+    <div className={`glass-panel rounded-lg p-4 border transition-all duration-150 ${cardClass}`}>
+      <div className="flex items-start justify-between gap-3 mb-2">
+        <div className="flex items-center gap-2.5">
+          <span className="text-xl leading-none">{cfg.icon}</span>
           <div>
-            <p className="font-mono text-xs font-bold text-zinc-100 leading-tight">{cfg.label}</p>
-            <p className="font-mono text-[10px] text-zinc-400 mt-0.5">{cfg.effectSummary}</p>
+            <p className="font-mono text-sm font-bold text-zinc-100 leading-tight">{cfg.label}</p>
+            <p className="font-mono text-xs text-zinc-300 mt-0.5">{cfg.effectSummary}</p>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="flex flex-col items-end gap-1.5 shrink-0">
           <LevelPips current={level} max={cfg.maxLevel} />
-          <span className="font-mono text-[10px] text-zinc-400">Lv {level}/{cfg.maxLevel}</span>
+          <span className="font-mono text-xs text-zinc-300">Lv {level}/{cfg.maxLevel}</span>
         </div>
       </div>
 
-      <p className="font-mono text-[11px] text-zinc-300 leading-snug mb-2.5">
+      <p className="font-mono text-xs text-zinc-300 leading-relaxed mb-3">
         {cfg.description}
       </p>
 
-      <div className="flex items-center justify-between mt-auto">
+      <div className="flex items-center justify-between">
         {isMaxed ? (
-          <span className="font-mono text-xs font-bold text-green-400 uppercase tracking-widest">
+          <span className="font-mono text-sm font-bold text-green-400 uppercase tracking-widest">
             ✓ Max Level
           </span>
         ) : (
           <>
-            <span className={`font-mono text-sm font-bold tabular-nums ${canAfford ? 'text-cyan-400' : 'text-zinc-400'}`}>
-              {cost} <span className={`text-[10px] ${canAfford ? 'text-cyan-400/90' : 'text-zinc-500'}`}>IF</span>
+            <span className={`font-mono text-base font-bold tabular-nums ${canAfford ? 'text-cyan-400' : 'text-zinc-400'}`}>
+              {cost} <span className={`text-xs ${canAfford ? 'text-cyan-400/90' : 'text-zinc-500'}`}>IF</span>
             </span>
             <button
-              onClick={() => purchaseUpgrade(cfg.id)}
+              onClick={handlePurchase}
               disabled={!canAfford}
               className={[
-                'px-4 py-1.5 rounded border font-mono text-[11px] font-bold uppercase tracking-widest',
+                'px-6 py-2 rounded border font-mono text-xs font-bold uppercase tracking-widest',
                 'transition-all duration-150 active:scale-95',
                 canAfford
                   ? 'border-violet-500/50 text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 hover:border-violet-400 glow-violet'
@@ -165,22 +219,34 @@ function ConsumableItem({ itemId, label, description, cost }) {
   const intelFragments = useGameStore(s => s.intelFragments);
   const count          = useGameStore(s => s.consumables?.[itemId] ?? 0);
   const buyConsumable  = useGameStore(s => s.buyConsumable);
+  const [isPurchasing, setIsPurchasing] = useState(false);
   const canAfford      = intelFragments >= cost;
 
+  const handlePurchase = () => {
+    if (!canAfford) return;
+    AudioManager.playSFX('thock'); 
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([15, 30]);
+    setIsPurchasing(true);
+    setTimeout(() => setIsPurchasing(false), 300);
+    buyConsumable(itemId, cost);
+  };
+
   return (
-    <div className="glass-panel rounded-lg p-3 border border-zinc-700/50 flex items-center justify-between gap-2 bg-zinc-800/10">
+    <div className={`glass-panel rounded-lg p-4 border flex items-center justify-between gap-3 transition-all duration-150 ${
+      isPurchasing ? 'animate-purchase border-white bg-white/20' : 'border-zinc-700/50 bg-zinc-800/10'
+    }`}>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <p className="font-mono text-xs font-bold text-zinc-100">{label}</p>
-          <span className="font-mono text-[10px] font-bold text-violet-300 tabular-nums shrink-0">×{count}</span>
+        <div className="flex items-center gap-2 mb-1">
+          <p className="font-mono text-sm font-bold text-zinc-100">{label}</p>
+          <span className="font-mono text-xs font-bold text-violet-300 tabular-nums shrink-0">×{count}</span>
         </div>
-        <p className="font-mono text-[10px] text-zinc-400 truncate">{description}</p>
+        <p className="font-mono text-xs text-zinc-300 truncate">{description}</p>
       </div>
       <button
-        onClick={() => buyConsumable(itemId, cost)}
+        onClick={handlePurchase}
         disabled={!canAfford}
         className={[
-          'shrink-0 px-3 py-1.5 rounded border font-mono text-[11px] font-bold uppercase tracking-widest',
+          'shrink-0 px-5 py-2 rounded border font-mono text-xs font-bold uppercase tracking-widest',
           'transition-all duration-150 active:scale-95',
           canAfford
             ? 'border-violet-500/50 text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 hover:border-violet-400'
@@ -217,18 +283,8 @@ function BlackMarket() {
             // Dirty Tricks
           </p>
           <div className="space-y-3">
-            <ConsumableItem
-              itemId="rabbit"
-              label="RABBIT VIRUS"
-              description="Eats 50 FW HP over 5 seconds"
-              cost={150}
-            />
-            <ConsumableItem
-              itemId="ghost"
-              label="GHOST.sys"
-              description="Freezes Trace generation for 4 seconds"
-              cost={150}
-            />
+            <ConsumableItem itemId="rabbit" label="RABBIT VIRUS" description="Eats 50 FW HP over 5 seconds" cost={150} />
+            <ConsumableItem itemId="ghost" label="GHOST.sys" description="Freezes Trace generation for 4 seconds" cost={150} />
           </div>
         </div>
       )}
@@ -247,23 +303,18 @@ function NarrativeArchive({ onJackIn }) {
   const total     = storyFragments.length;
   const collected = storyArchive.length;
   const DECRYPT_COST = 50;
-
   const sortedIndices = [...storyArchive].sort((a, b) => a - b);
 
   return (
     <div>
       <div className="flex items-baseline justify-between mb-4">
-        <p className="font-mono text-xs font-bold uppercase tracking-widest text-green-300">
-          // Narrative Archive
-        </p>
-        <span className="font-mono text-xs font-bold text-zinc-300">
-          {collected}/{total} FRAGS
-        </span>
+        <p className="font-mono text-xs font-bold uppercase tracking-widest text-green-300">// Narrative Archive</p>
+        <span className="font-mono text-xs font-bold text-zinc-300">{collected}/{total} FRAGS</span>
       </div>
 
       {collected === 0 ? (
         <div className="glass-panel rounded-lg p-5 text-center border border-red-900/40 bg-red-950/30 relative overflow-hidden">
-          <p className="font-mono text-sm text-red-400 font-bold uppercase tracking-widest mb-2">[ SEC_CORRUPTED ]</p>
+          <p className="font-mono text-sm text-red-400 font-bold uppercase tracking-widest">[ SEC_CORRUPTED ]</p>
           <p className="font-mono text-xs text-red-400/90 leading-relaxed mb-1">0x000F4A: Drive completely fragmented.</p>
           <div className="w-full bg-red-950/80 h-2.5 rounded mt-4 mb-3 overflow-hidden border border-red-900/50">
              <div className="w-1/3 h-full bg-red-500/50 animate-pulse" />
@@ -281,7 +332,7 @@ function NarrativeArchive({ onJackIn }) {
               <div key={idx} className="glass-panel rounded-lg p-5 border border-green-500/20 bg-green-500/[0.03]">
                 <div className="flex items-center justify-between mb-3">
                   <p className={`font-mono text-[11px] font-bold uppercase tracking-widest ${isDecrypted ? 'text-green-400/80' : 'text-amber-500/90'}`}>
-                    Fragment #{String(idx + 1).padStart(3, '0')} — {isDecrypted ? 'Decoded' : 'Encrypted'}
+                    Fragment #{String(idx + 1).padStart(3, '0')}
                   </p>
                   <button
                     onClick={() => onJackIn('priority', true, idx + 1)}
@@ -501,7 +552,7 @@ function TabBar({ active, onChange }) {
 
   const tabs = [
     { id: 'debrief', label: 'DEBRIEF' },
-    { id: 'deck',    label: 'DECK' }, 
+    { id: 'deck',    label: 'DECK MANUAL' }, 
     { id: 'archive', label: 'ARCHIVE', showDot: collected > 0 },
   ];
 
@@ -544,7 +595,7 @@ function JobFooter({ isLocked, onJackIn }) {
   const lockClass = isLocked ? 'opacity-50 cursor-not-allowed pointer-events-none' : 'active:border-b active:translate-y-[2px]';
 
   return (
-    <div className="px-4 pt-3 pb-6 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2">
+    <div className="px-4 pt-3 pb-6 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-2" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
       <button
         onClick={() => onJackIn('skim')}
         disabled={isLocked}
@@ -603,7 +654,7 @@ function JobFooter({ isLocked, onJackIn }) {
 export default function TransitScene() {
   const [activeTab, setActiveTab] = useState('debrief');
   const [isLocked, setIsLocked]   = useState(true);
-  const [isJackingIn, setIsJackingIn] = useState(false); // <-- NEW STATE
+  const [isJackingIn, setIsJackingIn] = useState(false);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsLocked(false), 1000);
@@ -642,10 +693,9 @@ export default function TransitScene() {
   const phase = archiveLen >= 11 ? 3 : archiveLen >= 8 ? 2 : archiveLen >= 4 ? 1 : 0;
   const containerBg    = phase >= 3 ? { background: 'linear-gradient(180deg, #09090b 0%, #1a0505 50%, #09090b 100%)' } : undefined;
   
-  // Notice the extreme contrast/blur/opacity fade when jacking in!
   const transitionClass = isJackingIn 
     ? "contrast-150 saturate-200 brightness-150 blur-[2px] skew-x-1 scale-[1.02] opacity-0 transition-all duration-400 ease-in" 
-    : "transition-all duration-300";
+    : "opacity-100 transition-all duration-300";
 
   const containerClass = `flex flex-col h-full overflow-hidden ${(phase >= 3 && !reducedMotion) ? 'alarm-pulse' : ''} ${transitionClass}`;
 
@@ -700,7 +750,9 @@ export default function TransitScene() {
           <div className="flex items-center gap-4">
             <div className="flex items-baseline gap-1.5">
               <span className="font-mono text-[11px] font-bold text-cyan-300 uppercase tracking-widest">Balance</span>
-              <span className="font-mono text-2xl font-bold text-cyan-400 tabular-nums">{intelFragments}</span>
+              <p className="font-mono text-2xl font-bold text-cyan-400 tabular-nums">
+                <NumberScrambler value={intelFragments} />
+              </p>
               <span className="font-mono text-[11px] font-bold text-cyan-300 uppercase">IF</span>
             </div>
 

@@ -10,6 +10,8 @@
     height: 100%;
     margin: 0;
     padding: 0;
+    /* THE FIX: Force the base background color before the gradient */
+    background-color: #09090b !important;
     /* Deep radial vignette — outer edges bleed to pure black */
     background: radial-gradient(ellipse 90% 70% at 50% 40%, #0a0a0f 0%, #000000 100%);
     color: #a1a1aa;            /* zinc-400 */
@@ -17,6 +19,9 @@
       'Liberation Mono', 'Courier New', monospace;
     -webkit-font-smoothing: antialiased;
     overflow: hidden;
+    overscroll-behavior: none;
+    position: fixed;
+    width: 100%;
   }
 
   button {
@@ -439,4 +444,15 @@
   86%                 { opacity: 0.4;  }
   87%                 { opacity: 0.9;  }
   88%                 { opacity: 0.15; }
+}
+
+/* Purchase Flash Animation */
+@keyframes purchase-flash {
+  0% { filter: brightness(1); transform: scale(1); }
+  50% { filter: brightness(2) saturate(1.5); transform: scale(0.98); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+.animate-purchase {
+  animation: purchase-flash 0.3s ease-out;
 }
