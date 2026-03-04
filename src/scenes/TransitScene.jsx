@@ -6,6 +6,34 @@ import toolsConfig from '../data/toolsConfig.json';
 import AudioManager from '../utils/audioManager';
 import { corruptText } from '../utils/textUtils';
 
+// ─── Typewriter Text Effect ───────────────────────────────────────────────────
+function TypewriterText({ text, speed = 20 }) {
+  const [displayedText, setDisplayedText] = useState('');
+  const reducedMotion = useGameStore(s => s.settings?.reducedMotion);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setDisplayedText(text);
+      return;
+    }
+    
+    setDisplayedText('');
+    let i = 0;
+    
+    const interval = setInterval(() => {
+      setDisplayedText(text.slice(0, i));
+      i++;
+      if (i > text.length) {
+        clearInterval(interval);
+      }
+    }, speed);
+    
+    return () => clearInterval(interval);
+  }, [text, speed, reducedMotion]);
+
+  return <span>{displayedText}<span className="animate-pulse font-bold text-white">_</span></span>;
+}
+
 // ─── Number Scrambler (The Juice #3) ──────────────────────────────────────────
 
 function NumberScrambler({ value, className = "" }) {
@@ -718,39 +746,44 @@ function JobFooter({ isLocked, onJackIn }) {
     : 'active:border-b-[1px] active:translate-y-[3px]';
 
   return (
-    <div className="px-5 pt-4 pb-8 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 space-y-3" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 24px)' }}>
-      <button
-        onClick={() => onJackIn('skim')}
-        disabled={isLocked}
-        className={`w-full py-4 px-4 rounded-xl font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button flex flex-col items-center justify-center ${lockClass}`}
-      >
-        <span>Initiate Data Skim</span>
-        <span className="text-[10px] font-normal text-green-300/80 mt-1 normal-case tracking-normal">
-          Low-sec target · Low intel
-        </span>
-      </button>
-
-      {showPriority && (
+    <div className="px-4 pt-3 pb-6 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 flex flex-col gap-2" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}>
+      
+      {/* Top Row: Standard Missions (Side-by-Side) */}
+      <div className="flex gap-2 w-full">
         <button
-          onClick={() => onJackIn('priority')}
+          onClick={() => onJackIn('skim')}
           disabled={isLocked}
-          className={`w-full py-4 px-4 rounded-xl font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button flex flex-col items-center justify-center ${lockClass}`}
+          className={`flex-1 py-3 px-1 rounded-lg font-mono text-[11px] sm:text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button flex flex-col items-center justify-center text-center ${lockClass}`}
         >
-          <span>Pursue Priority Lead</span>
-          <span className="text-[10px] font-normal text-violet-300/80 mt-1 normal-case tracking-normal">
-            Secure target · Unlocks story
+          <span>Data Skim</span>
+          <span className="text-[8px] font-normal text-green-300/80 mt-1 normal-case tracking-normal">
+            Low-Sec Target
           </span>
         </button>
-      )}
 
+        {showPriority && (
+          <button
+            onClick={() => onJackIn('priority')}
+            disabled={isLocked}
+            className={`flex-1 py-3 px-1 rounded-lg font-mono text-[11px] sm:text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button flex flex-col items-center justify-center text-center ${lockClass}`}
+          >
+            <span>Priority Lead</span>
+            <span className="text-[8px] font-normal text-violet-300/80 mt-1 normal-case tracking-normal">
+              Unlock Story
+            </span>
+          </button>
+        )}
+      </div>
+
+      {/* Boss / Endgame Missions (Full Width) */}
       {showTartarus && (
         <button
           onClick={() => onJackIn('tartarus')}
           disabled={isLocked}
-          className={`w-full py-4 px-4 rounded-xl font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button flex flex-col items-center justify-center ${lockClass}`}
+          className={`w-full py-3 px-4 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button flex flex-col items-center justify-center ${lockClass}`}
         >
           <span>Assault Tartarus Node</span>
-          <span className="text-[10px] font-normal text-red-300/80 mt-1 normal-case tracking-normal">
+          <span className="text-[9px] font-normal text-red-300/80 mt-1 normal-case tracking-normal">
             400 HP · One chance. No retreat.
           </span>
         </button>
@@ -760,10 +793,10 @@ function JobFooter({ isLocked, onJackIn }) {
         <button
           onClick={() => onJackIn('darknet')}
           disabled={isLocked}
-          className={`w-full py-4 px-4 rounded-xl font-mono text-sm font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button flex flex-col items-center justify-center ${lockClass}`}
+          className={`w-full py-3 px-4 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button flex flex-col items-center justify-center ${lockClass}`}
         >
           <span>Access Darknet Router</span>
-          <span className="text-[10px] font-normal text-fuchsia-300/80 mt-1 normal-case tracking-normal">
+          <span className="text-[9px] font-normal text-fuchsia-300/80 mt-1 normal-case tracking-normal">
             Tier {darknetTier} · {150 + darknetTier * 50} HP
           </span>
         </button>
@@ -799,6 +832,7 @@ export default function TransitScene() {
   const handleJackIn = (type, isReplay = false, level = null) => {
     if (isLocked || isJackingIn) return;
     
+    // Play a heavy connection sound
     AudioManager.playSFX('thock'); 
     const settings = useGameStore.getState().settings;
     if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
@@ -807,16 +841,17 @@ export default function TransitScene() {
     
     setIsJackingIn(true);
     
+    // Extend the transition slightly to let the CSS animations play out
     setTimeout(() => {
       useGameStore.getState().startNewSession(type, isReplay, level);
-    }, 400); 
+    }, 700); // Increased from 400ms to 700ms for dramatic effect
   };
 
   const phase = archiveLen >= 11 ? 3 : archiveLen >= 8 ? 2 : archiveLen >= 4 ? 1 : 0;
   const containerBg    = phase >= 3 ? { background: 'linear-gradient(180deg, #09090b 0%, #1a0505 50%, #09090b 100%)' } : undefined;
   
   const transitionClass = isJackingIn 
-    ? "contrast-150 saturate-200 brightness-150 blur-[2px] skew-x-1 scale-[1.02] opacity-0 transition-all duration-400 ease-in" 
+    ? "contrast-[200%] saturate-200 brightness-[1.5] blur-[4px] scale-[1.1] opacity-0 transition-all duration-700 ease-in" 
     : "opacity-100 transition-all duration-300";
 
   const containerClass = `flex flex-col h-full overflow-hidden ${(phase >= 3 && !reducedMotion) ? 'alarm-pulse' : ''} ${transitionClass}`;
@@ -861,49 +896,34 @@ export default function TransitScene() {
         <div className="absolute inset-0 bg-cyan-300/20 mix-blend-overlay pointer-events-none z-50 animate-pulse" />
       )}
 
-      {/* --- CYBERDECK PUSH NOTIFICATION --- */}
+      {/* --- COMPACT TERMINAL INTERCEPT --- */}
       {!memoDismissed && (
-        <div className="px-4 pt-5 pb-2 z-20 relative animate-slide-down">
-          <div className="glass-panel rounded-2xl p-3 border border-zinc-700/60 bg-zinc-900/85 shadow-[0_8px_30px_rgba(0,0,0,0.6)] flex items-start gap-3 backdrop-blur-xl relative overflow-hidden">
+        <div className="px-4 pt-4 pb-1 z-20 relative animate-slide-down hacker-flicker">
+          <div className={`border-l-2 p-2 shadow-[4px_4px_0px_0px_rgba(0,0,0,0.4)] flex flex-col gap-1 relative overflow-hidden backdrop-blur-md ${
+            isAlchemist ? 'bg-red-950/40 border-red-500' : 'bg-fuchsia-950/20 border-fuchsia-500'
+          }`}>
             
-            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
-
-            <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center relative shadow-inner ${
-              isAlchemist ? 'bg-red-950/60 border-red-700/50 text-red-500' : 'bg-fuchsia-950/60 border-fuchsia-700/50 text-fuchsia-400'
-            }`}>
-              <span className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-900 animate-pulse ${
-                isAlchemist ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.8)]' : 'bg-fuchsia-400 shadow-[0_0_8px_rgba(217,70,239,0.8)]'
-              }`} />
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="current-color">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-              </svg>
-            </div>
-
-            <div className="flex-1 min-w-0 py-0.5">
-              <div className="flex justify-between items-baseline mb-0.5 relative z-10">
-                <span className={`font-mono text-[10px] font-bold tracking-wide ${isAlchemist ? 'text-red-400' : 'text-zinc-200'}`}>
-                  {isAlchemist ? 'SYS_THREAT' : 'SYS_MESSAGE'}
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="font-mono text-[9px] text-zinc-400 uppercase tracking-widest">
-                    just now
-                  </span>
-                  {/* DISMISS BUTTON */}
-                  <button 
-                    onClick={() => {
-                      AudioManager.playSFX('thock');
-                      setMemoDismissed(true);
-                    }}
-                    className="w-5 h-5 flex items-center justify-center bg-black/20 hover:bg-black/40 rounded-full text-zinc-400 hover:text-white transition-colors"
-                  >
-                    ×
-                  </button>
-                </div>
+            {/* Header Row */}
+            <div className="flex justify-between items-center w-full">
+              <div className="flex items-center gap-2">
+                 <span className={`w-1.5 h-1.5 animate-pulse ${isAlchemist ? 'bg-red-500' : 'bg-fuchsia-500'}`} />
+                 <span className={`font-mono text-[9px] font-black tracking-[0.2em] uppercase ${isAlchemist ? 'text-red-500' : 'text-fuchsia-500'}`}>
+                   {isAlchemist ? 'PRIORITY_THREAT' : 'SYS_COMMS'}
+                 </span>
               </div>
-              <p className="font-mono text-[11px] leading-snug text-zinc-300 break-words relative z-10 pr-2">
-                {statusText}
-              </p>
+              <button 
+                onClick={() => { AudioManager.playSFX('thock'); setMemoDismissed(true); }}
+                className="font-mono text-[9px] text-zinc-500 hover:text-white font-bold px-2"
+              >
+                [x]
+              </button>
             </div>
+
+            {/* Typewriter Text Row */}
+            <p className="font-mono text-[10px] leading-snug text-zinc-300 min-h-[14px]">
+              <span className={isAlchemist ? "text-red-400" : "text-fuchsia-400 font-bold"}>{"> "}</span>
+              <TypewriterText text={statusText} speed={15} />
+            </p>
 
           </div>
         </div>
