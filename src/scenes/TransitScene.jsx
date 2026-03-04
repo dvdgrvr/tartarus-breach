@@ -272,8 +272,8 @@ function BlackMarket() {
             // Dirty Tricks
           </p>
           <div className="space-y-3">
-            <ConsumableItem itemId="rabbit" label="RABBIT VIRUS" description="Eats 50 FW HP over 5 seconds" cost={150} />
-            <ConsumableItem itemId="ghost" label="GHOST.sys" description="Freezes Trace generation for 4 seconds" cost={150} />
+            <ConsumableItem itemId="rabbit" label="RABBIT VIRUS" description="Eats 50 FW HP over 5 seconds" cost={75} />
+            <ConsumableItem itemId="ghost" label="GHOST.sys" description="Freezes Trace generation for 4 seconds" cost={75} />
           </div>
         </div>
       )}
