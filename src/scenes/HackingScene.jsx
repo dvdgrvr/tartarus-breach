@@ -268,6 +268,56 @@ function ConsumableBar() {
   );
 }
 
+// ─── VISUAL VIRUS: THE RABBIT SWARM ──────────────────────────────────────────
+
+function VisualRabbits({ ticks }) {
+  if (ticks <= 0) return null;
+  
+  // Generates 15 independent rabbits that float up the screen at random speeds
+  const rabbits = Array.from({ length: 15 }).map((_, i) => {
+    const left = Math.random() * 100;
+    const delay = Math.random() * -3; // Negative delay so they start immediately
+    const duration = 1.5 + Math.random() * 2; // 1.5s to 3.5s speed
+    return (
+      <div 
+        key={i} 
+        className="absolute text-green-400 font-mono font-bold text-lg pointer-events-none animate-rabbit z-30"
+        style={{
+          left: `${left}%`,
+          animationDelay: `${delay}s`,
+          animationDuration: `${duration}s`,
+        }}
+      >
+        (\_/)
+      </div>
+    );
+  });
+
+  return <div className="absolute inset-0 pointer-events-none overflow-hidden">{rabbits}</div>;
+}
+
+// ─── THE DA VINCI SKULL ───────────────────────────────────────────────────────
+
+const ASCII_SKULL = `
+     .ed"""" """$$$$be.
+   -"           ^""**$$$e.
+ ."                   '$$$c
+/                      "4$$b
+d  3                      $$$$
+$  * .$$$$$$
+.$  ^c           $$$$$e$$$$$$$$.
+d$L  4.         4$$$$$$$$$$$$$$b
+$$$$b ^ceeeee.  4$$ECL.F*$$$$$$$
+$$$$P d$$$$F $ $$$$$$$$$- $$$$$$
+3$$$F "$$$$b   $"$$$$$$$  $$$$*"
+$$P"  "$$b   .$ $$$$$...e$$
+ *c    ..    $$ 3$$$$$$$$$$eF
+   %ce""    $$$  $$$$$$$$$$*
+    *$e.    *** d$$$$$"L$$
+     $$$      4J$$$$$% $$$
+    $"'$=e....$*$$**$cz$$"
+`;
+
 // ─── JUICE FIX #2: DAEMON ALERTS & CRITICAL SCREEN TEAR ──────────────────────
 
 export default function HackingScene() {
