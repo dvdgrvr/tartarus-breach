@@ -567,15 +567,17 @@
   left: -50%;
   width: 200%;
   height: 120%;
-  /* CHANGED: Doubled the opacity of the cyan lines so they punch through the dark background */
+  /* CHANGED: Boosted opacity to 0.7 and 0.4 for higher visibility on mobile displays */
   background-image: 
-    linear-gradient(to top, rgba(34, 211, 238, 0.45) 1px, transparent 1px), 
-    linear-gradient(to right, rgba(34, 211, 238, 0.25) 1px, transparent 1px);
+    linear-gradient(to top, rgba(34, 211, 238, 0.7) 1px, transparent 1px), 
+    linear-gradient(to right, rgba(34, 211, 238, 0.4) 1px, transparent 1px);
   background-size: 40px 40px;
   transform: rotateX(75deg);
   animation: gibson-scroll 1s linear infinite;
-  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 80%);
-  mask-image: linear-gradient(to top, rgba(0,0,0,1) 10%, rgba(0,0,0,0) 80%);
+  
+  /* CHANGED: Started the mask later (30%) so the grid stays fully visible longer before fading */
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 90%);
+  mask-image: linear-gradient(to top, rgba(0,0,0,1) 30%, rgba(0,0,0,0) 90%);
 }
 @keyframes gibson-scroll {
   0% { background-position: 0 0; }
