@@ -21,7 +21,7 @@
     "description": "Scramble signatures. Drops trace drastically, but fries your rig (massive heat spike).",
     "color": "blue",
     "baseCooldown": 20,
-    "baseEffect": { "firewallDamage": 0, "traceGain": -30, "heatGain": 30 }
+    "baseEffect": { "firewallDamage": 0, "traceGain": -30, "heatGain": 20 }
   },
   {
     "id": "DECRYPT",
