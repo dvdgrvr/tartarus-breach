@@ -4,6 +4,7 @@ import upgradesConfig from '../data/upgradesConfig.json';
 import storyFragments from '../data/storyFragments.json';
 import toolsConfig from '../data/toolsConfig.json';
 import AudioManager from '../utils/audioManager';
+import { corruptText } from '../utils/textUtils';
 
 // ─── Number Scrambler (The Juice #3) ──────────────────────────────────────────
 
@@ -45,18 +46,6 @@ function NumberScrambler({ value, className = "" }) {
   }, [value]);
 
   return <span className={className}>{displayValue}</span>;
-}
-
-// ─── Corrupt Text ─────────────────────────────────────────────────────────────
-
-function corruptText(text) {
-  const chars = '!<>-_\\\\/[]{}—=+*^?#_';
-  return text.split('').map(char => {
-    if (char.match(/[a-zA-Z0-9]/) && Math.random() > 0.3) {
-      return chars[Math.floor(Math.random() * chars.length)];
-    }
-    return char;
-  }).join('');
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

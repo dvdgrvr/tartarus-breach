@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import useGameStore from '../store/useGameStore';
 import storyFragments from '../data/storyFragments.json';
-import { corruptText } from '../scenes/TransitScene';
+import { corruptText } from "../utils/textUtils";
 
 const TARTARUS_SCRIPT =
 `[SYSTEM]: Trace at 99%. Safety Orange override active.
