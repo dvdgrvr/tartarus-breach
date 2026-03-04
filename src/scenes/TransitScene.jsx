@@ -54,54 +54,120 @@ function calcUpgradeCost(cfg, currentLevel) {
   return Math.floor(cfg.baseCost * Math.pow(cfg.costScaling, currentLevel));
 }
 
-// ─── Session Summary ──────────────────────────────────────────────────────────
+// ─── Session Summary (The After-Action Report) ────────────────────────────────
 
 const OUTCOME_BADGE = {
   initial:      { label: 'SYSTEM ONLINE',                className: 'text-cyan-400  border-cyan-500/40  bg-cyan-500/10'     },
-  success:      { label: 'SYSTEM BREACHED',              className: 'text-green-400 border-green-500/40 bg-green-500/10'    },
-  escaped:      { label: 'TACTICAL RETREAT',             className: 'text-amber-400 border-amber-500/40 bg-amber-500/10'    },
-  trace_busted: { label: 'CONNECTION SEVERED. 0 INTEL.', className: 'text-red-400   border-red-500/40   bg-red-500/10'      },
-  heat_busted:  { label: 'SAFEHOUSE RAIDED. INTEL LOST.',className: 'text-red-400   border-red-500/40   bg-red-500/10 animate-pulse' },
+  success:      { label: 'SYSTEM BREACHED',              className: 'text-green-400 border-green-500/40 bg-green-500/10 shadow-[0_0_10px_rgba(34,197,94,0.2)]' },
+  escaped:      { label: 'TACTICAL RETREAT',             className: 'text-amber-400 border-amber-500/40 bg-amber-500/10 shadow-[0_0_10px_rgba(245,158,11,0.2)]' },
+  trace_busted: { label: 'CONNECTION SEVERED. 0 INTEL.', className: 'text-red-400   border-red-500/40   bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.2)]' },
+  heat_busted:  { label: 'SAFEHOUSE RAIDED. INTEL LOST.',className: 'text-red-400   border-red-500/40   bg-red-500/10 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]' },
 };
 
 function SessionSummary() {
-  const earned  = useGameStore(s => s.sessionIntelEarned);
-  const heat    = useGameStore(s => s.packUpHeat);
-  const trace   = useGameStore(s => s.packUpTrace);
-  const outcome = useGameStore(s => s.transitOutcome);
+  const earned    = useGameStore(s => s.sessionIntelEarned);
+  const heat      = useGameStore(s => s.packUpHeat);
+  const trace     = useGameStore(s => s.packUpTrace);
+  const outcome   = useGameStore(s => s.transitOutcome);
+  const node      = useGameStore(s => s.currentNode);
+  const terminal  = useGameStore(s => s.terminalLog || []);
+  const isPerfect = useGameStore(s => s.isPerfectBreach);
 
   const badge = OUTCOME_BADGE[outcome] ?? OUTCOME_BADGE.escaped;
+  
+  // --- SIGNAL-TO-NOISE FILTER ---
+  // Strip out repetitive Siphon spam and UI prompts so the Black Box 
+  // only shows the dramatic breach/escape/bust sequence.
+  const filteredLogs = terminal.filter(log => 
+    !log.includes('SIPHONING...') && 
+    !log.includes('AWAITING MANUAL DISCONNECT')
+  );
+  
+  // Grab the last 4 *meaningful* lines
+  const finalLogs = filteredLogs.slice(-4);
+  const isGhostExit = outcome === 'escaped' && (trace >= 95 || heat >= 95);
 
   return (
-    <div className="glass-panel rounded-lg p-4 mb-5">
-      <div className="flex items-center justify-between mb-3">
-        <p className="font-mono text-xs font-bold uppercase tracking-widest text-cyan-300">
-          // Session Log
+    <div className="flex flex-col gap-4 mb-5">
+      
+      {/* 1. Target Profile */}
+      <div className="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-zinc-900/30">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
+          // Target Node
         </p>
-        <span className={`font-mono text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border ${badge.className}`}>
-          {badge.label}
-        </span>
+        <p className="font-mono text-sm font-bold text-zinc-200 truncate">
+          {node?.name || 'UNKNOWN_TARGET'}
+        </p>
+        <p className="font-mono text-[10px] text-zinc-400 mt-1 uppercase tracking-widest">
+          Sec_Profile: <span className="text-cyan-400/80">{node?.specialDefense?.replace('_', ' ') || 'STANDARD'}</span>
+        </p>
       </div>
-      <div className="space-y-2.5">
-        <div className="flex justify-between items-center">
-          <span className="font-mono text-sm text-zinc-300">Intel Harvested</span>
-          <span className="font-mono text-base font-bold text-green-400">
-            +<NumberScrambler value={earned} /> <span className="text-green-400/90 text-xs">IF</span>
+
+      {/* 2. Core Metrics */}
+      <div className="glass-panel rounded-lg p-4">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800/50">
+          <p className="font-mono text-xs font-bold uppercase tracking-widest text-cyan-300">
+            // After-Action Report
+          </p>
+          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border ${badge.className}`}>
+            {badge.label}
           </span>
         </div>
-        <div className="flex justify-between items-center">
-          <span className="font-mono text-sm text-zinc-300">Heat at Exit</span>
-          <span className={`font-mono text-base font-bold ${heat >= 80 ? 'text-red-400' : heat >= 50 ? 'text-orange-400' : 'text-zinc-200'}`}>
-            {heat.toFixed(0)}%
-          </span>
+        
+        <div className="space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="font-mono text-sm text-zinc-300">Intel Harvested</span>
+            <span className={`font-mono text-base font-bold ${earned > 0 ? 'text-green-400 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'text-zinc-500'}`}>
+              +{earned > 0 ? <NumberScrambler value={earned} /> : '0'} <span className="text-xs opacity-80">IF</span>
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="font-mono text-sm text-zinc-300">Heat at Exit</span>
+            <span className={`font-mono text-base font-bold tabular-nums ${heat >= 80 ? 'text-red-400 drop-shadow-[0_0_5px_rgba(248,113,113,0.5)]' : heat >= 50 ? 'text-orange-400' : 'text-zinc-400'}`}>
+              {heat.toFixed(0)}%
+            </span>
+          </div>
+          <div className="flex justify-between items-center">
+            <span className="font-mono text-sm text-zinc-300">Trace at Exit</span>
+            <span className={`font-mono text-base font-bold tabular-nums ${trace >= 80 ? 'text-red-400 drop-shadow-[0_0_5px_rgba(248,113,113,0.5)]' : trace >= 50 ? 'text-orange-400' : 'text-zinc-400'}`}>
+              {trace.toFixed(0)}%
+            </span>
+          </div>
         </div>
-        <div className="flex justify-between items-center">
-          <span className="font-mono text-sm text-zinc-300">Trace at Exit</span>
-          <span className={`font-mono text-base font-bold ${trace >= 80 ? 'text-red-400' : trace >= 50 ? 'text-orange-400' : 'text-zinc-200'}`}>
-            {trace.toFixed(0)}%
-          </span>
+
+        {/* Tactical Commendations */}
+        {(isPerfect || isGhostExit) && (
+          <div className="mt-4 pt-3 border-t border-zinc-800/50 flex gap-2">
+            {isPerfect && (
+              <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-fuchsia-500/10 text-fuchsia-300 border border-fuchsia-500/30">
+                + PERFECT BREACH BONUS
+              </span>
+            )}
+            {isGhostExit && (
+              <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded bg-slate-400/10 text-slate-300 border border-slate-400/30">
+                + GHOST EXIT BONUS
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 3. Black Box Recording (Terminal Snapshot) */}
+      <div className="glass-panel rounded-lg p-3 bg-black border border-zinc-800 relative overflow-hidden">
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-green-900/10 pointer-events-none" />
+        <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-zinc-600 mb-2 relative z-10">
+          // BLACK_BOX_RECORDING.log
+        </p>
+        <div className="font-mono text-[10px] text-green-500/70 space-y-1 relative z-10">
+          {finalLogs.map((logLine, i) => (
+            <p key={i} className="leading-tight pl-2 -indent-2 break-words">
+              {logLine}
+            </p>
+          ))}
         </div>
       </div>
+
     </div>
   );
 }
