@@ -603,16 +603,23 @@ export default function HackingScene() {
           <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />
         </div>
 
-        <div className="border-t border-zinc-800/60 py-1 bg-zinc-950/60 backdrop-blur-sm">
+        <div className="border-t border-zinc-800/60 pt-1 pb-0.5 bg-zinc-950/60 backdrop-blur-sm shrink-0">
           <FirewallRow />
           <TraceRow />
         </div>
 
-        <div className="bg-zinc-950/60 backdrop-blur-sm">
-          <ConsumableBar />
+        {/* ONLY show Consumables while actively hacking. Also added shrink-0 so it doesn't get squished! */}
+        {status === 'hacking' && (
+          <div className="bg-zinc-950/60 backdrop-blur-sm shrink-0">
+            <ConsumableBar />
+          </div>
+        )}
+
+        {/* Wrap CommandBar in shrink-0 so the buttons stay their full size */}
+        <div className="shrink-0 bg-zinc-950">
+          <CommandBar />
         </div>
 
-        <CommandBar />
       </div>
 
       <BottomBorder />
