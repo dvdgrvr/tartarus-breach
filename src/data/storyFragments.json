@@ -1,50 +1,46 @@
 [
   {
     "id": "FRAG_01",
-    "text": "[ERR_RST] Connection dropped. PCAP analysis confirms external sever. Someone cut the cord on Banshee's dive. This wasn't hostile DAEMON. It was an inside job."
+    "text": "Vertex Memo: Project Tartarus kernel is built on 1990s 'Ghost-Code.' Developers refer to a 'Skeleton Key'—a master backdoor. Management refuses to patch. They've built an 'Iron Curtain' around the bug."
   },
   {
     "id": "FRAG_02",
-    "text": "FWD: FWD: Asset Cleanup. \"Tell the cleaners to bill it under 'Server Maintenance'. And scrub the transit logs for those three runners. I don't want a paper trail.\""
+    "text": "Security Audit: Employee #8821 fired for 'Unauthorized Curiosity.' Accessed files regarding 'Project Mirror.' Notes indicate the Node isn't just storing data; it’s harvesting human behavior patterns."
   },
   {
     "id": "FRAG_03",
-    "text": "Slack Export - Channel: #net-sec. @devin: \"Stop spamming the DECRYPT tool on the outer perimeter. It's redlining the physical heat sensors on your rigs. Do it again and I'm revoking your access.\""
+    "text": "Intercepted Audio: 'We don't need soldiers. We need kids who grew up on arcade sticks. People who see the grid as a playground. When they hit 90% Trace, their heart rates stabilize. Capture them.'"
   },
   {
     "id": "FRAG_04",
-    "text": "Recovered Audio Fragment: \"...they knew we were coming. Vanguard, if you're hearing this, burn your rig. They have our IPs. They're taking us to the old— [STATIC]\""
+    "text": "File Index: 'G-FILE_001'. Contains encrypted routing for every major bank. This isn't garbage. This is the master list of every 'backdoor' Vertex uses to tax the world."
   },
   {
     "id": "FRAG_05",
-    "text": "Invoice #8849-B: 'Sedatives, Class 4. Qty: 3.' Delivery destination: OMNI-CORP SUB-LEVEL 4 (Defunct Metro line)."
+    "text": "Personal File (Alchemist): The Operator is efficient. I see Masha’s influence in their code. It’s sentimental. Predictable. I’ll enjoy watching the deck melt when I trigger Phase 4."
   },
   {
     "id": "FRAG_06",
-    "text": "Memo - DAEMON Protocol Update. \"Once a hostile trace hits 80%, the system now auto-accelerates. The window to disconnect closes to seconds. If they don't pack up before 80, we own them.\""
+    "text": "Instructional: In the event of a Level 5 Breach, the Tartarus Node will initiate 'The Burn.' It sends a high-voltage feedback loop to the intruder's hardware. Total hardware destruction is the goal."
   },
   {
     "id": "FRAG_07",
-    "text": "Automated ping. Handshake failed. Metadata attached: 'Vanguard, it's Cipher. Trench is hurt. They have us in a Faraday cage under the city. Need an exit strategy.'"
+    "text": "Journal Entry: I didn't tell him everything. The Skeleton Key isn't just code. It’s a personality backup of the original dev. If it's uploaded, it resets the web, but it might fry the user."
   },
   {
     "id": "FRAG_08",
-    "text": "Direct Message - @k.osborne: \"The Faraday cage is holding, but the internal firewall is a beast. 130 HP minimum. Don't even try brute forcing with a standard Scan.\""
+    "text": "Email Chain: 'The Alchemist is taking this too personally. If he doesn't secure the Node by midnight, we initiate the global lockout. Every citizen loses access. Blame the hackers.'"
   },
   {
     "id": "FRAG_09",
-    "text": "Terminal Log: Internal breach attempt detected. User: Cipher. \"Can't bypass without an upgraded payload. Need more RAM to cycle tools faster. Vanguard, hope you're farming intel out there.\""
+    "text": "System Architecture: The Node is a mirror. It records global desires and sells them back. The Skeleton Key breaks the mirror. The results will be chaotic. Total digital anarchy."
   },
   {
     "id": "FRAG_10",
-    "text": "Routing table decrypted. The dummy corp is 'Apex Logistics'. Following the traffic... it all funnels into a single, massive localized server. The Tartarus Node."
+    "text": "Security Alert: All automated firewalls exhausted. Switching to Manual Intervention. CSO 'Alchemist' has hard-lined into the stream. Intruders will be identified and neutralized physically."
   },
   {
     "id": "FRAG_11",
-    "text": "[SYSTEM ALERT] TARGET ACQUIRED. // NODE: TARTARUS. // IP SECURED. They are holding them behind this wall. This is a one-way trip. Time to break them out."
-  },
-  {
-    "id": "FRAG_12",
-    "text": "> root_access_granted. > executing: cell_release.sh. > STATUS: UNLOCKED. // COMM CHANNEL OPEN. \"Vanguard to team. I see you. Let's go home.\""
+    "text": "TERMINAL OVERRIDE: 'Operator. Masha is burning the world because she couldn't own it. Disconnect now for a Board seat. Stay, and you're a martyr for a dead 90s dream. Choose.'"
   }
 ]

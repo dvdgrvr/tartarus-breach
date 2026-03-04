@@ -692,19 +692,32 @@ export default function TransitScene() {
   const containerClass = `flex flex-col h-full overflow-hidden ${(phase >= 3 && !reducedMotion) ? 'alarm-pulse' : ''} ${transitionClass}`;
 
   // --- ACT-BASED NARRATIVE INJECTION ---
-  const currentAct = getCurrentAct();
-  let statusText = "";
-  let statusClass = "";
-  
-  if (currentAct === 1) {
-    statusText = "// MASHA: The night shift logs are slower. Work the gap.";
-    statusClass = "text-cyan-400 font-bold";
-  } else if (currentAct === 2) {
-    statusText = "// MASHA: Careful. I'm seeing black sedans in your grid. Stay focused.";
-    statusClass = "text-amber-400/90 font-bold";
-  } else {
+  const MASHA_MEMOS = [
+    "// MASHA: The night shift logs are slower. Find a Priority Lead and work the gap.",
+    "// MASHA: Ghost-Code? I knew it. They didn't build a new world. They built a cage around the old one.",
+    "// MASHA: They aren't just watching what we do, they're learning why we do it. Creepy.",
+    "// MASHA: They’re profiling us. They aren't just tracing your IP... they're tracing you.",
+    "// MASHA: Jackpot. If the underground sees this, Vertex is finished. You’re becoming an Elite real fast, kid.",
+    "// MASHA: He mentioned my name. How does he— [ERROR: SIGNAL_NOISE] —Operator, we need to move. Fast.",
+    "// MASHA: They're trying to fry your Deck. I'm injecting some heat-sink code, but stay under that 95% limit!",
+    "// MASHA: You weren't supposed to see that. Look, I have a plan to save you, okay? Just... trust me.",
+    "// MASHA: They're going to shut down the whole world and blame us? Not on my watch.",
+    "// MASHA: Anarchy is better than a cage. We’re at the Core. This is it.",
+    "// MASHA: Trace is at 98%! Push it! Redline the deck and upload the Key! DO IT NOW!",
+    "// MASHA: HE'S LYING! Don't be a suit, be an ELITE! One. Last. Breach. Sync the world, Operator!",
+  ];
+
+  let statusText = MASHA_MEMOS[Math.min(archiveLen, MASHA_MEMOS.length - 1)];
+  let statusClass = "text-fuchsia-400 font-bold"; // Neon Purple for Masha
+
+  // If Alchemist takes over or endgame is reached
+  if (archiveLen >= 11) {
     statusText = "!! ALCHEMIST: YOUR MAC ADDRESS IS LOGGED. THERE IS NO ESCAPE. !!";
-    statusClass = "text-red-500 red-blink font-bold";
+    statusClass = "text-orange-500 red-blink font-bold"; // Safety Orange for Alchemist
+  }
+  if (hasBeatenGame) {
+    statusText = "// MASHA: The mirror is broken. Vertex is blind. We actually did it. [OFFLINE]";
+    statusClass = "text-fuchsia-400 font-bold opacity-70";
   }
 
   const headerColor = phase >= 2 ? 'text-red-500' : 'text-zinc-100';

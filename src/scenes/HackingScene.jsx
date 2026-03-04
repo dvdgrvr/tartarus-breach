@@ -384,11 +384,13 @@ export default function HackingScene() {
 
   let popupConfig = null;
   if (status === 'resolved') {
+    const isTartarus = useGameStore.getState().currentJobType === 'tartarus';
+    
     if (transitOutcome === 'success') {
       popupConfig = {
-        title: 'ACCESS GRANTED',
-        sub: isPerfectBreach ? 'PERFECT BREACH EXECUTION' : 'NODE FIREWALL BYPASSED',
-        intel: `PAYLOAD SECURED: +${sessionIntelEarned} IF`,
+        title: isTartarus ? 'THE PLANET IS HACKED' : 'ACCESS GRANTED',
+        sub: isTartarus ? 'Vertex is blind. We actually did it.' : (isPerfectBreach ? 'PERFECT BREACH EXECUTION' : 'NODE FIREWALL BYPASSED'),
+        intel: isTartarus ? 'SKELETON_KEY.EXE EXECUTED' : `PAYLOAD SECURED: +${sessionIntelEarned} IF`,
         border: 'border-green-500/60',
         headerBg: 'bg-green-500/20',
         titleColor: 'text-green-400',
@@ -405,14 +407,16 @@ export default function HackingScene() {
         shadow: 'shadow-[0_0_40px_rgba(245,158,11,0.15)]'
       };
     } else {
+      // The Failure States
+      const isHeat = transitOutcome === 'heat_busted';
       popupConfig = {
-        title: 'ACCESS DENIED',
-        sub: transitOutcome === 'trace_busted' ? 'TRACE CRITICAL' : 'SAFEHOUSE RAIDED',
+        title: isHeat ? 'HARDWARE FAILURE' : 'TRACE CRITICAL',
+        sub: isHeat ? 'Core temp exceeded safety limits. Lithium-ion breach imminent.' : 'IP Leaked. Remote lockout initiated by CSO_ALCHEMIST.',
         intel: 'INTEL WIPED : 0 IF',
-        border: 'border-red-500/60',
-        headerBg: 'bg-red-500/20',
-        titleColor: 'text-red-500',
-        shadow: 'shadow-[0_0_40px_rgba(239,68,68,0.2)]'
+        border: 'border-orange-500/60', // Safety Orange
+        headerBg: 'bg-orange-500/20',
+        titleColor: 'text-orange-500',
+        shadow: 'shadow-[0_0_40px_rgba(249,115,22,0.2)]'
       };
     }
   }

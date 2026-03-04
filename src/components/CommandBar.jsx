@@ -289,12 +289,17 @@ export default function CommandBar() {
               <GlitchLabel text={tool.label} isDanger={digitalTrace >= 85 && (settings?.glitchEnabled ?? true)} />
             </div>
             
-            {onCooldown && (
-              <div 
-                className={`absolute bottom-0 left-0 w-full transition-all duration-1000 ease-linear z-20 ${activeFill}`}
-                style={{ height: `${fillPercent}%` }} 
-              />
-            )}
+            {/* The fill div is always rendered to allow CSS transitions to finish smoothly */}
+            <div 
+              className={`absolute bottom-0 left-0 w-full transition-all ease-linear z-20 ${activeFill}`}
+              style={{ 
+                height: `${fillPercent}%`,
+                // Snap to 0 instantly when clicked, then smoothly slide up
+                transitionDuration: cooldown === maxCooldown ? '0ms' : '1000ms',
+                // Fade out softly as it hits 100% instead of instantly popping out of existence
+                opacity: cooldown > 0 ? 1 : 0
+              }} 
+            />
 
             {onCooldown && (
               <div className="absolute top-1.5 right-2 pointer-events-none z-30">
