@@ -36,6 +36,42 @@
   ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
 }
 
+/* ─── Hacker Aesthetic Overlays (NEW) ───────────────────────────────────────── */
+
+/* Global scanline overlay - adds analog hardware texture */
+.crt-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+              linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+  background-size: 100% 3px, 3px 100%;
+  z-index: 9999;
+  opacity: 0.18;
+}
+
+/* Visual Static/Grain - makes the screen feel alive */
+.terminal-grain {
+  position: fixed;
+  inset: 0;
+  background-image: url("https://grainy-gradients.vercel.app/noise.svg");
+  filter: contrast(150%) brightness(100%);
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 9998;
+}
+
+@keyframes hacker-flicker {
+  0% { opacity: 0.98; }
+  5% { opacity: 0.94; }
+  10% { opacity: 0.99; }
+  100% { opacity: 1; }
+}
+
+.hacker-flicker {
+  animation: hacker-flicker 0.15s infinite;
+}
+
 /* ─── Scanline overlay — CRT glass feel, conditionally rendered from React ─────── */
 /* Rendered as a <div className="crt-scanlines" /> when settings.crtEnabled is true */
 .crt-scanlines {
@@ -54,6 +90,14 @@
 
 /* ─── Utility Components ──────────────────────────────────────────────────────── */
 @layer components {
+
+  /* Brutalist Intercept Panel (NEW) - replaces soft glass bubbles */
+  .intercept-panel {
+    background: #000000;
+    border-left: 4px solid #d946ef; /* Fuchsia-600 */
+    box-shadow: 6px 6px 0px 0px rgba(217, 70, 239, 0.2);
+  }
+
   /* Subtle brightness/opacity flicker */
   @keyframes logo-flicker {
     0%, 19.999%, 22%, 62.999%, 64%, 64.999%, 70%, 100% { opacity: 1; filter: brightness(1); }
