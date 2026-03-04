@@ -5,6 +5,59 @@ import CommandBar from '../components/CommandBar';
 import useGameStore from '../store/useGameStore';
 import AudioManager from '../utils/audioManager';
 
+// ─── MODIFIER DATA (For Quick Look) ──────────────────────────────────────────
+
+const DIAGNOSTIC_MAP = {
+  // Safehouse Traits
+  Standard:    { icon: '⚪', label: 'STANDARD',    desc: 'Default operational parameters.' },
+  Shielded:    { icon: '🛡️', label: 'SHIELDED',    desc: '-20% Heat generation, +10% RAM cooldowns.' },
+  Ghost:       { icon: '👻', label: 'GHOST_SYS',   desc: '-20% Trace generation, -10% FW damage.' },
+  Efficient:   { icon: '♻️', label: 'EFFICIENT',   desc: '+20% Intel earned, +15% Heat generation.' },
+  Overclocked: { icon: '⚡', label: 'OVERCLOCKED', desc: '+20% FW damage, +15% Trace generation.' },
+  // Node Defenses
+  ENCRYPTED_LOGS:    { icon: '🔑', label: 'ENCRYPTED',  desc: 'Firewall metrics obfuscated. Run DECRYPT to reveal.' },
+  TRACE_ACCELERATOR: { icon: '📡', label: 'TRACE_X2',    desc: 'Advanced tracking. Passive Trace rate x2.' },
+  DARKNET:           { icon: '🌑', label: 'DARKNET',    desc: 'Encrypted router. High trace, massive defenses.' },
+};
+
+// ─── KERNEL DIAGNOSTIC OVERLAY (Quick Look) ──────────────────────────────────
+
+function KernelDiagnostic({ modifierId, onClose }) {
+  const data = DIAGNOSTIC_MAP[modifierId];
+  
+  // TRIGGER: Play scan sound when diagnostic mounts
+  useEffect(() => {
+    AudioManager.playSFX('scan');
+  }, []);
+
+  if (!data) return null;
+
+  return (
+    <div 
+      className="absolute inset-0 z-[100] bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center p-6 animate-in fade-in duration-200"
+      onClick={onClose} 
+    >
+      <div className="w-full max-w-xs border-l-4 border-cyan-500 bg-zinc-950 p-4 shadow-[10px_10px_0px_0px_rgba(6,182,212,0.2)]">
+        <div className="flex items-center gap-3 mb-3 border-b border-zinc-800 pb-2">
+          <span className="text-xl">{data.icon}</span>
+          <span className="font-mono text-sm font-black text-cyan-400 tracking-widest uppercase">
+            DIAGNOSTIC::{data.label}
+          </span>
+        </div>
+        
+        <p className="font-mono text-[11px] leading-relaxed text-zinc-300 uppercase italic">
+          {data.desc}
+        </p>
+
+        <div className="mt-5 flex justify-between items-center opacity-50">
+          <span className="font-mono text-[9px] text-zinc-500 animate-pulse">[ SCANNING... ]</span>
+          <span className="font-mono text-[9px] text-zinc-500 underline uppercase tracking-tighter">Tap to resume</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── GARBAGE DATA GENERATOR (For Busted State) ──────────────
 function KernelPanicOverlay() {
   const [garbage, setGarbage] = useState([]);
@@ -33,12 +86,6 @@ function KernelPanicOverlay() {
   );
 }
 
-const DEFENSE_BADGE = {
-  ENCRYPTED_LOGS:    { label: 'ENCRYPTED',  color: 'text-amber-400  border-amber-500/30  bg-amber-500/10'  },
-  TRACE_ACCELERATOR: { label: 'TRACE x2',   color: 'text-red-400    border-red-500/30    bg-red-500/10'    },
-  DARKNET:           { label: 'DARKNET',     color: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10' },
-};
-
 const SAFEHOUSE_TRAIT_COLOR = {
   cyan:    'text-cyan-400    border-cyan-500/30    bg-cyan-500/10',
   amber:   'text-amber-400   border-amber-500/30   bg-amber-500/10',
@@ -47,7 +94,7 @@ const SAFEHOUSE_TRAIT_COLOR = {
   fuchsia: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10',
 };
 
-function NodeStatusStrip() {
+function NodeStatusStrip({ onInspect }) {
   const node      = useGameStore(s => s.currentNode);
   const heat      = useGameStore(s => s.physicalHeat);
   const safehouse = useGameStore(s => s.currentSafehouse);
@@ -59,6 +106,7 @@ function NodeStatusStrip() {
 
   const traitColor = SAFEHOUSE_TRAIT_COLOR[safehouse?.color] ?? SAFEHOUSE_TRAIT_COLOR.cyan;
   const showTrait  = safehouse?.trait && safehouse.trait !== 'Standard';
+  const traitData  = DIAGNOSTIC_MAP[safehouse?.trait];
 
   return (
     <div className="px-4 py-1.5 border-b border-zinc-800/50 flex items-center justify-between gap-2 bg-zinc-900/40">
@@ -67,14 +115,30 @@ function NodeStatusStrip() {
       </span>
 
       <div className="flex items-center gap-2 shrink-0">
+        {/* Safehouse Trait Icon Button */}
         {showTrait && (
-          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border ${traitColor}`} title={safehouse.desc}>
-            [{safehouse.trait}]
-          </span>
+          <button 
+            onClick={() => onInspect(safehouse.trait)}
+            className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border ${traitColor} active:scale-95 transition-transform flex items-center gap-1.5`}
+          >
+            <span>{traitData?.icon}</span>
+            <span className="hidden sm:inline">[{safehouse.trait}]</span>
+          </button>
+        )}
+
+        {/* Node Defense Icon Button */}
+        {node.specialDefense && (
+          <button 
+            onClick={() => onInspect(node.specialDefense)}
+            className="font-mono text-[10px] font-black px-1.5 py-0.5 rounded-sm border border-red-950 bg-red-900/20 text-red-500 animate-pulse flex items-center gap-1.5 active:scale-95"
+          >
+            <span>{DIAGNOSTIC_MAP[node.specialDefense]?.icon}</span>
+            <span className="hidden sm:inline uppercase tracking-tighter">DEFENSE</span>
+          </button>
         )}
 
         {isHeatWarning && (
-          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm ${isHeatCritical ? 'text-red-400 bg-red-500/10 animate-pulse' : 'text-orange-400 bg-orange-500/10'}`}>
+          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm ${isHeatCritical ? 'text-red-400 bg-red-500/10 animate-pulse border border-red-500/50' : 'text-orange-400 bg-orange-500/10'}`}>
             HEAT: {heat.toFixed(0)}%
           </span>
         )}
@@ -359,6 +423,9 @@ const MENACING_SKULL_FACE = `
 `;
 
 export default function HackingScene() {
+  // --- QUICK LOOK STATE ---
+  const [inspectingModifier, setInspectingModifier] = useState(null);
+
   const trace = useGameStore(s => s.digitalTrace);
   const heat  = useGameStore(s => s.physicalHeat);
   
@@ -368,6 +435,7 @@ export default function HackingScene() {
   const reducedMotion      = useGameStore(s => s.settings?.reducedMotion);
   const sessionIntelEarned = useGameStore(s => s.sessionIntelEarned);
   const settings           = useGameStore(s => s.settings);
+  const setPaused          = useGameStore(s => s.setPaused);
 
   const systemOverride  = useGameStore(s => s.systemOverride);
   const resolveOverride = useGameStore(s => s.resolveOverride);
@@ -386,6 +454,29 @@ export default function HackingScene() {
   const prevDaemon = useRef(activeDaemon);
 
   const hapticsEnabled = useGameStore(s => s.settings?.hapticsEnabled);
+
+  // --- HANDLE INSPECT ---
+  const handleInspect = (id) => {
+    AudioManager.playSFX('thock');
+    setInspectingModifier(id);
+    setPaused(true); 
+  };
+
+  const handleCloseInspect = () => {
+    setInspectingModifier(null);
+    setPaused(false); 
+  };
+
+  // --- AUDIO TRIGGER: FAILURE & SUCCESS STATES ---
+  useEffect(() => {
+    if (status === 'resolved') {
+      if (transitOutcome === 'success') {
+        AudioManager.playSFX('success');
+      } else if (transitOutcome === 'trace_busted' || transitOutcome === 'heat_busted') {
+        AudioManager.playSFX('glitch');
+      }
+    }
+  }, [status, transitOutcome]);
 
   useEffect(() => {
     if (status !== 'hacking' || !hapticsEnabled || typeof navigator === 'undefined' || !navigator.vibrate) return;
@@ -486,19 +577,29 @@ export default function HackingScene() {
   return (
     <div className={`flex flex-col h-full bg-zinc-950 relative ${activeTearClass}`}>
       
+      {/* ─── QUICK LOOK OVERLAY ─── */}
+      {inspectingModifier && (
+        <KernelDiagnostic 
+          modifierId={inspectingModifier} 
+          onClose={handleCloseInspect} 
+        />
+      )}
+
       {!reducedMotion && (
         <div className="gibson-environment">
           <div className="gibson-grid" />
         </div>
       )}
 
-      {/* NEW: The Hex Data Waterfall when you win! */}
+      {/* Hex Data Waterfall when you win! */}
       {status === 'resolved' && transitOutcome === 'success' && !reducedMotion && (
         <div className="hex-stream-bg" />
       )}
 
       {(isHeatDanger && !reducedMotion) && <div className="siren-vignette" />}
       
+      {isBusted && !reducedMotion && <KernelPanicOverlay />}
+
       {daemonFlash && !reducedMotion && (
         <div className="absolute inset-0 bg-red-600/30 mix-blend-overlay pointer-events-none z-40 animate-pulse" />
       )}
@@ -507,7 +608,6 @@ export default function HackingScene() {
 
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         
-        {/* UPDATED: Brutalist End-State Modal */}
         {status === 'resolved' && popupConfig && !popupDismissed && (
           <div className={`absolute top-[40%] left-4 right-4 -translate-y-1/2 z-50 bg-black border-2 ${popupConfig.border} ${popupConfig.shadow} flex flex-col`}>
             <div className={`px-2 py-1 flex justify-between items-center ${popupConfig.headerBg}`}>
@@ -584,7 +684,7 @@ export default function HackingScene() {
           </div>
         )}
 
-        <NodeStatusStrip />
+        <NodeStatusStrip onInspect={handleInspect} />
 
         {/* ── BUNNIES ARE NOW TRAPPED IN THE LOGS ── */}
         <div className="flex-1 relative overflow-hidden flex flex-col min-h-0">
