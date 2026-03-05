@@ -388,8 +388,13 @@ function LootInventory() {
             return (
               <div key={idx} className={`glass-panel rounded-lg p-3 border ${borderClass} bg-zinc-800/20 flex justify-between items-center gap-3`}>
                 <div className="flex-1 min-w-0 pr-2">
-                  <p className={`font-mono text-sm font-bold truncate ${colorClass}`}>
+                  <p className={`font-mono text-sm font-bold truncate flex items-center gap-2 ${colorClass}`}>
                     {item.name}
+                    {(item.count || 1) > 1 && (
+                      <span className="font-mono text-[10px] bg-zinc-900/80 px-1.5 py-0.5 rounded text-zinc-400 border border-zinc-700 tracking-normal">
+                        ×{item.count}
+                      </span>
+                    )}
                   </p>
                   <p className="font-mono text-[10px] text-zinc-400 mt-0.5 leading-snug">
                     {item.description}

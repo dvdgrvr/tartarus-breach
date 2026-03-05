@@ -832,7 +832,7 @@ triggerFirstBoot: () => {
         let activeMods = [...s.activeModifiers];
         if (activeMods.includes('ADMIN_KEY')) {
           firewallHP = Math.floor(firewallHP * 0.5);
-          activeMods = activeMods.filter(m => m !== 'ADMIN_KEY'); 
+          activeMods.splice(activeMods.indexOf('ADMIN_KEY'), 1);
         }
 
         let mutator = null;
@@ -1084,13 +1084,10 @@ triggerFirstBoot: () => {
         let newAccumulator = s.lootAccumulator + intelReward;
         let lootLog = null;
 
-        // 1. Lowered threshold to 20 so you can actually get loot in a single greedy run!
         if (!isTartarus && newAccumulator >= 20) {
           const roll = Math.random();
           foundItem = modifiersData.find(m => roll < m.chance);
 
-          // 2. ONLY reset the accumulator if you actually win an item!
-          // If you fail the roll, it stays at 20+, so it rolls again on the very next tick!
           if (foundItem) {
             newAccumulator = 0; 
             lootLog = `>> [LOOT_FOUND]: ${foundItem.name} extracted.`;
@@ -1105,13 +1102,25 @@ triggerFirstBoot: () => {
 
         if (lootLog) newLog = appendLog(newLog, lootLog);
 
+        // --- NEW: Stacking Logic ---
+        let nextInventory = [...s.inventory];
+        if (foundItem) {
+          const existingIndex = nextInventory.findIndex(item => item.id === foundItem.id);
+          if (existingIndex >= 0) {
+            const existingItem = nextInventory[existingIndex];
+            nextInventory[existingIndex] = { ...existingItem, count: (existingItem.count || 1) + 1 };
+          } else {
+            nextInventory.push({ ...foundItem, count: 1 });
+          }
+        }
+
         set({
           digitalTrace:       newTrace,
           packUpTrace:        newTrace, 
           sessionIntelEarned: s.sessionIntelEarned + intelReward,
           intelFragments:     s.intelFragments + intelReward, 
           lootAccumulator:    newAccumulator,
-          inventory:          foundItem ? [...s.inventory, foundItem] : s.inventory,
+          inventory:          nextInventory,
           terminalLog:        newLog,
         });
       },
@@ -1123,7 +1132,14 @@ triggerFirstBoot: () => {
 
         const item = s.inventory[inventoryIndex];
         const newInventory = [...s.inventory];
-        newInventory.splice(inventoryIndex, 1); // Remove the used item
+        
+        // --- NEW: Count Decrement Logic ---
+        const currentCount = item.count || 1;
+        if (currentCount > 1) {
+          newInventory[inventoryIndex] = { ...item, count: currentCount - 1 };
+        } else {
+          newInventory.splice(inventoryIndex, 1); // Remove if it was the last one
+        }
 
         let update = { inventory: newInventory };
         let logMsg = `>> [HARDWARE_USED]: ${item.name} activated.`;

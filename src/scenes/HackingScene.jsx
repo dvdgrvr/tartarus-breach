@@ -405,7 +405,7 @@ function ConsumableBar() {
                onClick={() => useHardware(item.originalIndex)}
                className="shrink-0 flex-1 min-w-[120px] py-2.5 px-3 rounded-sm font-mono text-[10px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] active:border-b active:translate-y-[2px] border-cyan-500/50 border-b-cyan-700 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 snap-center shadow-[0_0_10px_rgba(34,211,238,0.15)]"
              >
-               INJECT {item.name}
+               INJECT {item.name} {(item.count || 1) > 1 ? `[×${item.count}]` : ''}
              </button>
           ))}
         </div>
