@@ -474,33 +474,122 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
   const isAlert = maxDanger >= 50;
 
   const borderColor = isEnraged ? 'border-red-500' : isAlert ? 'border-amber-500' : 'border-cyan-500';
-  const shadowColor = isEnraged ? 'shadow-[0_0_50px_rgba(239,68,68,0.4)]' : isAlert ? 'shadow-[0_0_40px_rgba(245,158,11,0.3)]' : 'shadow-[0_0_30px_rgba(34,211,238,0.2)]';
+  const shadowColor = isEnraged ? 'shadow-[0_0_60px_rgba(239,68,68,0.6)]' : isAlert ? 'shadow-[0_0_50px_rgba(245,158,11,0.5)]' : 'shadow-[0_0_40px_rgba(34,211,238,0.4)]';
   const coreBg      = isEnraged ? 'bg-red-500' : isAlert ? 'bg-amber-500' : 'bg-cyan-500';
   const innerColor  = isEnraged ? 'bg-red-500/20' : isAlert ? 'bg-amber-500/20' : 'bg-cyan-500/10';
 
   const spinSpeedOuter = isEnraged ? 'animate-[spin_2s_linear_infinite]' : 'animate-[spin_10s_linear_infinite]';
   const spinSpeedInner = isEnraged ? 'animate-[spin_1.5s_linear_infinite_reverse]' : 'animate-[spin_7s_linear_infinite_reverse]';
-  const staggerEffect = isStaggered ? 'scale-90 opacity-50 blur-sm danger-shake' : 'scale-100 opacity-100 blur-none';
+  const staggerEffect = isStaggered ? 'scale-95 brightness-150 contrast-125 danger-shake' : 'scale-100 brightness-100 contrast-100 animate-boss-breathe';
+
+  // ─── TWO-PART COMBAT VISUALS ───
+  const [particles, setParticles] = useState([]);
+  const [beams, setBeams] = useState([]);         
+  const prevFw = useRef(fwHealth);
+
+  useEffect(() => {
+    if (fwHealth < prevFw.current) {
+      const dmg = prevFw.current - fwHealth;
+      
+      // 1. GENERATE DAMAGE NUMBER (Delays slightly on crits to let the barrage hit first!)
+      const newParticle = {
+        id: Date.now() + Math.random(),
+        dmg: Math.ceil(dmg),
+        isCrit: isStaggered,
+        x: (Math.random() - 0.5) * 120, 
+        y: (Math.random() - 0.5) * 60,
+        rot: (Math.random() - 0.5) * 40 
+      };
+      
+      // 2. GENERATE HEX-PACKET BARRAGE
+      // Normal hits fire 1 packet. Crits fire a rapid machine-gun stream of 6!
+      const numTracers = isStaggered ? 6 : 1; 
+      
+      const newBeams = Array.from({ length: numTracers }).map((_, i) => ({
+        id: Date.now() + Math.random(),
+        isCrit: isStaggered,
+        x: (Math.random() - 0.5) * (isStaggered ? 140 : 20), // Wide bullet spread for crits
+        delay: i * 35, // Stagger the shots by 35ms so they trail each other
+        tailHeight: 40 + Math.random() * 40,
+        hex: Math.floor(Math.random() * 255).toString(16).padStart(2, '0').toUpperCase() // Generates '0xFF', '0xA3', etc.
+      }));
+
+      setParticles(p => [...p, newParticle]);
+      setBeams(b => [...b, ...newBeams]);
+
+      // Cleanup DOM
+      setTimeout(() => setParticles(p => p.filter(x => x.id !== newParticle.id)), 1200);
+      setTimeout(() => {
+        const bIds = newBeams.map(b => b.id);
+        setBeams(b => b.filter(x => !bIds.includes(x.id)));
+      }, 800); 
+    }
+    prevFw.current = fwHealth;
+  }, [fwHealth, isStaggered]);
 
   return (
-    <div className={`absolute inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden transition-all duration-300 ease-out ${staggerEffect}`}>
-      {/* Background vignette so the terminal text stays readable */}
-      <div className="absolute inset-0 bg-zinc-950/70" />
+    <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/10 via-zinc-950/40 to-zinc-950" />
       
-      <div className="relative w-64 h-64 md:w-96 md:h-96 flex items-center justify-center opacity-60 mix-blend-screen">
+      <div className={`absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 md:w-80 md:h-80 flex items-center justify-center opacity-90 mix-blend-screen transition-all duration-75 ease-out ${staggerEffect}`}>
         
-        {/* Outer Boss Armor (Shields) - Breaks down as health drops */}
+        {/* Boss Armor Geometry */}
         <div className={`absolute inset-0 rounded-full border-t-[8px] border-b-[2px] border-r-[4px] border-dashed ${borderColor} ${shadowColor} ${spinSpeedOuter} transition-all duration-500`}
-             style={{ opacity: 0.3 + (healthPercent * 0.7) }} 
-        />
-        
-        {/* Mid Ring (Processing Ring) */}
-        <div className={`absolute inset-4 rounded-full border-[4px] border-dotted ${borderColor} ${shadowColor} ${spinSpeedInner} opacity-70`} />
-        
-        {/* The Core Eye */}
-        <div className={`absolute w-16 h-16 md:w-24 md:h-24 rounded-sm border-[4px] rotate-45 ${borderColor} ${shadowColor} ${innerColor} transition-colors duration-500 flex items-center justify-center`}>
+             style={{ opacity: 0.3 + (healthPercent * 0.7) }} />
+        <div className={`absolute inset-4 rounded-full border-[4px] border-dotted ${borderColor} ${shadowColor} ${spinSpeedInner} opacity-80`} />
+        <div className={`absolute w-14 h-14 md:w-20 md:h-20 rounded-sm border-[4px] rotate-45 ${borderColor} ${shadowColor} ${innerColor} transition-colors duration-500 flex items-center justify-center`}>
           <div className={`w-1/2 h-1/2 rounded-full ${coreBg} ${isEnraged ? 'animate-pulse' : ''}`} />
+          {fwHealth < prevFw.current && <div className="absolute inset-0 bg-white rounded-sm animate-ping" />}
         </div>
+
+        {/* ─── EFFECT 1: HEX-PACKET RAILGUN ─── */}
+        {beams.map(b => (
+          <div
+            key={b.id}
+            className="absolute z-10 flex flex-col items-center pointer-events-none animate-railgun opacity-0-start"
+            style={{
+              left: `calc(50% + ${b.x}px)`,
+              bottom: '-180px', // Start the bullets way beneath the boss
+              animationDelay: `${b.delay}ms`
+            }}
+          >
+            {/* Payload Head: Hexadecimal Code */}
+            <span className={`font-mono text-[10px] font-black leading-none mb-0.5 ${b.isCrit ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,1)]' : 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,1)]'}`}>
+              0x{b.hex}
+            </span>
+            {/* Plasma Tail */}
+            <div 
+              className={`w-[2px] rounded-b-full ${b.isCrit ? 'bg-gradient-to-b from-amber-400 to-transparent' : 'bg-gradient-to-b from-cyan-400 to-transparent'}`} 
+              style={{ height: `${b.tailHeight}px` }} 
+            />
+          </div>
+        ))}
+
+        {/* ─── EFFECT 2: CLEAN DAMAGE NUMBERS ─── */}
+        {particles.map(p => (
+          <div
+            key={p.id}
+            // Add opacity-0-start so it stays hidden during the delay!
+            className="absolute z-50 font-display uppercase tracking-widest pointer-events-none animate-damage opacity-0-start flex flex-col items-center justify-center"
+            style={{
+              left: `calc(50% + ${p.x}px)`,
+              top:  `calc(50% + ${p.y}px)`,
+              transform: `translate(-50%, -50%) rotate(${p.rot}deg)`,
+              // Sync the pop: Crits delay for 150ms while the barrage hits!
+              animationDelay: p.isCrit ? '150ms' : '0ms' 
+            }}
+          >
+            {p.isCrit ? (
+              <span className="text-4xl sm:text-5xl font-black text-amber-400 drop-shadow-[0_0_20px_rgba(251,191,36,1)] whitespace-nowrap">
+                -{p.dmg} <span className="text-xl">CRIT</span>
+              </span>
+            ) : (
+              <span className="text-3xl sm:text-4xl font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.9)]">
+                -{p.dmg}
+              </span>
+            )}
+          </div>
+        ))}
 
       </div>
     </div>
@@ -777,10 +866,20 @@ export default function HackingScene() {
 
         <NodeStatusStrip onInspect={handleInspect} />
 
-        {/* ── BUNNIES ARE NOW TRAPPED IN THE LOGS ── */}
-        <div className="flex-1 relative overflow-hidden flex flex-col min-h-0">
-          <VisualRabbits ticks={rabbitTicks} />
-          <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />
+        {/* ── HUD SEPARATION: BOSS TOP / LOGS BOTTOM ── */}
+        <div className="flex-1 relative overflow-hidden flex flex-col justify-end min-h-0 pointer-events-none">
+          <div className="absolute inset-0 pointer-events-none">
+            <VisualRabbits ticks={rabbitTicks} />
+          </div>
+
+          {/* The "RPG Chat Box" Constrained Terminal */}
+          <div className="h-[45%] md:h-[40%] w-full relative pointer-events-auto border-t-[2px] border-zinc-800/80 bg-zinc-950/90 shadow-[0_-15px_40px_rgba(0,0,0,0.6)] flex flex-col transition-all duration-300">
+            {/* A sick little hardware tab label for the log box */}
+            <div className="absolute top-0 left-4 -translate-y-1/2 bg-zinc-950 px-3 py-0.5 border-[2px] border-zinc-800 text-[9px] font-mono text-cyan-500 font-bold tracking-widest uppercase shadow-[0_0_10px_rgba(0,0,0,1)] z-20">
+              Terminal_Uplink
+            </div>
+            <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />
+          </div>
         </div>
 
         <div className="border-t border-zinc-800/60 pt-1 pb-0.5 bg-zinc-950/60 backdrop-blur-sm shrink-0">

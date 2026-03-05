@@ -671,3 +671,43 @@
   0% { background-position: 0 0; }
   100% { background-position: 0 1000px; }
 }
+
+/* ─── FLOATING DAMAGE NUMBERS ─── */
+@keyframes float-up-fade {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  15% { transform: translateY(-15px) scale(1.3); opacity: 1; filter: brightness(1.5); }
+  100% { transform: translateY(-80px) scale(1); opacity: 0; }
+}
+
+.animate-damage {
+  /* Using a springy cubic-bezier makes the numbers physically burst outward */
+  animation: float-up-fade 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Make the boss core breathe so it feels alive */
+@keyframes boss-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+.animate-boss-breathe {
+  animation: boss-breathe 4s ease-in-out infinite;
+}
+
+/* ─── HEX-PACKET RAILGUN ─── */
+@keyframes railgun-fire {
+  0% { transform: translateY(0); opacity: 0; }
+  1% { opacity: 1; filter: brightness(2.5); }
+  70% { opacity: 1; filter: brightness(1.5); }
+  /* Shoot upwards 300px directly into the core */
+  100% { transform: translateY(-300px); opacity: 0; } 
+}
+
+.animate-railgun {
+  /* Ultra-fast, aggressive linear speed so it feels like a bullet */
+  animation: railgun-fire 0.25s linear forwards;
+}
+
+/* Ensure the damage numbers stay hidden if we give them a delay */
+.opacity-0-start {
+  opacity: 0;
+}
