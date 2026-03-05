@@ -101,6 +101,8 @@ function SessionSummary() {
 
   const badge = OUTCOME_BADGE[outcome] ?? OUTCOME_BADGE.escaped;
   
+  const safeLogs = terminal.map(log => typeof log === 'string' ? log : (log?.text || ''));
+  
   const filteredLogs = terminal.filter(log => 
     !log.includes('SIPHONING...') && 
     !log.includes('AWAITING MANUAL DISCONNECT')

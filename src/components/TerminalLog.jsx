@@ -5,6 +5,8 @@ export default function TerminalLog({ className = '' }) {
   const log = useGameStore(s => s.terminalLog);
   const scrollRef = useRef(null);
 
+  const log = (rawLog || []).map(entry => typeof entry === 'string' ? entry : (entry?.text || ''));
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
