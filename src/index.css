@@ -556,6 +556,15 @@
   background-image: url("/noise.png"), repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,0.6) 2px, rgba(0,0,0,0.6) 4px) !important;
 }
 
+/* Add this right below your .animate-matrix block */
+@keyframes matrix-slide {
+  from { transform: translateY(-50%); }
+  to { transform: translateY(0%); }
+}
+.animate-matrix-slide {
+  animation: matrix-slide 0.5s linear infinite;
+}
+
 /* ─── Hackers (1995) Cinematic Visuals ────────────────────────────────── */
 
 /* 1. The Gibson 3D Grid */

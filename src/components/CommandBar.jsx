@@ -20,9 +20,9 @@ const TOOL_STYLES = {
 };
 
 const FILL_STYLES = {
-  green: 'bg-cyan-500/20 border-t-[3px] border-cyan-300 opacity-90 animate-matrix',
-  blue:  'bg-fuchsia-500/20 border-t-[3px] border-fuchsia-300 opacity-90 animate-matrix',
-  amber: 'bg-amber-500/20 border-t-[3px] border-amber-300 opacity-90 animate-matrix',
+  green: 'bg-cyan-500/20 border-t-[3px] border-cyan-400 opacity-90',
+  blue:  'bg-fuchsia-500/20 border-t-[3px] border-fuchsia-400 opacity-90',
+  amber: 'bg-amber-500/20 border-t-[3px] border-amber-400 opacity-90',
 };
 
 function GlitchLabel({ text, isDanger }) {
@@ -65,7 +65,7 @@ export default function CommandBar() {
   const retrySession     = useGameStore(s => s.retrySession);
   const siphonVault      = useGameStore(s => s.siphonVault);
   const exposedTicks     = useGameStore(s => s.exposedTicks);
-  const systemOverride   = useGameStore(s => s.systemOverride); // Re-added this for the popup block!
+  const systemOverride   = useGameStore(s => s.systemOverride); 
   
   const upgrades       = useGameStore(s => s.upgrades);
   const safehouse      = useGameStore(s => s.currentSafehouse);
@@ -283,7 +283,7 @@ export default function CommandBar() {
 
   return (
     <div className="relative px-4 py-2 grid grid-cols-2 gap-2 sm:gap-3"
-  style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
     >
       {toolsConfig.map((tool) => {
         const cooldown   = toolState[tool.id]?.cooldownRemaining ?? 0;
@@ -346,14 +346,24 @@ export default function CommandBar() {
               />
             </div>
             
+            {/* The Code Execution Visual (Cooldown) */}
             <div 
-              className={`absolute bottom-0 left-0 w-full transition-all ease-linear z-20 ${isOverdriveReady ? 'bg-red-500/20 border-t border-red-400/60 bg-[url("/noise.png")]' : activeFill}`}
+              className={`absolute bottom-0 left-0 w-full transition-all ease-linear z-20 overflow-hidden ${isOverdriveReady ? 'bg-red-500/20 border-t border-red-400/60 bg-[url("/noise.png")]' : activeFill}`}
               style={{ 
                 height: `${fillPercent}%`,
                 transitionDuration: cooldown === maxCooldown ? '0ms' : '1000ms',
                 opacity: cooldown > 0 ? 1 : 0
               }} 
-            />
+            >
+              {/* Bulletproof Matrix Rain Effect */}
+              {!isOverdriveReady && (
+                <div className="absolute inset-0 opacity-40 mix-blend-overlay flex flex-col justify-end">
+                  <div className="w-full text-[8px] font-mono leading-none break-all text-white whitespace-pre-wrap animate-matrix-slide">
+                    {"0101XYZ9845_SYS_RUN_OVERRIDE_0101010_HACK_THE_PLANET_".repeat(20)}
+                  </div>
+                </div>
+              )}
+            </div>
 
             {onCooldown && (
               <div className="absolute top-1.5 right-2 pointer-events-none z-30">

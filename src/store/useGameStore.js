@@ -486,6 +486,9 @@ triggerFirstBoot: () => {
         const tool = toolsConfig.find(t => t.id === toolId);
         if (!tool) return;
 
+        // --- NEW: Track the log sequentially! ---
+        let currentLog = [...s.terminalLog];
+
         // ─── OVERDRIVE CALCULATIONS ───
         const cooldownRemaining = s.toolState[toolId]?.cooldownRemaining ?? 0;
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
@@ -498,22 +501,16 @@ triggerFirstBoot: () => {
         let isOverdriving = false;
 
         if (cooldownRemaining > 0) {
-          // 1. SAFETY LOCKOUT: 1-tick buffer to prevent accidental double taps
           if (actualCooldown - cooldownRemaining < 1) return;
 
-          // 2. THE 50% RULE
           if (cooldownRemaining > actualCooldown / 2) {
-            set(cur => ({ 
-              terminalLog: appendLog(cur.terminalLog, `!! ERROR: ${toolId} RECOVERY INCOMPLETE. SIGNAL WEAK !!`) 
-            }));
+            set({ terminalLog: appendLog(currentLog, `!! ERROR: ${toolId} RECOVERY INCOMPLETE. SIGNAL WEAK !!`) });
             AudioManager.playSFX('error');
             return; 
           }
           
-          // 3. TIERED THERMAL COSTS
           const isTactical = ['SCAN', 'BYPASS'].includes(toolId);
           const maxPenalty = isTactical ? 30 : 15;
-          
           isOverdriving = true;
           overdrivePenalty = (cooldownRemaining / actualCooldown) * maxPenalty;
         }
@@ -522,7 +519,7 @@ triggerFirstBoot: () => {
         AudioManager.playSFX('thock');
         if (s.settings?.hapticsEnabled) {
           if (isOverdriving) {
-            haptic([80, 40, 80]); // Distinct heavy vibration for overdrive
+            haptic([80, 40, 80]); 
           } else if (toolId === 'SCAN') {
             haptic(10); 
           } else if (toolId === 'BYPASS') {
@@ -539,35 +536,42 @@ triggerFirstBoot: () => {
         let firewallDamage = tool.baseEffect.firewallDamage ?? 0;
         const traceGain    = tool.baseEffect.traceGain      ?? 0;
         const heatGain     = (tool.baseEffect.heatGain      ?? 0) + overdrivePenalty;
+        
+        let newExposedTicks = s.exposedTicks;
+        let newFirewallRevealed = s.firewallRevealed;
+        let newActiveDaemon = s.activeDaemon;
 
         // ─── TOOL: DECRYPT ───
         if (toolId === 'DECRYPT') {
-          let log = appendLog(s.terminalLog, `> DECRYPT // +${heatGain.toFixed(0)}% HEAT | TRACE: ${Math.min(100, s.digitalTrace + traceGain).toFixed(0)}%`);
-          if (isOverdriving) log = appendLog(log, `!! HARDWARE OVERDRIVE: DECRYPT FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
+          currentLog = appendLog(currentLog, `> DECRYPT // +${heatGain.toFixed(0)}% HEAT | TRACE: ${Math.min(100, s.digitalTrace + traceGain).toFixed(0)}%`);
+          if (isOverdriving) currentLog = appendLog(currentLog, `!! HARDWARE OVERDRIVE: DECRYPT FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
           
           if (s.currentNode?.mutator?.id === 'ICE_WALL') {
             actualCooldown = 1; 
-            log = appendLog(log, '>> ICE-WALL BRITTLE. DECRYPT RAPIDLY RECHARGED.');
+            currentLog = appendLog(currentLog, '>> ICE-WALL BRITTLE. DECRYPT RAPIDLY RECHARGED.');
           }
 
           if (s.activeDaemon) {
-            log = appendLog(log, `>> DAEMON '${s.activeDaemon}' KILLED.`);
+            currentLog = appendLog(currentLog, `>> DAEMON '${s.activeDaemon}' KILLED.`);
+            newActiveDaemon = null;
           }
           
           const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
           if (isEncrypted && !s.firewallRevealed) {
-            log = appendLog(log, `>> ENCRYPTED LOGS CRACKED — FW: ${s.firewallHealth}`);
+            currentLog = appendLog(currentLog, `>> ENCRYPTED LOGS CRACKED — FW: ${s.firewallHealth}`);
+            newFirewallRevealed = true;
           }
           
-          log = appendLog(log, '>> TARGET EXPOSED. CRITICAL STRIKE WINDOW OPEN.');
+          currentLog = appendLog(currentLog, '>> TARGET EXPOSED. CRITICAL STRIKE WINDOW OPEN.');
+          newExposedTicks = 4;
 
           set({
             physicalHeat:     Math.min(100, s.physicalHeat + heatGain),
             digitalTrace:     Math.min(100, s.digitalTrace + traceGain),
-            firewallRevealed: isEncrypted ? true : s.firewallRevealed,
-            activeDaemon:     null,
-            exposedTicks:     4,
-            terminalLog:      log,
+            firewallRevealed: newFirewallRevealed,
+            activeDaemon:     newActiveDaemon,
+            exposedTicks:     newExposedTicks,
+            terminalLog:      currentLog,
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
           });
 
@@ -576,41 +580,33 @@ triggerFirstBoot: () => {
         }
 
         // ─── TOOL: BYPASS ───
+        let hasFirstBypass = s.hasFirstBypass;
         if (toolId === 'BYPASS') {
           const bsLevel = s.upgrades['BYPASS_STRENGTH']?.level ?? 0;
           firewallDamage += bsLevel * 10;
 
           if (s.exposedTicks > 0) {
             firewallDamage *= 2;
-            set(cur => ({ 
-              exposedTicks: 0,
-              terminalLog: appendLog(cur.terminalLog, `>> [!!] CRITICAL OVERRIDE [!!] — 2.0x MULTIPLIER APPLIED`)
-            })); 
+            newExposedTicks = 0; // Close the window
+            currentLog = appendLog(currentLog, `>> [!!] CRITICAL OVERRIDE [!!] — 2.0x MULTIPLIER APPLIED`);
             if (s.settings?.hapticsEnabled) haptic([50, 80, 50]); 
             AudioManager.playSFX('thock'); 
           }
 
           if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
-            set(cur => ({
-              terminalLog:  appendLog(cur.terminalLog, '[!] DATA_OBFUSCATION: Target metrics encrypted. Blind strikes are inefficient. Recommend structural dissection.'),
-              tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true },
-            }));
+            currentLog = appendLog(currentLog, '[!] DATA_OBFUSCATION: Target metrics encrypted. Blind strikes are inefficient. Recommend structural dissection.');
+            set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true } }));
           }
 
-          if (!s.hasFirstBypass) {
-            set(cur => ({
-              terminalLog: appendLog(cur.terminalLog, "// MASHA: 'First strike confirmed. We're in the system. Keep the pressure up.'"),
-              hasFirstBypass: true,
-            }));
+          if (!hasFirstBypass) {
+            currentLog = appendLog(currentLog, "// MASHA: 'First strike confirmed. We're in the system. Keep the pressure up.'");
+            hasFirstBypass = true;
           }
         }
 
         // ─── DAMAGE & MODIFIERS ───
         firewallDamage = Math.floor(firewallDamage * (s.currentSafehouse?.dmgMod ?? 1));
-
-        if (toolId === 'BYPASS' && s.currentNode?.mutator?.id === 'ICE_WALL') {
-          firewallDamage = Math.floor(firewallDamage * 0.5);
-        }
+        if (toolId === 'BYPASS' && s.currentNode?.mutator?.id === 'ICE_WALL') firewallDamage = Math.floor(firewallDamage * 0.5);
 
         const prevFirewall = s.firewallHealth;
         const newFirewall  = Math.max(0, prevFirewall - firewallDamage);
@@ -622,14 +618,11 @@ triggerFirstBoot: () => {
           : Math.min(100, Math.max(0, s.digitalTrace + traceGain));
 
         if (isPerfectSync && s.settings?.hapticsEnabled) haptic([30, 50, 30]);
-
         const newHeat = Math.min(100, s.physicalHeat + heatGain);
 
         // ─── WIN STATE ───
         if (newFirewall <= 0 && prevFirewall > 0) {
-          if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-             navigator.vibrate([100, 50, 150]);
-          }
+          if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([100, 50, 150]);
 
           const isPerfect    = finalTrace >= 90;
           const intelEarned  = isPerfect ? Math.floor(s.sessionPotentialIntel * 1.25) : s.sessionPotentialIntel;
@@ -644,21 +637,17 @@ triggerFirstBoot: () => {
             newArchive  = [...s.storyArchive, fragmentIdx];
           }
 
-          const newDarknetTier = isDarknet ? s.darknetTier + 1 : s.darknetTier;
-          const newHighestTier = Math.max(s.highestDarknetTier, newDarknetTier);
-
-          let log = appendLog(s.terminalLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`);
-          if (isOverdriving) log = appendLog(log, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
-          
-          log = appendLog(log, `>> [ ACCESS GRANTED ]`);
+          currentLog = appendLog(currentLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`);
+          if (isOverdriving) currentLog = appendLog(currentLog, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
+          currentLog = appendLog(currentLog, `>> [ ACCESS GRANTED ]`);
 
           const mashaLine = getMashaReaction('breach', finalTrace);
-          if (mashaLine) log = appendLog(log, mashaLine);
+          if (mashaLine) currentLog = appendLog(currentLog, mashaLine);
 
-          if (isPerfect) log = appendLog(log, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
-          log = appendLog(log, `>> NODE BREACHED. PAYLOAD SECURED: +${intelEarned} IF.`);
-          if (fragmentIdx !== null) log = appendLog(log, `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
-          log = appendLog(log, '// AWAITING MANUAL DISCONNECT...');
+          if (isPerfect) currentLog = appendLog(currentLog, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
+          currentLog = appendLog(currentLog, `>> NODE BREACHED. PAYLOAD SECURED: +${intelEarned} IF.`);
+          if (fragmentIdx !== null) currentLog = appendLog(currentLog, `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
+          currentLog = appendLog(currentLog, '// AWAITING MANUAL DISCONNECT...');
 
           set({
             status:             'resolved',
@@ -675,32 +664,30 @@ triggerFirstBoot: () => {
             storyArchive:       newArchive,
             hasBeatenGame:      s.hasBeatenGame || isTartarus,
             tartarusBeaten:     s.tartarusBeaten || isTartarus,
-            darknetTier:        newDarknetTier,
-            highestDarknetTier: newHighestTier,
+            darknetTier:        isDarknet ? s.darknetTier + 1 : s.darknetTier,
+            highestDarknetTier: Math.max(s.highestDarknetTier, isDarknet ? s.darknetTier + 1 : s.darknetTier),
             pendingFragmentIdx: s.isReplay ? null : fragmentIdx,
-            terminalLog:        log,
+            terminalLog:        currentLog,
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
             isPerfectBreach:    isPerfect,
             isBreaching:        false,
+            exposedTicks:       newExposedTicks,
+            hasFirstBypass:     hasFirstBypass
           });
           return;
         }
 
         // ─── STANDARD EXECUTION LOG ───
-        const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
-        const fwDisplay   = (isEncrypted && !s.firewallRevealed) ? '???' : `${Math.ceil(newFirewall)}`;
-
-        let log = appendLog(s.terminalLog, `> ${toolId} // FW: ${fwDisplay} | TRACE: ${finalTrace.toFixed(0)}%`);
-        if (isOverdriving) log = appendLog(log, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
+        const fwDisplay = (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !newFirewallRevealed) ? '???' : `${Math.ceil(newFirewall)}`;
+        currentLog = appendLog(currentLog, `> ${toolId} // FW: ${fwDisplay} | TRACE: ${finalTrace.toFixed(0)}%`);
+        if (isOverdriving) currentLog = appendLog(currentLog, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
         
         let syncBonus = 0;
         if (isPerfectSync) {
-          log = appendLog(log, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
-          
-          // NEW: 30% chance to extract passive intel during a perfect pulse
+          currentLog = appendLog(currentLog, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
           if (Math.random() < 0.3) {
-             syncBonus = Math.floor(Math.random() * 5) + 3; // Rewards 3 to 7 IF
-             log = appendLog(log, `>> [DATA_SNAGGED]: Perfect sync extracted +${syncBonus} IF.`);
+             syncBonus = Math.floor(Math.random() * 5) + 3;
+             currentLog = appendLog(currentLog, `>> [DATA_SNAGGED]: Perfect sync extracted +${syncBonus} IF.`);
           }
         }
 
@@ -708,9 +695,11 @@ triggerFirstBoot: () => {
           firewallHealth: newFirewall,
           digitalTrace:   finalTrace,
           physicalHeat:   newHeat,
-          terminalLog:    log,
-          intelFragments: s.intelFragments + syncBonus,         // Add bonus to global bank
-          sessionIntelEarned: s.sessionIntelEarned + syncBonus, // Add bonus to session tracker
+          terminalLog:    currentLog,
+          intelFragments: s.intelFragments + syncBonus,         
+          sessionIntelEarned: s.sessionIntelEarned + syncBonus, 
+          exposedTicks:   newExposedTicks,
+          hasFirstBypass: hasFirstBypass,
           toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
         });
 

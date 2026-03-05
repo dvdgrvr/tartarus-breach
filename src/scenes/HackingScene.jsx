@@ -459,6 +459,77 @@ const MENACING_SKULL_FACE = `
      >_____<
 `;
 
+// ─── BACKGROUND KINETIC VORTEX ───────────────────────────────────────────────
+function BackgroundVortex({ trace, heat }) {
+  const maxDanger = Math.max(trace, heat);
+  
+  // Scales speed based on danger
+  const speed = maxDanger > 80 ? 'animate-[spin_1s_linear_infinite]' : 
+                maxDanger > 50 ? 'animate-[spin_4s_linear_infinite]' : 
+                'animate-[spin_15s_linear_infinite]';
+                
+  // Changes color based on danger
+  const color = maxDanger > 80 ? 'border-red-500/20' : 
+                maxDanger > 50 ? 'border-amber-500/20' : 
+                'border-cyan-500/10';
+
+  return (
+    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150vw] h-[150vw] pointer-events-none mix-blend-screen opacity-60 z-0 flex items-center justify-center">
+       <div className={`absolute w-[80%] h-[80%] rounded-full border-[40px] border-dashed ${color} ${speed}`} style={{ animationDirection: 'reverse' }} />
+       <div className={`absolute w-[60%] h-[60%] rounded-full border-[20px] border-dotted ${color} ${speed}`} />
+       <div className={`absolute w-[40%] h-[40%] rounded-full border-[10px] border-dashed ${color} ${speed}`} style={{ animationDirection: 'reverse' }} />
+    </div>
+  );
+}
+
+// ─── ACTIVE DATA STREAM (The "Hackers" Background) ───────────────────────────
+function ActiveDataStream({ trace, heat, status }) {
+  // Turn off the pillars if the player wins (the Hex Waterfall takes over)
+  if (status === 'resolved') return null;
+
+  const maxDanger = Math.max(trace, heat);
+
+  // Cyberdelic color mapping based on danger levels
+  const color = maxDanger >= 80 ? 'rgba(217, 70, 239, 0.4)' : // Fuchsia
+                maxDanger >= 50 ? 'rgba(245, 158, 11, 0.3)' : // Amber
+                'rgba(34, 211, 238, 0.15)';                   // Cyan
+
+  // Data falls faster as danger rises
+  const duration = maxDanger >= 80 ? '0.8s' : maxDanger >= 50 ? '2s' : '8s';
+
+  return (
+    <div className="absolute inset-0 z-0 pointer-events-none flex justify-between overflow-hidden opacity-80">
+      {/* Top/Bottom Fade Masks so the data streams blend cleanly into your header/footer */}
+      <div className="absolute inset-0 z-10 bg-gradient-to-b from-zinc-950 via-transparent to-zinc-950 pointer-events-none" />
+
+      {/* Pillar 1: Wide, medium opacity */}
+      <div className="w-[20%] h-full" style={{
+        backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent 4px, ${color} 4px, ${color} 8px)`,
+        animation: `matrix-descend ${duration} linear infinite`
+      }} />
+
+      {/* Pillar 2: Thin, bright, scrolls upward for contrast */}
+      <div className="w-[8%] h-full opacity-70" style={{
+        backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent 2px, ${color} 2px, ${color} 4px)`,
+        animation: `matrix-descend ${duration} linear infinite`,
+        animationDirection: 'reverse'
+      }} />
+
+      {/* Pillar 3: Massive, low opacity */}
+      <div className="w-[35%] h-full opacity-40" style={{
+        backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent 10px, ${color} 10px, ${color} 20px)`,
+        animation: `matrix-descend ${duration} linear infinite`
+      }} />
+
+      {/* Pillar 4: Medium */}
+      <div className="w-[15%] h-full opacity-80" style={{
+        backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent 5px, ${color} 5px, ${color} 10px)`,
+        animation: `matrix-descend ${duration} linear infinite`
+      }} />
+    </div>
+  );
+}
+
 export default function HackingScene() {
   // --- QUICK LOOK STATE ---
   const [inspectingModifier, setInspectingModifier] = useState(null);
@@ -622,6 +693,9 @@ export default function HackingScene() {
       {status === 'resolved' && transitOutcome === 'success' && !reducedMotion && (
         <div className="hex-stream-bg" />
       )}
+
+      {/* INJECT THE NEW DATA STREAM HERE */}
+      {!reducedMotion && <ActiveDataStream trace={trace} heat={heat} status={status} />}
 
       {(isHeatDanger && !reducedMotion) && <div className="siren-vignette" />}
       
