@@ -693,21 +693,20 @@
   animation: boss-breathe 4s ease-in-out infinite;
 }
 
-/* ─── HEX-PACKET RAILGUN ─── */
-@keyframes railgun-fire {
-  0% { transform: translateY(0); opacity: 0; }
-  1% { opacity: 1; filter: brightness(2.5); }
-  70% { opacity: 1; filter: brightness(1.5); }
-  /* Shoot upwards 300px directly into the core */
-  100% { transform: translateY(-300px); opacity: 0; } 
+/* ─── CHUNKY DATA STRIKES (Hackers 1995 Style) ─── */
+@keyframes data-strike {
+  /* Start lower, squeezed */
+  0% { transform: translateY(100px) scaleY(0.5); opacity: 0; }
+  /* Snap up, stretch out, flash bright */
+  15% { transform: translateY(0px) scaleY(1.2); opacity: 1; filter: brightness(2); }
+  /* Hang in the air as it hits the boss */
+  75% { transform: translateY(-150px) scaleY(1); opacity: 1; filter: brightness(1.2); }
+  /* Collapse into the core */
+  100% { transform: translateY(-250px) scaleY(0); opacity: 0; }
 }
 
-.animate-railgun {
-  /* Ultra-fast, aggressive linear speed so it feels like a bullet */
-  animation: railgun-fire 0.25s linear forwards;
-}
-
-/* Ensure the damage numbers stay hidden if we give them a delay */
-.opacity-0-start {
-  opacity: 0;
+.animate-data-strike {
+  /* Slowed down to 0.5s so you can actually enjoy the visual */
+  animation: data-strike 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+  transform-origin: bottom center;
 }

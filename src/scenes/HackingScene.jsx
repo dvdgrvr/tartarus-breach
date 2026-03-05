@@ -463,6 +463,8 @@ const MENACING_SKULL_FACE = `
 // ─── THE ENEMY: BOSS CORE ────────────────────────────────────────────────────
 function BossCore({ trace, heat, fwHealth, maxFw }) {
   const rawLog = useGameStore(s => s.terminalLog); 
+  const exposedTicks = useGameStore(s => s.exposedTicks); // NEW: Pull the vulnerability state!
+  
   const safeLog = rawLog || [];
   const recentLogs = safeLog.slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
   const isStaggered = recentLogs.some(l => l.includes('CRITICAL OVERRIDE') || l.includes('2.0x MULTIPLIER'));
@@ -491,7 +493,6 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
     if (fwHealth < prevFw.current) {
       const dmg = prevFw.current - fwHealth;
       
-      // 1. GENERATE DAMAGE NUMBER (Delays slightly on crits to let the barrage hit first!)
       const newParticle = {
         id: Date.now() + Math.random(),
         dmg: Math.ceil(dmg),
@@ -501,28 +502,29 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
         rot: (Math.random() - 0.5) * 40 
       };
       
-      // 2. GENERATE HEX-PACKET BARRAGE
-      // Normal hits fire 1 packet. Crits fire a rapid machine-gun stream of 6!
-      const numTracers = isStaggered ? 6 : 1; 
+      // GENERATE CHUNKY DATA BEAMS
+      const numTracers = isStaggered ? 5 : 1; 
       
       const newBeams = Array.from({ length: numTracers }).map((_, i) => ({
         id: Date.now() + Math.random(),
         isCrit: isStaggered,
-        x: (Math.random() - 0.5) * (isStaggered ? 140 : 20), // Wide bullet spread for crits
-        delay: i * 35, // Stagger the shots by 35ms so they trail each other
-        tailHeight: 40 + Math.random() * 40,
-        hex: Math.floor(Math.random() * 255).toString(16).padStart(2, '0').toUpperCase() // Generates '0xFF', '0xA3', etc.
+        x: (Math.random() - 0.5) * (isStaggered ? 160 : 30), 
+        // Slower stagger (60ms) so you can actually read the data pouring in
+        delay: i * 60, 
+        // MASSIVE heights (150px to 250px) so they span the screen
+        tailHeight: 150 + Math.random() * 100,
+        // Larger hex payloads (e.g. 0xFA3B)
+        hex: Math.floor(Math.random() * 65535).toString(16).padStart(4, '0').toUpperCase() 
       }));
 
       setParticles(p => [...p, newParticle]);
       setBeams(b => [...b, ...newBeams]);
 
-      // Cleanup DOM
       setTimeout(() => setParticles(p => p.filter(x => x.id !== newParticle.id)), 1200);
       setTimeout(() => {
         const bIds = newBeams.map(b => b.id);
         setBeams(b => b.filter(x => !bIds.includes(x.id)));
-      }, 800); 
+      }, 1000); // Give the slower beams time to clear
     }
     prevFw.current = fwHealth;
   }, [fwHealth, isStaggered]);
@@ -533,6 +535,18 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
       
       <div className={`absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 md:w-80 md:h-80 flex items-center justify-center opacity-90 mix-blend-screen transition-all duration-75 ease-out ${staggerEffect}`}>
         
+        {/* ─── NEW: 90s TARGET LOCK (Only appears when vulnerable) ─── */}
+        {exposedTicks > 0 && (
+          <div className="absolute inset-0 flex items-center justify-center z-20 animate-[spin_4s_linear_infinite]">
+            <div className="w-56 h-56 md:w-80 md:h-80 border-[3px] border-amber-400/80 rounded-full border-dashed opacity-80" />
+            <div className="absolute w-full h-[2px] bg-amber-400/40" />
+            <div className="absolute h-full w-[2px] bg-amber-400/40" />
+            <div className="absolute font-display text-[10px] md:text-xs text-black font-black bg-amber-400 tracking-widest px-2 shadow-[0_0_15px_rgba(251,191,36,0.8)]">
+              CRITICAL_LOCK_ACQUIRED
+            </div>
+          </div>
+        )}
+
         {/* Boss Armor Geometry */}
         <div className={`absolute inset-0 rounded-full border-t-[8px] border-b-[2px] border-r-[4px] border-dashed ${borderColor} ${shadowColor} ${spinSpeedOuter} transition-all duration-500`}
              style={{ opacity: 0.3 + (healthPercent * 0.7) }} />
@@ -542,25 +556,29 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
           {fwHealth < prevFw.current && <div className="absolute inset-0 bg-white rounded-sm animate-ping" />}
         </div>
 
-        {/* ─── EFFECT 1: HEX-PACKET RAILGUN ─── */}
+        {/* ─── EFFECT 1: CHUNKY DATA STRIKES ─── */}
         {beams.map(b => (
           <div
             key={b.id}
-            className="absolute z-10 flex flex-col items-center pointer-events-none animate-railgun opacity-0-start"
+            className="absolute z-10 flex flex-col items-center pointer-events-none animate-data-strike opacity-0-start"
             style={{
               left: `calc(50% + ${b.x}px)`,
-              bottom: '-180px', // Start the bullets way beneath the boss
+              bottom: '-120px', // Start closer to the boss
               animationDelay: `${b.delay}ms`
             }}
           >
             {/* Payload Head: Hexadecimal Code */}
-            <span className={`font-mono text-[10px] font-black leading-none mb-0.5 ${b.isCrit ? 'text-amber-300 drop-shadow-[0_0_8px_rgba(251,191,36,1)]' : 'text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,1)]'}`}>
+            <span className={`font-mono text-xs sm:text-sm font-black leading-none mb-1 ${b.isCrit ? 'text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,1)]' : 'text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,1)]'}`}>
               0x{b.hex}
             </span>
-            {/* Plasma Tail */}
+            {/* Chunky Segmented Data Tail */}
             <div 
-              className={`w-[2px] rounded-b-full ${b.isCrit ? 'bg-gradient-to-b from-amber-400 to-transparent' : 'bg-gradient-to-b from-cyan-400 to-transparent'}`} 
-              style={{ height: `${b.tailHeight}px` }} 
+              className={`w-3 sm:w-4 ${b.isCrit ? 'text-amber-400/80 shadow-[0_0_20px_rgba(251,191,36,0.5)]' : 'text-cyan-400/80 shadow-[0_0_20px_rgba(34,211,238,0.5)]'}`} 
+              style={{ 
+                height: `${b.tailHeight}px`,
+                // Uses text color to render segmented blocks of data!
+                backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 2px, currentColor 2px, currentColor 6px)' 
+              }} 
             />
           </div>
         ))}
@@ -569,14 +587,13 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
         {particles.map(p => (
           <div
             key={p.id}
-            // Add opacity-0-start so it stays hidden during the delay!
             className="absolute z-50 font-display uppercase tracking-widest pointer-events-none animate-damage opacity-0-start flex flex-col items-center justify-center"
             style={{
               left: `calc(50% + ${p.x}px)`,
               top:  `calc(50% + ${p.y}px)`,
               transform: `translate(-50%, -50%) rotate(${p.rot}deg)`,
-              // Sync the pop: Crits delay for 150ms while the barrage hits!
-              animationDelay: p.isCrit ? '150ms' : '0ms' 
+              // Increased delay to 250ms to let the slower data beams hit first
+              animationDelay: p.isCrit ? '250ms' : '100ms' 
             }}
           >
             {p.isCrit ? (
