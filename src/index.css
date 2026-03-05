@@ -559,6 +559,27 @@
   animation: sync-shockwave 0.6s cubic-bezier(0.1, 0.8, 0.3, 1);
 }
 
+/* Critical Hit Firewall Block */
+.fw-block-critical {
+  background-color: #f59e0b !important; /* Amber-500 */
+  border-color: #fcd34d !important;
+  box-shadow: 0 0 25px 4px rgba(251, 191, 36, 0.9) !important;
+  transform: scaleY(1.6);
+  z-index: 10;
+  position: relative;
+}
+
+/* Descending Matrix Cooldown Fill */
+@keyframes matrix-descend {
+  from { background-position: 0 0; }
+  to { background-position: 0 200px; }
+}
+.animate-matrix {
+  animation: matrix-descend 1.5s linear infinite;
+  /* Mixes the noise texture with dark horizontal bars to simulate code blocks falling */
+  background-image: url("/noise.png"), repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,0.6) 2px, rgba(0,0,0,0.6) 4px) !important;
+}
+
 /* ─── Hackers (1995) Cinematic Visuals ────────────────────────────────── */
 
 /* 1. The Gibson 3D Grid */

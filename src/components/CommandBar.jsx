@@ -20,9 +20,9 @@ const TOOL_STYLES = {
 };
 
 const FILL_STYLES = {
-  green: 'bg-[url("/noise.png")] bg-cyan-500/20 border-t-2 border-cyan-400/80 opacity-90',
-  blue:  'bg-[url("/noise.png")] bg-fuchsia-500/20 border-t-2 border-fuchsia-400/80 opacity-90',
-  amber: 'bg-[url("/noise.png")] bg-amber-500/20 border-t-2 border-amber-400/80 opacity-90',
+  green: 'bg-cyan-500/20 border-t-[3px] border-cyan-300 opacity-90 animate-matrix',
+  blue:  'bg-fuchsia-500/20 border-t-[3px] border-fuchsia-300 opacity-90 animate-matrix',
+  amber: 'bg-amber-500/20 border-t-[3px] border-amber-300 opacity-90 animate-matrix',
 };
 
 function GlitchLabel({ text, isDanger }) {
@@ -308,10 +308,16 @@ export default function CommandBar() {
         let buttonClass = [
           'flex-1 relative overflow-hidden min-h-[64px] py-4 px-2 rounded touch-none',
           'font-display text-[12px] sm:text-[14px] font-black uppercase tracking-[0.2em] text-center',
+          
           // THE CLACK: Springy return on release (duration-150), but instant snap on press (active:duration-0)
           'border-[2px] border-b-[6px] transition-all duration-150 ease-out active:duration-0 select-none',
+          
           isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
-          (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled && !isOverdriveReady) ? 'ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)] animate-pulse z-50' : ''
+          
+          // THE SMOOTH COMBO: Replaced the external ring with an internal glowing amber vulnerability state
+          (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled && !isOverdriveReady) 
+            ? 'border-amber-400/80 border-b-amber-600 shadow-[inset_0_0_20px_rgba(251,191,36,0.25)] animate-pulse z-20' 
+            : ''
         ];
 
         // Apply state-specific styles

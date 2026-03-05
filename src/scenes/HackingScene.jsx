@@ -174,19 +174,31 @@ function FirewallRow() {
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
   const exposedTicks     = useGameStore(s => s.exposedTicks);
   const rabbitTicks      = useGameStore(s => s.rabbitTicks);
+  const log              = useGameStore(s => s.terminalLog); // ADDED: Pull the log state
 
   const [isHit, setIsHit] = useState(false);
+  const [isCrit, setIsCrit] = useState(false); // ADDED: Track critical state
   const prevHP = useRef(firewallHealth);
 
   useEffect(() => {
     if (firewallHealth < prevHP.current) {
       setIsHit(true);
-      const timer = setTimeout(() => setIsHit(false), 150);
+
+      // ADDED: Check the last 3 log entries to see if we triggered the 2.0x Multiplier
+      const recentLogs = log.slice(-3).map(l => typeof l === 'string' ? l : l.text);
+      const wasCritical = recentLogs.some(l => l && l.includes('CRITICAL OVERRIDE'));
+      if (wasCritical) setIsCrit(true);
+
+      const timer = setTimeout(() => {
+        setIsHit(false);
+        setIsCrit(false);
+      }, 300); // 300ms hold so the critical flash feels weighty
+      
       prevHP.current = firewallHealth;
       return () => clearTimeout(timer);
     }
     prevHP.current = firewallHealth;
-  }, [firewallHealth]);
+  }, [firewallHealth, log]);
 
   const isHidden = node?.specialDefense === 'ENCRYPTED_LOGS' && !firewallRevealed;
   const maxHP    = node?.firewallHP ?? 100;
@@ -218,7 +230,8 @@ function FirewallRow() {
         </div>
       )}
 
-      <div className={`flex items-center gap-4 transition-colors duration-150 ${isHit ? 'bg-white/5' : ''}`}>
+      {/* Shake the entire row aggressively if it's a critical hit! */}
+      <div className={`flex items-center gap-4 transition-colors duration-150 ${isHit ? 'bg-white/5' : ''} ${isCrit ? 'danger-shake' : ''}`}>
         <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-400'}`}>
           FW_HP
         </span>
@@ -239,9 +252,11 @@ function FirewallRow() {
                   key={i}
                   className={`flex-1 h-full transition-all duration-75 ${
                     isActive 
-                      ? isHit
-                        ? 'fw-block-hit'
-                        : 'bg-violet-500 border-y border-violet-400 shadow-[0_0_5px_rgba(139,92,246,0.3)]' 
+                      ? isCrit 
+                        ? 'fw-block-critical' // ADDED: Critical styling
+                        : isHit
+                          ? 'fw-block-hit'
+                          : 'bg-violet-500 border-y border-violet-400 shadow-[0_0_5px_rgba(139,92,246,0.3)]' 
                       : 'bg-zinc-800/50 border-y border-zinc-800'
                   }`}
                 />
@@ -328,7 +343,7 @@ function TraceRow() {
 
       <div className="flex items-center gap-4">
         <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${(isDanger || pulseActive) && glitchEnabled ? 'animate-pulse' : ''}`}>
-          {isDanger ? '[!]TR' : pulseActive ? 'SYNC' : 'TRACE'}
+          {isDanger ? '[GHOST_SYNC]' : pulseActive ? 'SYNC' : 'TRACE'}
         </span>
 
         <div className={`flex-1 h-2.5 bg-black rounded-none overflow-hidden border shadow-inner relative transition-all duration-150 ${
