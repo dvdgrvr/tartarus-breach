@@ -483,7 +483,6 @@ export default function HackingScene() {
   const activeDaemon   = useGameStore(s => s.activeDaemon); 
   const rabbitTicks    = useGameStore(s => s.rabbitTicks);  
   
-  const [isCritical, setIsCritical] = useState(false);
   const [daemonFlash, setDaemonFlash] = useState(false); 
   
   const prevExposed = useRef(exposedTicks);
@@ -523,18 +522,6 @@ export default function HackingScene() {
     const interval = setInterval(() => navigator.vibrate([15, 60, 20]), intervalTime);
     return () => clearInterval(interval);
   }, [trace, heat, status, hapticsEnabled]);
-
-  useEffect(() => {
-    if (prevExposed.current > 0 && exposedTicks === 0 && firewallHealth < prevFW.current) {
-      setIsCritical(true);
-      const timer = setTimeout(() => setIsCritical(false), 350); 
-      prevExposed.current = exposedTicks;
-      prevFW.current = firewallHealth;
-      return () => clearTimeout(timer);
-    }
-    prevExposed.current = exposedTicks;
-    prevFW.current = firewallHealth;
-  }, [exposedTicks, firewallHealth]);
 
   useEffect(() => {
     if (activeDaemon && !prevDaemon.current) {
@@ -577,8 +564,6 @@ export default function HackingScene() {
       : "contrast-[1.15] saturate-150 hue-rotate-[15deg] brightness-90 transition-all duration-500"
     : "transition-all duration-300 ease-in";
 
-  const activeTearClass = isCritical && !reducedMotion ? "animate-critical" : breachTearClass;
-
   let popupConfig = null;
   if (status === 'resolved') {
     const isTartarus = useGameStore.getState().currentJobType === 'tartarus';
@@ -617,7 +602,7 @@ export default function HackingScene() {
   }
 
   return (
-    <div className={`flex flex-col h-full bg-zinc-950 relative ${activeTearClass}`}>
+    <div className={`flex flex-col h-full bg-zinc-950 relative ${breachTearClass}`}>
       
       {/* ─── QUICK LOOK OVERLAY ─── */}
       {inspectingModifier && (
