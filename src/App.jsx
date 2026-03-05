@@ -66,10 +66,10 @@ function VictoryScene() {
 
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3 pb-4">
         <button
           onClick={enterDarknet}
-          className="w-full py-3 rounded-lg border border-fuchsia-500/60 text-fuchsia-300 font-mono text-sm font-bold uppercase tracking-widest bg-fuchsia-500/10 hover:bg-fuchsia-500/20 hover:border-fuchsia-400 transition-all duration-200 active:scale-[0.99]"
+          className="hardware-btn w-full py-3 rounded-lg border-[2px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 font-mono text-sm font-bold uppercase tracking-widest bg-fuchsia-500/10 hover:bg-fuchsia-500/20 hover:border-fuchsia-400"
         >
           Enter the Darknet
           <span className="block text-[9px] font-normal text-fuchsia-400/40 mt-0.5 normal-case tracking-normal">
@@ -78,7 +78,7 @@ function VictoryScene() {
         </button>
         <button
           onClick={resetGame}
-          className="w-full py-2 rounded-lg border border-zinc-700/60 text-zinc-500 font-mono text-xs uppercase tracking-widest hover:bg-zinc-800/40 hover:text-zinc-400 transition-all duration-200 active:scale-[0.99]"
+          className="hardware-btn w-full py-3 rounded-lg border-[2px] border-zinc-700/60 border-b-zinc-800 text-zinc-500 font-mono text-xs uppercase tracking-widest hover:bg-zinc-800/40 hover:text-zinc-400 bg-zinc-900"
         >
           Start New Campaign
           <span className="block text-[9px] font-normal text-zinc-700 mt-0.5 normal-case tracking-normal">
@@ -119,7 +119,7 @@ function GameOverScene() {
 
       <button
         onClick={resetGame}
-        className="w-full py-3 rounded-lg border border-red-500/40 text-red-400 font-mono text-sm font-bold uppercase tracking-widest hover:bg-red-500/10 hover:border-red-400 transition-all duration-200 active:scale-[0.99]"
+        className="hardware-btn w-full py-4 rounded-lg border-[2px] border-red-500/40 border-b-red-700 text-red-400 bg-red-950/50 font-mono text-sm font-bold uppercase tracking-widest hover:bg-red-900/40 hover:border-red-400"
       >
         Restart
       </button>

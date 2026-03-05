@@ -131,15 +131,14 @@ export default function FragmentModal() {
           onClick={handleDismiss}
           disabled={phase === 'decrypting'}
           className={[
-            'w-full py-4 rounded font-mono text-xs font-bold uppercase tracking-widest',
-            'transition-all duration-75 border-b-[4px] active:border-b active:translate-y-[2px]',
+            'hardware-btn w-full py-4 rounded border-[2px] font-mono text-xs font-bold uppercase tracking-widest',
             phase === 'decrypting' 
               ? 'border-zinc-800 border-b-zinc-900 text-zinc-700 bg-transparent cursor-wait'
               : isFragment12
                 ? 'border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 animate-pulse'
-                : 'border-zinc-600 border-b-zinc-800 text-zinc-300 hover:text-white hover:bg-zinc-800',
+                : 'border-zinc-600 border-b-zinc-800 text-zinc-300 bg-zinc-900 hover:text-white hover:bg-zinc-800',
           ].join(' ')}
-          style={!isFragment12 && phase !== 'decrypting' ? { border: `1px solid ${cyberdelia ? 'rgba(57,255,20,0.4)' : ''}`, color: cyberdelia ? CYBER_GREEN : '' } : undefined}
+          style={!isFragment12 && phase !== 'decrypting' ? { border: `2px solid ${cyberdelia ? 'rgba(57,255,20,0.4)' : ''}`, borderBottomWidth: '6px', color: cyberdelia ? CYBER_GREEN : '' } : undefined}
         >
           {phase === 'decrypting' ? 'DECRYPTING...' : isFragment12 ? '// Enter the Darknet //' : 'Continue to Safe House'}
         </button>

@@ -184,9 +184,9 @@ function FirewallRow() {
     if (firewallHealth < prevHP.current) {
       setIsHit(true);
 
-      // ADDED: Check the last 3 log entries to see if we triggered the 2.0x Multiplier
-      const recentLogs = log.slice(-3).map(l => typeof l === 'string' ? l : l.text);
-      const wasCritical = recentLogs.some(l => l && l.includes('CRITICAL OVERRIDE'));
+      // ADDED: Check the last 3 log entries to see if we triggered the 2.0x Multiplier safely
+      const recentLogs = (log || []).slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
+      const wasCritical = recentLogs.some(l => l.includes('CRITICAL OVERRIDE'));
       if (wasCritical) setIsCrit(true);
 
       const timer = setTimeout(() => {
@@ -277,19 +277,20 @@ function TraceRow() {
   const node          = useGameStore(s => s.currentNode);
   const pulseActive   = useGameStore(s => s.pulseActive);
   const settings      = useGameStore(s => s.settings);
-  const log           = useGameStore(s => s.terminalLog);
+  const rawLog        = useGameStore(s => s.terminalLog);
   const activeDaemon  = useGameStore(s => s.activeDaemon);
   const ghostTicks    = useGameStore(s => s.ghostTicks);
 
   const [syncFlash, setSyncFlash] = useState(false);
 
   useEffect(() => {
+    const log = (rawLog || []).map(entry => typeof entry === 'string' ? entry : (entry?.text || ''));
     if (log.length > 0 && log[log.length - 1].includes('PERFECT SYNC')) {
       setSyncFlash(true);
       const timer = setTimeout(() => setSyncFlash(false), 600);
       return () => clearTimeout(timer);
     }
-  }, [log]);
+  }, [rawLog]);
   
   const shakeEnabled  = settings?.shakeEnabled ?? true;
   const glitchEnabled = settings?.glitchEnabled ?? true;
@@ -459,79 +460,54 @@ const MENACING_SKULL_FACE = `
      >_____<
 `;
 
-// ─── BACKGROUND KINETIC VORTEX ───────────────────────────────────────────────
-function BackgroundVortex({ trace, heat }) {
-  const maxDanger = Math.max(trace, heat);
-  
-  // Scales speed based on danger
-  const speed = maxDanger > 80 ? 'animate-[spin_1s_linear_infinite]' : 
-                maxDanger > 50 ? 'animate-[spin_4s_linear_infinite]' : 
-                'animate-[spin_15s_linear_infinite]';
-                
-  // Changes color based on danger
-  const color = maxDanger > 80 ? 'border-red-500/20' : 
-                maxDanger > 50 ? 'border-amber-500/20' : 
-                'border-cyan-500/10';
-
-  return (
-    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[150vw] h-[150vw] pointer-events-none mix-blend-screen opacity-60 z-0 flex items-center justify-center">
-       <div className={`absolute w-[80%] h-[80%] rounded-full border-[40px] border-dashed ${color} ${speed}`} style={{ animationDirection: 'reverse' }} />
-       <div className={`absolute w-[60%] h-[60%] rounded-full border-[20px] border-dotted ${color} ${speed}`} />
-       <div className={`absolute w-[40%] h-[40%] rounded-full border-[10px] border-dashed ${color} ${speed}`} style={{ animationDirection: 'reverse' }} />
-    </div>
-  );
-}
-
-// ─── ACTIVE DATA STREAM (The "Hackers" Background) ───────────────────────────
-function ActiveDataStream({ trace, heat, status }) {
-  // Turn off the pillars if the player wins (the Hex Waterfall takes over)
-  if (status === 'resolved') return null;
+// ─── THE ENEMY: BOSS CORE ────────────────────────────────────────────────────
+function BossCore({ trace, heat, fwHealth, maxFw }) {
+  const rawLog = useGameStore(s => s.terminalLog); 
+  const safeLog = rawLog || [];
+  const recentLogs = safeLog.slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
+  const isStaggered = recentLogs.some(l => l.includes('CRITICAL OVERRIDE') || l.includes('2.0x MULTIPLIER'));
 
   const maxDanger = Math.max(trace, heat);
+  const healthPercent = fwHealth / maxFw;
 
-  // Cyberdelic color mapping based on danger levels
-  const color = maxDanger >= 80 ? 'rgba(217, 70, 239, 0.4)' : // Fuchsia
-                maxDanger >= 50 ? 'rgba(245, 158, 11, 0.3)' : // Amber
-                'rgba(34, 211, 238, 0.15)';                   // Cyan
+  const isEnraged = maxDanger >= 80;
+  const isAlert = maxDanger >= 50;
 
-  // Data falls faster as danger rises
-  const duration = maxDanger >= 80 ? '0.8s' : maxDanger >= 50 ? '2s' : '8s';
+  const borderColor = isEnraged ? 'border-red-500' : isAlert ? 'border-amber-500' : 'border-cyan-500';
+  const shadowColor = isEnraged ? 'shadow-[0_0_50px_rgba(239,68,68,0.4)]' : isAlert ? 'shadow-[0_0_40px_rgba(245,158,11,0.3)]' : 'shadow-[0_0_30px_rgba(34,211,238,0.2)]';
+  const coreBg      = isEnraged ? 'bg-red-500' : isAlert ? 'bg-amber-500' : 'bg-cyan-500';
+  const innerColor  = isEnraged ? 'bg-red-500/20' : isAlert ? 'bg-amber-500/20' : 'bg-cyan-500/10';
+
+  const spinSpeedOuter = isEnraged ? 'animate-[spin_2s_linear_infinite]' : 'animate-[spin_10s_linear_infinite]';
+  const spinSpeedInner = isEnraged ? 'animate-[spin_1.5s_linear_infinite_reverse]' : 'animate-[spin_7s_linear_infinite_reverse]';
+  const staggerEffect = isStaggered ? 'scale-90 opacity-50 blur-sm danger-shake' : 'scale-100 opacity-100 blur-none';
 
   return (
-    <div className="absolute inset-0 z-0 pointer-events-none flex justify-between overflow-hidden opacity-80">
-      {/* Top/Bottom Fade Masks so the data streams blend cleanly into your header/footer */}
-      <div className="absolute inset-0 z-10 bg-gradient-to-b from-zinc-950 via-transparent to-zinc-950 pointer-events-none" />
+    <div className={`absolute inset-0 z-0 pointer-events-none flex items-center justify-center overflow-hidden transition-all duration-300 ease-out ${staggerEffect}`}>
+      {/* Background vignette so the terminal text stays readable */}
+      <div className="absolute inset-0 bg-zinc-950/70" />
+      
+      <div className="relative w-64 h-64 md:w-96 md:h-96 flex items-center justify-center opacity-60 mix-blend-screen">
+        
+        {/* Outer Boss Armor (Shields) - Breaks down as health drops */}
+        <div className={`absolute inset-0 rounded-full border-t-[8px] border-b-[2px] border-r-[4px] border-dashed ${borderColor} ${shadowColor} ${spinSpeedOuter} transition-all duration-500`}
+             style={{ opacity: 0.3 + (healthPercent * 0.7) }} 
+        />
+        
+        {/* Mid Ring (Processing Ring) */}
+        <div className={`absolute inset-4 rounded-full border-[4px] border-dotted ${borderColor} ${shadowColor} ${spinSpeedInner} opacity-70`} />
+        
+        {/* The Core Eye */}
+        <div className={`absolute w-16 h-16 md:w-24 md:h-24 rounded-sm border-[4px] rotate-45 ${borderColor} ${shadowColor} ${innerColor} transition-colors duration-500 flex items-center justify-center`}>
+          <div className={`w-1/2 h-1/2 rounded-full ${coreBg} ${isEnraged ? 'animate-pulse' : ''}`} />
+        </div>
 
-      {/* Pillar 1: Wide, medium opacity */}
-      <div className="w-[20%] h-full" style={{
-        backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent 4px, ${color} 4px, ${color} 8px)`,
-        animation: `matrix-descend ${duration} linear infinite`
-      }} />
-
-      {/* Pillar 2: Thin, bright, scrolls upward for contrast */}
-      <div className="w-[8%] h-full opacity-70" style={{
-        backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent 2px, ${color} 2px, ${color} 4px)`,
-        animation: `matrix-descend ${duration} linear infinite`,
-        animationDirection: 'reverse'
-      }} />
-
-      {/* Pillar 3: Massive, low opacity */}
-      <div className="w-[35%] h-full opacity-40" style={{
-        backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent 10px, ${color} 10px, ${color} 20px)`,
-        animation: `matrix-descend ${duration} linear infinite`
-      }} />
-
-      {/* Pillar 4: Medium */}
-      <div className="w-[15%] h-full opacity-80" style={{
-        backgroundImage: `repeating-linear-gradient(to bottom, transparent, transparent 5px, ${color} 5px, ${color} 10px)`,
-        animation: `matrix-descend ${duration} linear infinite`
-      }} />
+      </div>
     </div>
   );
 }
 
 export default function HackingScene() {
-  // --- QUICK LOOK STATE ---
   const [inspectingModifier, setInspectingModifier] = useState(null);
 
   const trace = useGameStore(s => s.digitalTrace);
@@ -621,7 +597,6 @@ export default function HackingScene() {
   const isTraceDanger = trace >= 80 && (settings?.glitchEnabled ?? true);
   const isHeatDanger  = heat  >= 80;
 
-  // --- NEW: Get mutator state for visual overlays ---
   const node = useGameStore(s => s.currentNode);
   const isGoldCache = node?.mutator?.id === 'GOLD_CACHE';
   const isVolatile  = node?.mutator?.id === 'VOLATILE';
@@ -685,17 +660,24 @@ export default function HackingScene() {
 
       {!reducedMotion && (
         <div className="gibson-environment">
-          <div className="gibson-grid" />
+          <div className="gibson-grid opacity-20" />
         </div>
+      )}
+
+      {/* THE NEW BOSS ENTITY */}
+      {!reducedMotion && status !== 'resolved' && (
+        <BossCore 
+          trace={trace} 
+          heat={heat} 
+          fwHealth={firewallHealth} 
+          maxFw={node?.maxFirewallHP || 100}
+        />
       )}
 
       {/* Hex Data Waterfall when you win! */}
       {status === 'resolved' && transitOutcome === 'success' && !reducedMotion && (
         <div className="hex-stream-bg" />
       )}
-
-      {/* INJECT THE NEW DATA STREAM HERE */}
-      {!reducedMotion && <ActiveDataStream trace={trace} heat={heat} status={status} />}
 
       {(isHeatDanger && !reducedMotion) && <div className="siren-vignette" />}
       
@@ -709,7 +691,7 @@ export default function HackingScene() {
 
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         
-        {/* --- NEW: Extreme Overlay Effects --- */}
+        {/* --- Extreme Overlay Effects --- */}
         {isGoldCache && !reducedMotion && (
           <div className="absolute inset-0 pointer-events-none z-30 shadow-[inset_0_0_120px_rgba(250,204,21,0.15)] border-[2px] border-yellow-500/30 mix-blend-screen" />
         )}

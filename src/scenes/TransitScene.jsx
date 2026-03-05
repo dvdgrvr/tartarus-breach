@@ -102,7 +102,7 @@ function SessionSummary() {
   const badge = OUTCOME_BADGE[outcome] ?? OUTCOME_BADGE.escaped;
   
   const safeLogs = terminal.map(log => typeof log === 'string' ? log : (log?.text || ''));
-  
+
   const filteredLogs = terminal.filter(log => 
     !log.includes('SIPHONING...') && 
     !log.includes('AWAITING MANUAL DISCONNECT')
@@ -291,11 +291,10 @@ function UpgradeCard({ cfg }) {
               onClick={handlePurchase}
               disabled={!canAfford}
               className={[
-                'px-6 py-2 rounded border font-mono text-xs font-bold uppercase tracking-widest',
-                'transition-all duration-150 active:scale-95',
+                'hardware-btn px-6 py-2 rounded border-[2px] font-display text-xs font-bold uppercase tracking-widest', // <-- NEW CHUNKY STYLE
                 canAfford
-                  ? 'border-violet-500/50 text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 hover:border-violet-400 glow-violet'
-                  : 'border-zinc-700 text-zinc-400 bg-zinc-800/30 cursor-not-allowed',
+                  ? 'border-violet-500/50 border-b-violet-700/80 text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 glow-violet'
+                  : 'border-zinc-700 border-b-zinc-800 text-zinc-500 bg-zinc-900',
               ].join(' ')}
             >
               BUY
@@ -793,9 +792,7 @@ function JobFooter({ isLocked, onJackIn }) {
   const showDarknet     = hasBeatenGame;
   const showPriority    = !showTartarus && !hasBeatenGame;
 
-  const lockClass = isLocked 
-    ? 'opacity-50 cursor-not-allowed pointer-events-none' 
-    : 'active:border-b-[1px] active:translate-y-[3px]';
+  const lockClass = isLocked ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
 
   return (
     <div className="px-4 pt-3 pb-6 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 flex flex-col gap-2" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}>
@@ -805,7 +802,7 @@ function JobFooter({ isLocked, onJackIn }) {
         <button
           onClick={() => onJackIn('skim')}
           disabled={isLocked}
-          className={`flex-1 py-3 px-1 rounded-lg font-mono text-[11px] sm:text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green game-button flex flex-col items-center justify-center text-center ${lockClass}`}
+          className={`flex-1 py-3 px-1 rounded-lg font-mono text-[11px] sm:text-xs font-bold uppercase tracking-widest border-[2px] border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green hardware-btn flex flex-col items-center justify-center text-center ${lockClass}`}
         >
           <span>Data Skim</span>
           <span className="text-[8px] font-normal text-green-300/80 mt-1 normal-case tracking-normal">
@@ -817,7 +814,7 @@ function JobFooter({ isLocked, onJackIn }) {
           <button
             onClick={() => onJackIn('priority')}
             disabled={isLocked}
-            className={`flex-1 py-3 px-1 rounded-lg font-mono text-[11px] sm:text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet game-button flex flex-col items-center justify-center text-center ${lockClass}`}
+            className={`flex-1 py-3 px-1 rounded-lg font-mono text-[11px] sm:text-xs font-bold uppercase tracking-widest border-[2px] border-violet-500/60 border-b-violet-700 text-violet-300 bg-violet-500/5 hover:bg-violet-500/15 glow-violet hardware-btn flex flex-col items-center justify-center text-center ${lockClass}`}
           >
             <span>Priority Lead</span>
             <span className="text-[8px] font-normal text-violet-300/80 mt-1 normal-case tracking-normal">
@@ -832,7 +829,7 @@ function JobFooter({ isLocked, onJackIn }) {
         <button
           onClick={() => onJackIn('tartarus')}
           disabled={isLocked}
-          className={`w-full py-3 px-4 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse game-button flex flex-col items-center justify-center ${lockClass}`}
+          className={`w-full py-3 px-4 rounded-lg font-mono text-xs font-bold uppercase tracking-widest border-[2px] border-red-500/80 border-b-red-700 text-red-400 bg-red-500/10 hover:bg-red-500/20 animate-pulse hardware-btn flex flex-col items-center justify-center ${lockClass}`}
         >
           <span>Assault Tartarus Node</span>
           <span className="text-[9px] font-normal text-red-300/80 mt-1 normal-case tracking-normal">
@@ -845,7 +842,7 @@ function JobFooter({ isLocked, onJackIn }) {
         <button
           onClick={() => onJackIn('darknet')}
           disabled={isLocked}
-          className={`w-full py-3 px-4 rounded-lg font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 game-button flex flex-col items-center justify-center ${lockClass}`}
+          className={`w-full py-3 px-4 rounded-lg font-mono text-xs font-bold uppercase tracking-widest border-[2px] border-fuchsia-500/60 border-b-fuchsia-700 text-fuchsia-300 bg-fuchsia-500/5 hover:bg-fuchsia-500/15 hardware-btn flex flex-col items-center justify-center ${lockClass}`}
         >
           <span>Access Darknet Router</span>
           <span className="text-[9px] font-normal text-fuchsia-300/80 mt-1 normal-case tracking-normal">

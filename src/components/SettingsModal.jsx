@@ -55,7 +55,7 @@ export default function SettingsModal({ onClose }) {
         </div>
         <button
           onClick={onClose}
-          className="font-mono text-xs font-bold uppercase tracking-widest text-zinc-300 hover:text-red-400 border border-zinc-600 hover:border-red-500/60 bg-zinc-800/50 hover:bg-zinc-800 px-4 py-2 rounded transition-all duration-150"
+          className="hardware-btn font-mono text-xs font-bold uppercase tracking-widest text-zinc-300 hover:text-red-400 border-[2px] border-zinc-600 border-b-zinc-800 bg-zinc-800/50 hover:border-red-500/60 hover:bg-zinc-800 px-4 py-2 rounded"
         >
           Close
         </button>
@@ -160,7 +160,7 @@ export default function SettingsModal({ onClose }) {
             // Data Management
           </p>
           <div className="flex gap-3">
-            {/* EXPORT BUTTON - Neutral Utility */}
+            {/* EXPORT BUTTON */}
             <button
               onClick={() => {
                 const save = localStorage.getItem('tartarus-save');
@@ -169,7 +169,7 @@ export default function SettingsModal({ onClose }) {
                   alert('Save string copied to clipboard!');
                 });
               }}
-              className="flex-1 py-3 px-2 rounded border border-zinc-600 border-b-[4px] border-b-zinc-700 text-zinc-200 bg-zinc-800/60 hover:bg-zinc-700/80 hover:text-white font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 active:translate-y-[2px] active:border-b-0 flex flex-col items-center gap-1 select-none"
+              className="hardware-btn flex-1 py-3 px-2 rounded border-[2px] border-zinc-600 border-b-zinc-800 text-zinc-200 bg-zinc-800/60 hover:bg-zinc-700/80 hover:text-white font-mono text-xs font-bold uppercase tracking-widest flex flex-col items-center gap-1 select-none"
             >
               Export Save
               <span className="text-[9px] font-normal text-zinc-400 normal-case tracking-normal text-center leading-tight">
@@ -177,7 +177,7 @@ export default function SettingsModal({ onClose }) {
               </span>
             </button>
 
-            {/* IMPORT BUTTON - Active Utility */}
+            {/* IMPORT BUTTON */}
             <button
               onClick={() => {
                 const pasted = window.prompt('Paste your save string here:');
@@ -191,7 +191,7 @@ export default function SettingsModal({ onClose }) {
                 localStorage.setItem('tartarus-save', pasted);
                 window.location.reload();
               }}
-              className="flex-1 py-3 px-2 rounded border border-cyan-500/60 border-b-[4px] border-b-cyan-700 text-cyan-300 bg-cyan-900/50 hover:bg-cyan-800/60 hover:text-cyan-100 font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 active:translate-y-[2px] active:border-b-0 flex flex-col items-center justify-center gap-1 select-none"
+              className="hardware-btn flex-1 py-3 px-2 rounded border-[2px] border-cyan-500/60 border-b-cyan-700 text-cyan-300 bg-cyan-900/50 hover:bg-cyan-800/60 hover:text-cyan-100 font-mono text-xs font-bold uppercase tracking-widest flex flex-col items-center justify-center gap-1 select-none"
             >
               Import Save
               <span className="text-[9px] font-normal text-cyan-400/70 normal-case tracking-normal text-center leading-tight">
@@ -218,8 +218,7 @@ export default function SettingsModal({ onClose }) {
               onClose();
             }
           }}
-          // I removed 'danger-shake' from the end of the className list below:
-          className="w-full py-3 px-4 rounded border border-red-500/80 border-b-[4px] border-b-red-700 text-red-400 bg-red-950/60 hover:bg-red-900/80 hover:text-red-200 font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 active:translate-y-[2px] active:border-b-0 flex flex-col items-center gap-1 select-none"
+          className="hardware-btn w-full py-3 px-4 rounded border-[2px] border-red-500/80 border-b-red-800 text-red-400 bg-red-950/60 hover:bg-red-900/80 hover:text-red-200 font-mono text-xs font-bold uppercase tracking-widest flex flex-col items-center gap-1 select-none"
         >
           Erase Safehouse
           <span className="text-[10px] font-normal text-red-400/80 normal-case tracking-normal">

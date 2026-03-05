@@ -2,9 +2,10 @@ import { useRef, useEffect } from 'react';
 import useGameStore from '../store/useGameStore';
 
 export default function TerminalLog({ className = '' }) {
-  const log = useGameStore(s => s.terminalLog);
+  const rawLog = useGameStore(s => s.terminalLog);
   const scrollRef = useRef(null);
 
+  // --- BULLETPROOF FIX: Convert any legacy log objects from old saves to strings safely ---
   const log = (rawLog || []).map(entry => typeof entry === 'string' ? entry : (entry?.text || ''));
 
   useEffect(() => {
