@@ -471,18 +471,52 @@ triggerFirstBoot: () => {
         });
       },
 
-      // ─── EXECUTE COMMAND ──────────────────────────────────────────────
+// ─── EXECUTE COMMAND ──────────────────────────────────────────────
       executeCommand: (toolId) => {
         const s = get();
-        if (s.status !== 'hacking') return;
+        if (s.status !== 'hacking' || s.isPaused) return;
 
         const tool = toolsConfig.find(t => t.id === toolId);
         if (!tool) return;
-        if ((s.toolState[toolId]?.cooldownRemaining ?? 0) > 0) return;
 
+        // ─── OVERDRIVE CALCULATIONS ───
+        const cooldownRemaining = s.toolState[toolId]?.cooldownRemaining ?? 0;
+        const ramLevel = s.upgrades['RAM']?.level ?? 0;
+        let actualCooldown = Math.max(
+          1,
+          Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (s.currentSafehouse?.ramMod ?? 1))
+        );
+
+        let overdrivePenalty = 0;
+        let isOverdriving = false;
+
+        if (cooldownRemaining > 0) {
+          // 1. SAFETY LOCKOUT: 1-tick buffer to prevent accidental double taps
+          if (actualCooldown - cooldownRemaining < 1) return;
+
+          // 2. THE 50% RULE
+          if (cooldownRemaining > actualCooldown / 2) {
+            set(cur => ({ 
+              terminalLog: appendLog(cur.terminalLog, `!! ERROR: ${toolId} RECOVERY INCOMPLETE. SIGNAL WEAK !!`) 
+            }));
+            AudioManager.playSFX('error');
+            return; 
+          }
+          
+          // 3. TIERED THERMAL COSTS
+          const isTactical = ['SCAN', 'BYPASS'].includes(toolId);
+          const maxPenalty = isTactical ? 30 : 15;
+          
+          isOverdriving = true;
+          overdrivePenalty = (cooldownRemaining / actualCooldown) * maxPenalty;
+        }
+
+        // ─── HAPTICS & AUDIO ───
         AudioManager.playSFX('thock');
         if (s.settings?.hapticsEnabled) {
-          if (toolId === 'SCAN') {
+          if (isOverdriving) {
+            haptic([80, 40, 80]); // Distinct heavy vibration for overdrive
+          } else if (toolId === 'SCAN') {
             haptic(10); 
           } else if (toolId === 'BYPASS') {
             haptic([30, 40, 30]); 
@@ -495,18 +529,14 @@ triggerFirstBoot: () => {
           }
         }
 
-        const ramLevel = s.upgrades['RAM']?.level ?? 0;
-        let actualCooldown = Math.max(
-          1,
-          Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (s.currentSafehouse?.ramMod ?? 1))
-        );
-
         let firewallDamage = tool.baseEffect.firewallDamage ?? 0;
         const traceGain    = tool.baseEffect.traceGain      ?? 0;
-        const heatGain     = tool.baseEffect.heatGain       ?? 0;
+        const heatGain     = (tool.baseEffect.heatGain      ?? 0) + overdrivePenalty;
 
+        // ─── TOOL: DECRYPT ───
         if (toolId === 'DECRYPT') {
-          let log = appendLog(s.terminalLog, `> DECRYPT // +${heatGain}% HEAT | TRACE: ${Math.min(100, s.digitalTrace + traceGain).toFixed(0)}%`);
+          let log = appendLog(s.terminalLog, `> DECRYPT // +${heatGain.toFixed(0)}% HEAT | TRACE: ${Math.min(100, s.digitalTrace + traceGain).toFixed(0)}%`);
+          if (isOverdriving) log = appendLog(log, `!! HARDWARE OVERDRIVE: DECRYPT FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
           
           if (s.currentNode?.mutator?.id === 'ICE_WALL') {
             actualCooldown = 1; 
@@ -538,6 +568,7 @@ triggerFirstBoot: () => {
           return;
         }
 
+        // ─── TOOL: BYPASS ───
         if (toolId === 'BYPASS') {
           const bsLevel = s.upgrades['BYPASS_STRENGTH']?.level ?? 0;
           firewallDamage += bsLevel * 10;
@@ -567,6 +598,7 @@ triggerFirstBoot: () => {
           }
         }
 
+        // ─── DAMAGE & MODIFIERS ───
         firewallDamage = Math.floor(firewallDamage * (s.currentSafehouse?.dmgMod ?? 1));
 
         if (toolId === 'BYPASS' && s.currentNode?.mutator?.id === 'ICE_WALL') {
@@ -576,6 +608,7 @@ triggerFirstBoot: () => {
         const prevFirewall = s.firewallHealth;
         const newFirewall  = Math.max(0, prevFirewall - firewallDamage);
         
+        // ─── TOOL: PULSE / SYNC ───
         const isPerfectSync = toolId === 'PULSE' && s.pulseActive;
         const finalTrace    = isPerfectSync
           ? Math.max(0, s.digitalTrace + (traceGain * 2))
@@ -585,6 +618,7 @@ triggerFirstBoot: () => {
 
         const newHeat = Math.min(100, s.physicalHeat + heatGain);
 
+        // ─── WIN STATE ───
         if (newFirewall <= 0 && prevFirewall > 0) {
           if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
              navigator.vibrate([100, 50, 150]);
@@ -607,6 +641,8 @@ triggerFirstBoot: () => {
           const newHighestTier = Math.max(s.highestDarknetTier, newDarknetTier);
 
           let log = appendLog(s.terminalLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`);
+          if (isOverdriving) log = appendLog(log, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
+          
           log = appendLog(log, `>> [ ACCESS GRANTED ]`);
 
           const mashaLine = getMashaReaction('breach', finalTrace);
@@ -621,11 +657,12 @@ triggerFirstBoot: () => {
             status:             'resolved',
             nextStatus:         isTartarus ? 'victory' : 'transit',
             transitOutcome:     'success',
-            packUpHeat:         s.physicalHeat,
+            packUpHeat:         newHeat, 
             packUpTrace:        finalTrace,
             systemOverride:     null,
             firewallHealth:     0,
             digitalTrace:       finalTrace,
+            physicalHeat:       newHeat,
             intelFragments:     s.intelFragments + intelEarned,
             sessionIntelEarned: intelEarned,
             storyArchive:       newArchive,
@@ -642,10 +679,12 @@ triggerFirstBoot: () => {
           return;
         }
 
+        // ─── STANDARD EXECUTION LOG ───
         const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
         const fwDisplay   = (isEncrypted && !s.firewallRevealed) ? '???' : `${Math.ceil(newFirewall)}`;
 
         let log = appendLog(s.terminalLog, `> ${toolId} // FW: ${fwDisplay} | TRACE: ${finalTrace.toFixed(0)}%`);
+        if (isOverdriving) log = appendLog(log, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
         if (isPerfectSync) log = appendLog(log, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
 
         set({

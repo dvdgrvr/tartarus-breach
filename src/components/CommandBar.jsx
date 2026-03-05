@@ -285,16 +285,40 @@ export default function CommandBar() {
     >
       {toolsConfig.map((tool) => {
         const cooldown   = toolState[tool.id]?.cooldownRemaining ?? 0;
+        const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (safehouse?.ramMod ?? 1)));
+        
         const onCooldown = cooldown > 0;
-        const disabled   = onCooldown || status !== 'hacking';
+        
+        // --- OVERDRIVE LOGIC ---
+        // Overdrive is ready if: It's on cooldown AND at least half finished AND the 1-tick safety buffer has passed.
+        const isOverdriveReady = onCooldown && cooldown <= maxCooldown / 2 && (maxCooldown - cooldown >= 1);
+        const isLocked   = onCooldown && !isOverdriveReady;
+        const disabled   = isLocked || status !== 'hacking';
+        // -----------------------
         
         const styles     = TOOL_STYLES[tool.color] ?? TOOL_STYLES.green;
         const activeFill = FILL_STYLES[tool.color] ?? FILL_STYLES.green;
         
         const isError     = errorId === tool.id;
-
-        const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (safehouse?.ramMod ?? 1)));
         const fillPercent = maxCooldown > 0 ? ((maxCooldown - cooldown) / maxCooldown) * 100 : 100;
+
+        // Determine base button classes
+        let buttonClass = [
+          'flex-1 relative overflow-hidden min-h-[64px] py-4 px-4 rounded game-button touch-none',
+          'font-mono text-[11px] font-bold uppercase tracking-widest text-center',
+          'border border-b-[4px] transition-all duration-75 select-none',
+          isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
+          (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled && !isOverdriveReady) ? 'ring-2 ring-green-400 shadow-[0_0_15px_rgba(74,222,128,0.6)] animate-pulse z-50' : ''
+        ];
+
+        // Apply state-specific styles (Disabled vs Overdrive vs Active)
+        if (disabled) {
+          buttonClass.push(styles.disabled);
+        } else if (isOverdriveReady) {
+          buttonClass.push('border-red-500/60 border-b-red-700/80 text-red-400 bg-red-500/10 hover:bg-red-500/20 active:border-b active:translate-y-1 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.3)] glow-red');
+        } else {
+          buttonClass.push(`${styles.active} active:border-b active:translate-y-1`);
+        }
 
         return (
           <button
@@ -302,21 +326,17 @@ export default function CommandBar() {
             onPointerDown={() => handlePointerDown(tool.id, disabled)}
             onContextMenu={(e) => { e.preventDefault(); }}
             title={tool.description}
-            className={[
-              'flex-1 relative overflow-hidden min-h-[64px] py-4 px-4 rounded game-button touch-none',
-              'font-mono text-[11px] font-bold uppercase tracking-widest text-center',
-              'border border-b-[4px] transition-all duration-75 select-none',
-              disabled ? styles.disabled : `${styles.active} active:border-b active:translate-y-1`,
-              isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
-              (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled) ? 'ring-2 ring-green-400 shadow-[0_0_15px_rgba(74,222,128,0.6)] animate-pulse z-50' : ''
-            ].join(' ')}
+            className={buttonClass.join(' ')}
           >
             <div className="relative z-10">
-              <GlitchLabel text={tool.label} isDanger={digitalTrace >= 85 && (settings?.glitchEnabled ?? true)} />
+              <GlitchLabel 
+                text={isOverdriveReady ? 'OVR' : tool.label} 
+                isDanger={digitalTrace >= 85 && (settings?.glitchEnabled ?? true)} 
+              />
             </div>
             
             <div 
-              className={`absolute bottom-0 left-0 w-full transition-all ease-linear z-20 ${activeFill}`}
+              className={`absolute bottom-0 left-0 w-full transition-all ease-linear z-20 ${isOverdriveReady ? 'bg-red-500/20 border-t border-red-400/60' : activeFill}`}
               style={{ 
                 height: `${fillPercent}%`,
                 transitionDuration: cooldown === maxCooldown ? '0ms' : '1000ms',
@@ -326,7 +346,7 @@ export default function CommandBar() {
 
             {onCooldown && (
               <div className="absolute top-1.5 right-2 pointer-events-none z-30">
-                <span className="text-[9px] font-bold text-zinc-500 tabular-nums">
+                <span className={`text-[9px] font-bold tabular-nums ${isOverdriveReady ? 'text-red-400' : 'text-zinc-500'}`}>
                   {cooldown}s
                 </span>
               </div>
