@@ -351,7 +351,14 @@ triggerFirstBoot: () => {
 
         const signalLevel    = s.upgrades['SIGNAL']?.level ?? 0;
         const heatMultiplier = Math.max(0, 1 - signalLevel * 0.10);
-        const heatGain       = BASE_HEAT_PER_TICK * heatMultiplier * (s.currentSafehouse?.heatMod ?? 1);
+        
+        // Changed to 'let' so we can modify it for the Volatile mutator
+        let heatGain = BASE_HEAT_PER_TICK * heatMultiplier * (s.currentSafehouse?.heatMod ?? 1);
+
+        // --- NEW: Volatile Heat Spike ---
+        if (s.currentNode?.mutator?.id === 'VOLATILE') {
+          heatGain *= 2.0; // Rig heats up twice as fast
+        }
 
         const isTraceAccel    = s.currentNode?.specialDefense === 'TRACE_ACCELERATOR';
         const traceMultiplier = s.currentNode?.traceMultiplier ?? (isTraceAccel ? TRACE_ACCEL_MULTIPLIER : 1);
@@ -707,11 +714,20 @@ triggerFirstBoot: () => {
         let newBank     = s.intelFragments;
         let isGhostExit = false;
 
+        // --- PROGRESS CALCULATION ---
+        const maxHP = s.currentNode?.maxFirewallHP || 100;
+        const progress = Math.max(0, 1 - (s.firewallHealth / maxHP));
+
         if (cause === 'escaped') {
           isGhostExit = s.digitalTrace >= 95 || s.physicalHeat >= 95;
           const baseMultiplier = isGhostExit ? 0.75 : 0.5; 
-          intelEarned = Math.floor(s.sessionPotentialIntel * baseMultiplier * (s.currentSafehouse?.intelMod ?? 1));
-          newBank     = s.intelFragments + intelEarned;
+          
+          // Only reward if at least 20% damage was done to the node
+          intelEarned = progress >= 0.2
+            ? Math.floor(s.sessionPotentialIntel * baseMultiplier * progress * (s.currentSafehouse?.intelMod ?? 1))
+            : 0;
+
+          newBank = s.intelFragments + intelEarned;
         } else if (cause === 'heat_busted') {
           newBank = 0; 
         }
@@ -722,10 +738,15 @@ triggerFirstBoot: () => {
         let log = s.terminalLog;
         if (cause === 'escaped') {
           log = appendLog(log, '>> [ CONNECTION CLOSED ]');
-          const mashaLine = getMashaReaction('escaped', s.digitalTrace);
-          if (mashaLine) log = appendLog(log, mashaLine);
-          if (isGhostExit) log = appendLog(log, '>> GHOST EXIT: Danger close. 1.5x Intel recovery bonus applied.');
-          log = appendLog(log, `>> TACTICAL RETREAT SUCCESSFUL. SALVAGED +${intelEarned} IF.`);
+          
+          if (progress < 0.2) {
+            log = appendLog(log, "!! SYSTEM: Connection closed too early. No meaningful data extracted.");
+          } else {
+            const mashaLine = getMashaReaction('escaped', s.digitalTrace);
+            if (mashaLine) log = appendLog(log, mashaLine);
+            if (isGhostExit) log = appendLog(log, '>> GHOST EXIT: Danger close. 1.5x Intel recovery bonus applied.');
+            log = appendLog(log, `>> TACTICAL RETREAT SUCCESSFUL. SALVAGED +${intelEarned} IF.`);
+          }
         } else if (cause === 'trace_busted') {
           log = appendLog(log, '!! [ ACCESS DENIED ] !!');
           const mashaLine = getMashaReaction('bust', s.digitalTrace);
@@ -815,20 +836,48 @@ triggerFirstBoot: () => {
         }
 
         let mutator = null;
+        let finalTraceMultiplier = nextNode.traceMultiplier || 1.0;
+
+        // --- HIGH-RISK MUTATOR LOGIC ---
         if (jobType !== 'tartarus' && Math.random() < 0.40) {
           const MUTATORS = [
             { id: 'ARCHITECT', name: 'The Architect', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
             { id: 'SNIFFER',   name: 'The Sniffer',   color: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10' },
-            { id: 'ICE_WALL',  name: 'Ice-Wall',      color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' }
+            { id: 'ICE_WALL',  name: 'Ice-Wall',      color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
+            { id: 'GOLD_CACHE', name: 'Legacy Data Cache', color: 'text-yellow-400 border-yellow-500/50 bg-yellow-500/10' },
+            { id: 'VOLATILE',   name: 'Volatile Relay',   color: 'text-orange-500 border-orange-600/50 bg-orange-600/10' }
           ];
           mutator = MUTATORS[Math.floor(Math.random() * MUTATORS.length)];
           
           if (mutator.id === 'SNIFFER') {
             potentialIntel = Math.floor(potentialIntel * 1.5);
+          } else if (mutator.id === 'GOLD_CACHE') {
+            potentialIntel = Math.floor(potentialIntel * 3.0); // 3x Payout!
+            finalTraceMultiplier *= 2.0; // Very fast trace
+          } else if (mutator.id === 'VOLATILE') {
+            potentialIntel = Math.floor(potentialIntel * 1.5);
+            // Heat logic handled in the tick() function
           }
         }
 
-        const sessionNode = { ...nextNode, firewallHP, maxFirewallHP: firewallHP, mutator };
+        const sessionNode = { 
+          ...nextNode, 
+          firewallHP, 
+          maxFirewallHP: firewallHP, 
+          mutator, 
+          traceMultiplier: finalTraceMultiplier 
+        };
+
+        // --- CUSTOM BOOT LOGS ---
+        let initialLogs = nodeBootLog(sessionNode);
+        if (mutator?.id === 'GOLD_CACHE') {
+          initialLogs.push('// [$$$] GOLDEN CACHE DETECTED: Unusually high data density.');
+          initialLogs.push('// [!] WARNING: Target is actively pinging trace authorities. SPRINT REQUIRED.');
+        } else if (mutator?.id === 'VOLATILE') {
+          initialLogs.push('// [!] VOLATILE RELAY: Hardware instability detected. Expect severe physical heat spikes.');
+        }
+
+        initialLogs.push(`// SAFEHOUSE ${s.currentSafehouse?.id ?? 'ALPHA'} ACTIVE: ${(s.currentSafehouse?.trait ?? 'Standard').toUpperCase()} PROTOCOLS ENGAGED.`);
 
         set({
           status:                'hacking',
@@ -849,10 +898,7 @@ triggerFirstBoot: () => {
           packUpTrace:           0,
           systemOverride:        null, 
           activeModifiers:       activeMods,
-          terminalLog:           appendLog(
-            nodeBootLog(sessionNode),
-            `// SAFEHOUSE ${s.currentSafehouse?.id ?? 'ALPHA'} ACTIVE: ${(s.currentSafehouse?.trait ?? 'Standard').toUpperCase()} PROTOCOLS ENGAGED.`
-          ),
+          terminalLog:           initialLogs,
           toolState:             buildInitialToolState(),
         });
       },

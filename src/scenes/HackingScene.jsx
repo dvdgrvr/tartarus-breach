@@ -18,6 +18,12 @@ const DIAGNOSTIC_MAP = {
   ENCRYPTED_LOGS:    { icon: '🔑', label: 'ENCRYPTED',  desc: 'Firewall metrics obfuscated. Run DECRYPT to reveal.' },
   TRACE_ACCELERATOR: { icon: '📡', label: 'TRACE_X2',    desc: 'Advanced tracking. Passive Trace rate x2.' },
   DARKNET:           { icon: '🌑', label: 'DARKNET',    desc: 'Encrypted router. High trace, massive defenses.' },
+  // --- NEW: Node Mutators ---
+  ARCHITECT:         { icon: '📐', label: 'ARCHITECT',   desc: 'The Architect is actively rebuilding the firewall.' },
+  SNIFFER:           { icon: '🐽', label: 'SNIFFER',     desc: 'Deep packet inspection. Trace rate increased by 50%.' },
+  ICE_WALL:          { icon: '🧊', label: 'ICE_WALL',    desc: 'Bypass damage halved. Decrypt rapidly recharges.' },
+  GOLD_CACHE:        { icon: '💰', label: 'GOLD_CACHE',  desc: 'Massive IF payout. Target is actively pinging trace authorities.' },
+  VOLATILE:          { icon: '🔥', label: 'VOLATILE',    desc: 'Hardware instability. Extreme physical heat spikes.' },
 };
 
 // ─── KERNEL DIAGNOSTIC OVERLAY (Quick Look) ──────────────────────────────────
@@ -134,6 +140,21 @@ function NodeStatusStrip({ onInspect }) {
           >
             <span>{DIAGNOSTIC_MAP[node.specialDefense]?.icon}</span>
             <span className="hidden sm:inline uppercase tracking-tighter">DEFENSE</span>
+          </button>
+        )}
+
+        {/* --- NEW: Node Mutator Button --- */}
+        {node.mutator && (
+          <button 
+            onClick={() => onInspect(node.mutator.id)}
+            className={`font-mono text-[10px] font-black px-1.5 py-0.5 rounded-sm border animate-pulse flex items-center gap-1.5 active:scale-95 ${
+              node.mutator.id === 'GOLD_CACHE' ? 'border-yellow-500/50 text-yellow-400 bg-yellow-500/20 shadow-[0_0_8px_rgba(234,179,8,0.4)]' :
+              node.mutator.id === 'VOLATILE' ? 'border-orange-500/50 text-orange-400 bg-orange-500/20 shadow-[0_0_8px_rgba(249,115,22,0.4)]' :
+              'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-500/20'
+            }`}
+          >
+            <span>{DIAGNOSTIC_MAP[node.mutator.id]?.icon || '⚠'}</span>
+            <span className="hidden sm:inline uppercase tracking-tighter">{node.mutator.id.replace('_', ' ')}</span>
           </button>
         )}
 
@@ -258,7 +279,8 @@ function TraceRow() {
   const shakeEnabled  = settings?.shakeEnabled ?? true;
   const glitchEnabled = settings?.glitchEnabled ?? true;
   
-  const isAccelerated = node?.specialDefense === 'TRACE_ACCELERATOR' || node?.specialDefense === 'DARKNET';
+  // Add GOLD_CACHE to the accelerated check
+  const isAccelerated = node?.specialDefense === 'TRACE_ACCELERATOR' || node?.specialDefense === 'DARKNET' || node?.mutator?.id === 'GOLD_CACHE';
   const isDanger  = trace >= 80;
   const isWarning = trace >= 50;
 
@@ -526,6 +548,11 @@ export default function HackingScene() {
   const isTraceDanger = trace >= 80 && (settings?.glitchEnabled ?? true);
   const isHeatDanger  = heat  >= 80;
 
+  // --- NEW: Get mutator state for visual overlays ---
+  const node = useGameStore(s => s.currentNode);
+  const isGoldCache = node?.mutator?.id === 'GOLD_CACHE';
+  const isVolatile  = node?.mutator?.id === 'VOLATILE';
+
   const isWin = status === 'resolved' && transitOutcome === 'success';
   const isBusted = status === 'resolved' && (transitOutcome === 'trace_busted' || transitOutcome === 'heat_busted');
   
@@ -607,6 +634,14 @@ export default function HackingScene() {
       <TopBorder />
 
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+        
+        {/* --- NEW: Extreme Overlay Effects --- */}
+        {isGoldCache && !reducedMotion && (
+          <div className="absolute inset-0 pointer-events-none z-30 shadow-[inset_0_0_120px_rgba(250,204,21,0.15)] border-[2px] border-yellow-500/30 mix-blend-screen" />
+        )}
+        {isVolatile && !reducedMotion && (
+          <div className="absolute inset-0 pointer-events-none z-30 shadow-[inset_0_0_120px_rgba(249,115,22,0.15)] border-[2px] border-orange-500/30 animate-pulse mix-blend-screen" />
+        )}
         
         {status === 'resolved' && popupConfig && !popupDismissed && (
           <div className={`absolute top-[40%] left-4 right-4 -translate-y-1/2 z-50 bg-black border-2 ${popupConfig.border} ${popupConfig.shadow} flex flex-col`}>

@@ -109,20 +109,35 @@ function SessionSummary() {
   const finalLogs = filteredLogs.slice(-4);
   const isGhostExit = outcome === 'escaped' && (trace >= 95 || heat >= 95);
 
+  // Dynamic styling if a mutator is present
+  const hasMutator = !!node?.mutator;
+  const mutatorBorder = hasMutator ? node.mutator.color.split(' ').find(c => c.startsWith('border-')) : 'border-zinc-800/80';
+  const mutatorBg = hasMutator ? node.mutator.color.split(' ').find(c => c.startsWith('bg-')) : 'bg-zinc-900/30';
+
   return (
     <div className="flex flex-col gap-4 mb-5">
       
       {/* 1. Target Profile */}
-      <div className="glass-panel rounded-lg p-4 border border-zinc-800/80 bg-zinc-900/30">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
-          // Target Node
-        </p>
-        <p className="font-mono text-sm font-bold text-zinc-200 truncate">
-          {node?.name || 'UNKNOWN_TARGET'}
-        </p>
-        <p className="font-mono text-[10px] text-zinc-400 mt-1 uppercase tracking-widest">
-          Sec_Profile: <span className="text-cyan-400/80">{node?.specialDefense?.replace('_', ' ') || 'STANDARD'}</span>
-        </p>
+      <div className={`glass-panel rounded-lg p-4 border transition-colors duration-500 ${mutatorBorder} ${mutatorBg}`}>
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">
+              // Target Node
+            </p>
+            <p className={`font-mono text-sm font-bold truncate ${hasMutator ? 'text-white drop-shadow-md' : 'text-zinc-200'}`}>
+              {node?.name || 'UNKNOWN_TARGET'}
+            </p>
+            <p className="font-mono text-[10px] text-zinc-400 mt-1 uppercase tracking-widest">
+              Sec_Profile: <span className="text-cyan-400/80">{node?.specialDefense?.replace('_', ' ') || 'STANDARD'}</span>
+            </p>
+          </div>
+          
+          {hasMutator && (
+            <div className={`font-mono text-[9px] font-bold uppercase tracking-widest px-2 py-1.5 rounded border text-center shadow-lg ${node.mutator.color} animate-pulse`}>
+              {node.mutator.name}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 2. Core Metrics */}
@@ -139,7 +154,7 @@ function SessionSummary() {
         <div className="space-y-3">
           <div className="flex justify-between items-center">
             <span className="font-mono text-sm text-zinc-300">Intel Harvested</span>
-            <span className={`font-mono text-base font-bold ${earned > 0 ? 'text-green-400 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]' : 'text-zinc-500'}`}>
+            <span className={`font-mono text-base font-bold tabular-nums ${earned > 0 ? (node?.mutator?.id === 'GOLD_CACHE' ? 'text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]' : 'text-green-400 drop-shadow-[0_0_5px_rgba(34,197,94,0.5)]') : 'text-zinc-500'}`}>
               +{earned > 0 ? <NumberScrambler value={earned} /> : '0'} <span className="text-xs opacity-80">IF</span>
             </span>
           </div>
@@ -658,34 +673,64 @@ function DeckManual() {
       </div>
 
       {/* ── DIRTY TRICKS (CONSUMABLES) ── */}
+      {showConsumables && (
+        <div>
+          <p className="font-mono text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
+            // Dirty Tricks
+          </p>
+          <div className="space-y-3">
+            <div className="glass-panel rounded-lg p-4 border border-fuchsia-900/40 bg-fuchsia-950/20">
+              <p className="font-mono text-[11px] text-fuchsia-400 font-bold mb-1">Consumable Execution</p>
+              <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
+                Dirty Tricks like <span className="text-fuchsia-300 font-bold">RABBIT</span> and <span className="text-fuchsia-300 font-bold">GHOST</span> can be purchased in the Black Market. To use them during a hack, tap their respective icon in the <span className="text-zinc-300 font-bold">KERNEL DIAGNOSTIC</span> panel at the top of the screen.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── HARDWARE PROTOCOLS ── */}
       <div>
-        <p className="font-mono text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
-          // Dirty Tricks (Consumables)
+        <p className="font-mono text-xs font-bold uppercase tracking-widest text-orange-400 mb-3 mt-4">
+          // Hardware Protocols (High Risk)
         </p>
-        {showConsumables ? (
-           <div className="space-y-3">
-            <div className="glass-panel rounded-lg p-4 border border-zinc-700/50 bg-zinc-800/10">
-              <span className="font-mono text-[11px] text-green-400 font-bold mb-1 block">RABBIT.exe</span>
-              <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
-                A highly aggressive, replicating daemon. Injects directly into the target node, eating <span className="text-white font-bold">10 Firewall HP per second for 5 seconds</span>. Note: Cannot land the killing blow; leaves target at 1 HP.
+        <div className="glass-panel rounded-lg p-5 border border-orange-500/30 bg-orange-950/20">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xl">⚠️</span>
+            <span className="font-mono text-sm font-black text-orange-400 tracking-widest uppercase">
+              Protocol 0x42: Thermal Overdrive
+            </span>
+          </div>
+          
+          <p className="font-mono text-[11px] text-zinc-200 leading-relaxed mb-4">
+            Safety limiters can be forced to execute tools during signal recovery (cooldown). This "Overdrive" generates instantaneous friction in the processing core.
+          </p>
+
+          <div className="space-y-3">
+            <div className="flex gap-3">
+              <span className="font-mono text-[10px] font-bold text-orange-400 shrink-0">[50% RULE]</span>
+              <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-tighter">
+                Recovery must be at least 50% complete before a force-execution is possible.
               </p>
             </div>
-            <div className="glass-panel rounded-lg p-4 border border-zinc-700/50 bg-zinc-800/10">
-              <span className="font-mono text-[11px] text-slate-300 font-bold mb-1 block">GHOST.sys</span>
-              <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
-                A thermal-trace suppression script. <span className="text-white font-bold">Freezes all Trace generation for 4 seconds</span>, creating a massive window for aggressive hacking.
+            <div className="flex gap-3">
+              <span className="font-mono text-[10px] font-bold text-orange-400 shrink-0">[HEAT SPIKE]</span>
+              <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-tighter">
+                Tactical tools (SCAN/BYPASS) spike up to <span className="text-orange-300">+30% HEAT</span>. Strategic tools (PULSE/DECRYPT) spike up to <span className="text-orange-300">+15% HEAT</span>.
               </p>
             </div>
-           </div>
-        ) : (
-           <div className="glass-panel rounded-lg p-6 border border-zinc-800 bg-zinc-900/30 flex flex-col items-center justify-center text-center opacity-70">
-             <span className="text-zinc-500 text-xl mb-3">🔒</span>
-             <p className="font-mono text-xs font-bold text-zinc-400 tracking-widest">ENCRYPTED BLACK MARKET SECTOR</p>
-             <p className="font-mono text-[10px] text-zinc-500 mt-2 uppercase tracking-widest border border-zinc-700 px-3 py-1 rounded bg-zinc-800/50 shadow-inner">
-               Reach Act II (4 Fragments) to unlock
-             </p>
-           </div>
-        )}
+            <div className="flex gap-3">
+              <span className="font-mono text-[10px] font-bold text-orange-400 shrink-0">[LOCKOUT]</span>
+              <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-tighter">
+                A 0.5s hardware lockout is enforced immediately after standard execution to prevent thermal cascade.
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-5 pt-3 border-t border-orange-900/30 font-mono text-[10px] italic text-zinc-500">
+            // MASHA: "Don't fry the rig for a simple SCAN unless the Trace is at your throat. It's an emergency save, not a standard rotation."
+          </p>
+        </div>
       </div>
 
     </div>
