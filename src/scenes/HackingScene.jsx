@@ -463,7 +463,8 @@ const MENACING_SKULL_FACE = `
 // ─── THE ENEMY: BOSS CORE ────────────────────────────────────────────────────
 function BossCore({ trace, heat, fwHealth, maxFw }) {
   const rawLog = useGameStore(s => s.terminalLog); 
-  const exposedTicks = useGameStore(s => s.exposedTicks); // NEW: Pull the vulnerability state!
+  const exposedTicks = useGameStore(s => s.exposedTicks);
+  const isHitStopped = useGameStore(s => s.isHitStopped); // <-- Pull the time-freeze!
   
   const safeLog = rawLog || [];
   const recentLogs = safeLog.slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
@@ -502,18 +503,14 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
         rot: (Math.random() - 0.5) * 40 
       };
       
-      // GENERATE CHUNKY DATA BEAMS
       const numTracers = isStaggered ? 5 : 1; 
       
       const newBeams = Array.from({ length: numTracers }).map((_, i) => ({
         id: Date.now() + Math.random(),
         isCrit: isStaggered,
         x: (Math.random() - 0.5) * (isStaggered ? 160 : 30), 
-        // Slower stagger (60ms) so you can actually read the data pouring in
         delay: i * 60, 
-        // MASSIVE heights (150px to 250px) so they span the screen
         tailHeight: 150 + Math.random() * 100,
-        // Larger hex payloads (e.g. 0xFA3B)
         hex: Math.floor(Math.random() * 65535).toString(16).padStart(4, '0').toUpperCase() 
       }));
 
@@ -524,20 +521,26 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
       setTimeout(() => {
         const bIds = newBeams.map(b => b.id);
         setBeams(b => b.filter(x => !bIds.includes(x.id)));
-      }, 1000); // Give the slower beams time to clear
+      }, 1000); 
     }
     prevFw.current = fwHealth;
   }, [fwHealth, isStaggered]);
+
+  // ─── THE FREEZE FLAG ───
+  const playState = isHitStopped ? 'paused' : 'running';
 
   return (
     <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/10 via-zinc-950/40 to-zinc-950" />
       
-      <div className={`absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 md:w-80 md:h-80 flex items-center justify-center opacity-90 mix-blend-screen transition-all duration-75 ease-out ${staggerEffect}`}>
+      {/* Pause the container's breathing animation */}
+      <div className={`absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 md:w-80 md:h-80 flex items-center justify-center opacity-90 mix-blend-screen transition-all duration-75 ease-out ${staggerEffect}`}
+           style={{ animationPlayState: playState }}>
         
-        {/* ─── NEW: 90s TARGET LOCK (Only appears when vulnerable) ─── */}
+        {/* 90s TARGET LOCK */}
         {exposedTicks > 0 && (
-          <div className="absolute inset-0 flex items-center justify-center z-20 animate-[spin_4s_linear_infinite]">
+          <div className="absolute inset-0 flex items-center justify-center z-20 animate-[spin_4s_linear_infinite]"
+               style={{ animationPlayState: playState }}>
             <div className="w-56 h-56 md:w-80 md:h-80 border-[3px] border-amber-400/80 rounded-full border-dashed opacity-80" />
             <div className="absolute w-full h-[2px] bg-amber-400/40" />
             <div className="absolute h-full w-[2px] bg-amber-400/40" />
@@ -547,43 +550,44 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
           </div>
         )}
 
-        {/* Boss Armor Geometry */}
+        {/* Pause all Boss Armor rings */}
         <div className={`absolute inset-0 rounded-full border-t-[8px] border-b-[2px] border-r-[4px] border-dashed ${borderColor} ${shadowColor} ${spinSpeedOuter} transition-all duration-500`}
-             style={{ opacity: 0.3 + (healthPercent * 0.7) }} />
-        <div className={`absolute inset-4 rounded-full border-[4px] border-dotted ${borderColor} ${shadowColor} ${spinSpeedInner} opacity-80`} />
-        <div className={`absolute w-14 h-14 md:w-20 md:h-20 rounded-sm border-[4px] rotate-45 ${borderColor} ${shadowColor} ${innerColor} transition-colors duration-500 flex items-center justify-center`}>
-          <div className={`w-1/2 h-1/2 rounded-full ${coreBg} ${isEnraged ? 'animate-pulse' : ''}`} />
+             style={{ opacity: 0.3 + (healthPercent * 0.7), animationPlayState: playState }} />
+        <div className={`absolute inset-4 rounded-full border-[4px] border-dotted ${borderColor} ${shadowColor} ${spinSpeedInner} opacity-80`}
+             style={{ animationPlayState: playState }} />
+        <div className={`absolute w-14 h-14 md:w-20 md:h-20 rounded-sm border-[4px] rotate-45 ${borderColor} ${shadowColor} ${innerColor} transition-colors duration-500 flex items-center justify-center`}
+             style={{ animationPlayState: playState }}>
+          <div className={`w-1/2 h-1/2 rounded-full ${coreBg} ${isEnraged ? 'animate-pulse' : ''}`} 
+               style={{ animationPlayState: playState }} />
           {fwHealth < prevFw.current && <div className="absolute inset-0 bg-white rounded-sm animate-ping" />}
         </div>
 
-        {/* ─── EFFECT 1: CHUNKY DATA STRIKES ─── */}
+        {/* EFFECT 1: CHUNKY DATA STRIKES */}
         {beams.map(b => (
           <div
             key={b.id}
             className="absolute z-10 flex flex-col items-center pointer-events-none animate-data-strike opacity-0-start"
             style={{
               left: `calc(50% + ${b.x}px)`,
-              bottom: '-120px', // Start closer to the boss
-              animationDelay: `${b.delay}ms`
+              bottom: '-120px', 
+              animationDelay: `${b.delay}ms`,
+              animationPlayState: playState // Freezes the beam mid-air!
             }}
           >
-            {/* Payload Head: Hexadecimal Code */}
             <span className={`font-mono text-xs sm:text-sm font-black leading-none mb-1 ${b.isCrit ? 'text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,1)]' : 'text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,1)]'}`}>
               0x{b.hex}
             </span>
-            {/* Chunky Segmented Data Tail */}
             <div 
               className={`w-3 sm:w-4 ${b.isCrit ? 'text-amber-400/80 shadow-[0_0_20px_rgba(251,191,36,0.5)]' : 'text-cyan-400/80 shadow-[0_0_20px_rgba(34,211,238,0.5)]'}`} 
               style={{ 
                 height: `${b.tailHeight}px`,
-                // Uses text color to render segmented blocks of data!
                 backgroundImage: 'repeating-linear-gradient(to bottom, transparent, transparent 2px, currentColor 2px, currentColor 6px)' 
               }} 
             />
           </div>
         ))}
 
-        {/* ─── EFFECT 2: CLEAN DAMAGE NUMBERS ─── */}
+        {/* EFFECT 2: CLEAN DAMAGE NUMBERS */}
         {particles.map(p => (
           <div
             key={p.id}
@@ -592,8 +596,8 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
               left: `calc(50% + ${p.x}px)`,
               top:  `calc(50% + ${p.y}px)`,
               transform: `translate(-50%, -50%) rotate(${p.rot}deg)`,
-              // Increased delay to 250ms to let the slower data beams hit first
-              animationDelay: p.isCrit ? '250ms' : '100ms' 
+              animationDelay: p.isCrit ? '250ms' : '100ms',
+              animationPlayState: playState // Freezes the pop text mid-air!
             }}
           >
             {p.isCrit ? (
@@ -608,6 +612,78 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
           </div>
         ))}
 
+      </div>
+    </div>
+  );
+}
+
+// ─── MASHA COMMS OVERLAY (The Codec) ─────────────────────────────────────────
+function MashaCodec() {
+  const rawLog = useGameStore(s => s.terminalLog);
+  const [message, setMessage] = useState(null);
+  const [isVisible, setIsVisible] = useState(false);
+  
+  // Track the last message we showed so we don't accidentally repeat it
+  const lastSeenRef = useRef(null);
+
+  useEffect(() => {
+    const safeLog = rawLog || [];
+    if (safeLog.length === 0) return;
+    
+    // Grab the last 3 logs just in case Masha's message got buried by a system alert
+    const recentLogs = safeLog.slice(-3).map(l => typeof l === 'string' ? l : l?.text).filter(Boolean);
+    
+    // Find the most recent log containing "MASHA"
+    const latestMashaLog = [...recentLogs].reverse().find(l => l.includes('MASHA'));
+    
+    // If we found a Masha log AND it's a new one we haven't displayed yet
+    if (latestMashaLog && latestMashaLog !== lastSeenRef.current) {
+      lastSeenRef.current = latestMashaLog;
+
+      // Bulletproof Regex: Automatically strips out "// MASHA:", "// MEMO_FROM_MASHA - ", etc.
+      const cleanText = latestMashaLog.replace(/^.*MASHA[^a-zA-Z0-9]*\s*/i, '').replace(/['"]/g, '');
+      
+      setMessage(cleanText);
+      setIsVisible(true);
+      
+      // AudioManager.playSFX('radio_static'); // Uncomment when you add the sound!
+      
+      const timer = setTimeout(() => setIsVisible(false), 4500); 
+      return () => clearTimeout(timer);
+    }
+  }, [rawLog]);
+
+  return (
+    <div className={`absolute top-4 left-4 right-4 z-[60] transition-all duration-500 ease-out flex justify-center pointer-events-none ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}>
+      <div className="bg-zinc-950/95 backdrop-blur-md border-[2px] border-fuchsia-500/80 shadow-[0_10px_30px_rgba(217,70,239,0.3)] p-3 flex gap-4 items-center w-full max-w-sm">
+        
+        {/* Avatar / Audio Waveform Box */}
+        <div className="w-12 h-12 shrink-0 bg-fuchsia-950/50 border border-fuchsia-500/50 flex flex-col items-center justify-center relative overflow-hidden">
+          <div className="absolute top-0 w-full bg-fuchsia-500 text-black font-mono text-[8px] font-black text-center tracking-widest uppercase leading-tight">
+            MASHA
+          </div>
+          {/* Animated Waveform */}
+          <div className="flex items-end gap-0.5 h-4 mt-2">
+            <div className="w-1 bg-fuchsia-400 animate-[bounce_0.8s_infinite] origin-bottom" />
+            <div className="w-1 bg-fuchsia-400 animate-[bounce_0.5s_infinite] origin-bottom" style={{ animationDelay: '0.1s' }} />
+            <div className="w-1 bg-fuchsia-400 animate-[bounce_1.2s_infinite] origin-bottom" style={{ animationDelay: '0.2s' }} />
+            <div className="w-1 bg-fuchsia-400 animate-[bounce_0.6s_infinite] origin-bottom" style={{ animationDelay: '0.3s' }} />
+          </div>
+        </div>
+
+        {/* Dialogue Text */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-0.5">
+            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+            <span className="font-mono text-[9px] text-fuchsia-300 font-bold uppercase tracking-widest">
+              Live Transmission
+            </span>
+          </div>
+          <p className="font-mono text-xs text-white leading-snug">
+            "{message}"
+          </p>
+        </div>
+        
       </div>
     </div>
   );
@@ -794,6 +870,9 @@ export default function HackingScene() {
       )}
 
       <TopBorder />
+
+      {/* ── THE LIVE COMMS OVERLAY ── */}
+      <MashaCodec />
 
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         

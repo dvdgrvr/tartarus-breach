@@ -190,6 +190,7 @@ const useGameStore = create(
       isBreaching:          false,
       isPerfectBreach:      false,
       isPaused:             false,
+      isHitStopped:         false,
       pulseActive:          false,
       systemOverride:       null,       // ── PHASE 4: Override State
       activeDaemon:         null,       // 'BLOODHOUND' | null
@@ -589,8 +590,17 @@ triggerFirstBoot: () => {
             firewallDamage *= 2;
             newExposedTicks = 0; // Close the window
             currentLog = appendLog(currentLog, `>> [!!] CRITICAL OVERRIDE [!!] — 2.0x MULTIPLIER APPLIED`);
-            if (s.settings?.hapticsEnabled) haptic([50, 80, 50]); 
-            AudioManager.playSFX('thock'); 
+            
+            // ── VISCERAL FEEDBACK: Hit-Stop & Heavy Haptics ──
+            if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
+              navigator.vibrate([100, 100, 150]); // A heavy, double-beat vibration
+            }
+            
+            // Trigger the Time Freeze!
+            set({ isHitStopped: true });
+            setTimeout(() => {
+              useGameStore.setState({ isHitStopped: false });
+            }, 120); // Freezes the screen for exactly 120ms
           }
 
           if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
