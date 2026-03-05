@@ -3,25 +3,26 @@ import useGameStore from '../store/useGameStore';
 import toolsConfig from '../data/toolsConfig.json';
 import AudioManager from '../utils/audioManager';
 
+// ─── CYBERDELIC COLOR PALETTE MAPPING ───
 const TOOL_STYLES = {
-  green: {
-    active:   'border-green-500/60 border-b-green-700/80 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green',
+  green: { // Mapped to Crash Override Cyan
+    active:   'border-cyan-400/60 border-b-cyan-600/80 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-400/20 shadow-[0_0_12px_rgba(34,211,238,0.2)]',
     disabled: 'border-zinc-800 border-b-zinc-900 text-zinc-700 bg-transparent cursor-not-allowed',
   },
-  blue: {
-    active:   'border-blue-500/60 border-b-blue-700/80 text-blue-400 bg-blue-500/5 hover:bg-blue-500/15',
+  blue: { // Mapped to Acid Burn Magenta
+    active:   'border-fuchsia-500/60 border-b-fuchsia-700/80 text-fuchsia-400 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 shadow-[0_0_12px_rgba(217,70,239,0.2)]',
     disabled: 'border-zinc-800 border-b-zinc-900 text-zinc-700 bg-transparent cursor-not-allowed',
   },
-  amber: {
-    active:   'border-amber-500/60 border-b-amber-700/80 text-amber-400 bg-amber-500/5 hover:bg-amber-500/15',
+  amber: { // Mapped to Phreak Amber
+    active:   'border-amber-400/60 border-b-amber-600/80 text-amber-300 bg-amber-500/10 hover:bg-amber-400/20 shadow-[0_0_12px_rgba(251,191,36,0.2)]',
     disabled: 'border-zinc-800 border-b-zinc-900 text-zinc-700 bg-transparent cursor-not-allowed',
   },
 };
 
 const FILL_STYLES = {
-  green: 'bg-green-500/20 border-t border-green-400/60',
-  blue:  'bg-blue-500/20 border-t border-blue-400/60',
-  amber: 'bg-amber-500/20 border-t border-amber-400/60',
+  green: 'bg-[url("/noise.png")] bg-cyan-500/20 border-t-2 border-cyan-400/80 opacity-90',
+  blue:  'bg-[url("/noise.png")] bg-fuchsia-500/20 border-t-2 border-fuchsia-400/80 opacity-90',
+  amber: 'bg-[url("/noise.png")] bg-amber-500/20 border-t-2 border-amber-400/80 opacity-90',
 };
 
 function GlitchLabel({ text, isDanger }) {
@@ -64,6 +65,7 @@ export default function CommandBar() {
   const retrySession     = useGameStore(s => s.retrySession);
   const siphonVault      = useGameStore(s => s.siphonVault);
   const exposedTicks     = useGameStore(s => s.exposedTicks);
+  const systemOverride   = useGameStore(s => s.systemOverride); // Re-added this for the popup block!
   
   const upgrades       = useGameStore(s => s.upgrades);
   const safehouse      = useGameStore(s => s.currentSafehouse);
@@ -128,7 +130,7 @@ export default function CommandBar() {
     if (transitOutcome === 'success') {
       return (
         <div className="relative px-4 pt-2 pb-6 flex gap-2 sm:gap-3 justify-center items-stretch min-h-[100px]">
-          {/* SIPHON BUTTON (flex-1) */}
+          {/* SIPHON BUTTON */}
           <button
             onPointerDown={(e) => {
               e.target.setPointerCapture(e.pointerId);
@@ -144,21 +146,21 @@ export default function CommandBar() {
             onTouchStart={(e) => { if (e.cancelable) e.preventDefault(); startSiphon(); }}
             onTouchEnd={(e) => { if (e.cancelable) e.preventDefault(); stopSiphon(); }}
             onTouchCancel={stopSiphon}
-            className={`flex-1 relative overflow-hidden group py-3 border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-150 touch-none select-none ${
+            className={`flex-1 relative overflow-hidden group py-3 border-[2px] border-b-[6px] rounded flex flex-col items-center justify-center transition-all duration-150 touch-none select-none ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
-                : 'bg-fuchsia-950/20 border-fuchsia-700/60 active:border-b-2 active:translate-y-1 hover:bg-fuchsia-900/30 cursor-pointer shadow-xl'
+                : 'bg-fuchsia-950/20 border-fuchsia-700/60 active:border-b-[2px] active:translate-y-[4px] hover:bg-fuchsia-900/30 cursor-pointer shadow-[0_0_15px_rgba(217,70,239,0.2)]'
             }`}
           >
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
             <div 
-              className="absolute bottom-0 left-0 w-full bg-fuchsia-500/20 transition-all ease-linear"
+              className="absolute bottom-0 left-0 w-full bg-fuchsia-500/30 border-t-2 border-fuchsia-400 transition-all ease-linear"
               style={{ height: isSiphoning ? '100%' : '0%', transitionDuration: isSiphoning ? '2000ms' : '200ms' }}
             />
-            <span className={`relative z-10 font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] transition-colors ${
+            <span className={`relative z-10 font-display text-[12px] sm:text-[14px] font-black uppercase tracking-[0.2em] transition-colors ${
               disconnectLocked ? 'text-zinc-600' : 'text-fuchsia-400 group-hover:text-fuchsia-300 drop-shadow-[0_0_8px_rgba(217,70,239,0.4)]'
             }`}>
-              {disconnectLocked ? '[ SECURING ]' : '[ SIPHON ]'}
+              {disconnectLocked ? 'SECURING' : 'SIPHON'}
             </span>
             <span className={`relative z-10 font-mono text-[8px] font-bold tracking-widest mt-1 uppercase transition-colors ${
               disconnectLocked ? 'text-zinc-700' : 'text-fuchsia-600 group-hover:text-fuchsia-400'
@@ -167,7 +169,7 @@ export default function CommandBar() {
             </span>
           </button>
 
-          {/* DISCONNECT BUTTON (flex-1) */}
+          {/* DISCONNECT BUTTON */}
           <button
             onClick={() => {
               if (disconnectLocked) return;
@@ -175,19 +177,19 @@ export default function CommandBar() {
               if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([30, 20, 10]);
               leaveNode();
             }}
-            className={`flex-1 relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
+            className={`flex-1 relative overflow-hidden group border-[2px] border-b-[6px] rounded flex flex-col items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(34,211,238,0.2)] touch-none select-none ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
-                : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-2 active:translate-y-1 hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
+                : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-[2px] active:translate-y-[4px] hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
             }`}
           >
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
             
-            <span className={`relative z-10 font-mono text-[10px] sm:text-xs font-black uppercase tracking-[0.15em] transition-colors ${
+            <span className={`relative z-10 font-display text-[12px] sm:text-[14px] font-black uppercase tracking-[0.2em] transition-colors ${
               disconnectLocked ? 'text-zinc-600' : 'text-cyan-400 group-hover:text-white drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]'
             }`}>
-              {disconnectLocked ? '[ SECURING ]' : '[ DISCONNECT ]'}
+              {disconnectLocked ? 'SECURING' : 'DISCONNECT'}
             </span>
             <span className={`relative z-10 font-mono text-[8px] font-bold tracking-widest mt-1 uppercase transition-colors ${
               disconnectLocked ? 'text-zinc-700' : 'text-cyan-600 group-hover:text-cyan-400'
@@ -196,7 +198,7 @@ export default function CommandBar() {
             </span>
           </button>
 
-          {/* REPLAY BUTTON (Fixed small width) */}
+          {/* REPLAY BUTTON */}
           <button
             onClick={() => {
               if (disconnectLocked) return;
@@ -204,10 +206,10 @@ export default function CommandBar() {
               retrySession();
             }}
             title="Replay Mission"
-            className={`w-14 sm:w-16 shrink-0 relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
+            className={`w-14 sm:w-16 shrink-0 relative overflow-hidden group border-[2px] border-b-[6px] rounded flex items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(52,211,153,0.2)] touch-none select-none ${
               disconnectLocked 
                 ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
-                : 'bg-emerald-950/30 border-emerald-700/80 active:border-b-2 active:translate-y-1 hover:bg-emerald-900/50 hover:border-emerald-500 cursor-pointer'
+                : 'bg-emerald-950/30 border-emerald-700/80 active:border-b-[2px] active:translate-y-[4px] hover:bg-emerald-900/50 hover:border-emerald-500 cursor-pointer'
             }`}
           >
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
@@ -223,7 +225,7 @@ export default function CommandBar() {
     // FAILURE STATE
     return (
       <div className="relative px-4 pt-2 pb-6 flex gap-2 sm:gap-3 justify-center items-stretch min-h-[100px]">
-        {/* DISCONNECT BUTTON (flex-1) */}
+        {/* DISCONNECT BUTTON */}
         <button
           onClick={() => {
             if (disconnectLocked) return;
@@ -231,19 +233,19 @@ export default function CommandBar() {
             if (settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([30, 20, 10]);
             leaveNode();
           }}
-          className={`flex-1 relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
+          className={`flex-1 relative overflow-hidden group border-[2px] border-b-[6px] rounded flex flex-col items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
             disconnectLocked 
               ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
-              : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-2 active:translate-y-1 hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
+              : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-[2px] active:translate-y-[4px] hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
           }`}
         >
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
           
-          <span className={`relative z-10 font-mono text-lg font-black uppercase tracking-[0.3em] transition-colors ${
+          <span className={`relative z-10 font-display text-lg font-black uppercase tracking-[0.3em] transition-colors ${
             disconnectLocked ? 'text-zinc-600' : 'text-cyan-400 group-hover:text-white drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]'
           }`}>
-            {disconnectLocked ? '[ SECURING ]' : '[ DISCONNECT ]'}
+            {disconnectLocked ? 'SECURING' : 'DISCONNECT'}
           </span>
           <span className={`relative z-10 font-mono text-[10px] font-bold tracking-widest mt-1.5 uppercase transition-colors ${
             disconnectLocked ? 'text-zinc-700' : 'text-cyan-600 group-hover:text-cyan-400'
@@ -252,7 +254,7 @@ export default function CommandBar() {
           </span>
         </button>
 
-        {/* REPLAY BUTTON (Fixed width) */}
+        {/* REPLAY BUTTON */}
         <button
           onClick={() => {
             if (disconnectLocked) return;
@@ -260,10 +262,10 @@ export default function CommandBar() {
             retrySession();
           }}
           title="Replay Mission"
-          className={`w-16 sm:w-20 shrink-0 relative overflow-hidden group border-2 border-b-[6px] rounded-lg flex items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
+          className={`w-16 sm:w-20 shrink-0 relative overflow-hidden group border-[2px] border-b-[6px] rounded flex items-center justify-center transition-all duration-300 shadow-xl touch-none select-none ${
             disconnectLocked 
               ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
-              : 'bg-emerald-950/30 border-emerald-700/80 active:border-b-2 active:translate-y-1 hover:bg-emerald-900/50 hover:border-emerald-500 cursor-pointer'
+              : 'bg-emerald-950/30 border-emerald-700/80 active:border-b-[2px] active:translate-y-[4px] hover:bg-emerald-900/50 hover:border-emerald-500 cursor-pointer'
           }`}
         >
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
@@ -280,8 +282,8 @@ export default function CommandBar() {
   const ramLevel = upgrades['RAM']?.level ?? 0;
 
   return (
-    <div className="relative px-4 py-2 flex gap-2 sm:gap-3 justify-center items-end"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
+    <div className="relative px-4 py-2 grid grid-cols-2 gap-2 sm:gap-3"
+  style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
     >
       {toolsConfig.map((tool) => {
         const cooldown   = toolState[tool.id]?.cooldownRemaining ?? 0;
@@ -290,11 +292,11 @@ export default function CommandBar() {
         const onCooldown = cooldown > 0;
         
         // --- OVERDRIVE LOGIC ---
-        // Overdrive is ready if: It's on cooldown AND at least half finished AND the 1-tick safety buffer has passed.
         const isOverdriveReady = onCooldown && cooldown <= maxCooldown / 2 && (maxCooldown - cooldown >= 1);
         const isLocked   = onCooldown && !isOverdriveReady;
-        const disabled   = isLocked || status !== 'hacking';
-        // -----------------------
+        
+        // Disabled logic blocks clicks if System Override skull is active!
+        const disabled   = isLocked || status !== 'hacking' || systemOverride !== null;
         
         const styles     = TOOL_STYLES[tool.color] ?? TOOL_STYLES.green;
         const activeFill = FILL_STYLES[tool.color] ?? FILL_STYLES.green;
@@ -302,22 +304,25 @@ export default function CommandBar() {
         const isError     = errorId === tool.id;
         const fillPercent = maxCooldown > 0 ? ((maxCooldown - cooldown) / maxCooldown) * 100 : 100;
 
-        // Determine base button classes
+        // Determine base button classes for 90s Hackers aesthetic
         let buttonClass = [
-          'flex-1 relative overflow-hidden min-h-[64px] py-4 px-4 rounded game-button touch-none',
-          'font-mono text-[11px] font-bold uppercase tracking-widest text-center',
-          'border border-b-[4px] transition-all duration-75 select-none',
+          'flex-1 relative overflow-hidden min-h-[64px] py-4 px-2 rounded touch-none',
+          'font-display text-[12px] sm:text-[14px] font-black uppercase tracking-[0.2em] text-center',
+          // THE CLACK: Springy return on release (duration-150), but instant snap on press (active:duration-0)
+          'border-[2px] border-b-[6px] transition-all duration-150 ease-out active:duration-0 select-none',
           isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
-          (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled && !isOverdriveReady) ? 'ring-2 ring-green-400 shadow-[0_0_15px_rgba(74,222,128,0.6)] animate-pulse z-50' : ''
+          (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled && !isOverdriveReady) ? 'ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.6)] animate-pulse z-50' : ''
         ];
 
-        // Apply state-specific styles (Disabled vs Overdrive vs Active)
+        // Apply state-specific styles
         if (disabled) {
           buttonClass.push(styles.disabled);
         } else if (isOverdriveReady) {
-          buttonClass.push('border-red-500/60 border-b-red-700/80 text-red-400 bg-red-500/10 hover:bg-red-500/20 active:border-b active:translate-y-1 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.3)] glow-red');
+          // OVERDRIVE CLACK
+          buttonClass.push('border-red-500/60 border-b-red-700/80 text-red-400 bg-red-500/10 hover:bg-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.3)] glow-red animate-pulse active:border-b-[2px] active:translate-y-[4px] active:shadow-[inset_0_8px_15px_rgba(0,0,0,0.8)] active:brightness-75');
         } else {
-          buttonClass.push(`${styles.active} active:border-b active:translate-y-1`);
+          // STANDARD CLACK
+          buttonClass.push(`${styles.active} active:border-b-[2px] active:translate-y-[4px] active:shadow-[inset_0_8px_15px_rgba(0,0,0,0.8)] active:brightness-75`);
         }
 
         return (
@@ -336,7 +341,7 @@ export default function CommandBar() {
             </div>
             
             <div 
-              className={`absolute bottom-0 left-0 w-full transition-all ease-linear z-20 ${isOverdriveReady ? 'bg-red-500/20 border-t border-red-400/60' : activeFill}`}
+              className={`absolute bottom-0 left-0 w-full transition-all ease-linear z-20 ${isOverdriveReady ? 'bg-red-500/20 border-t border-red-400/60 bg-[url("/noise.png")]' : activeFill}`}
               style={{ 
                 height: `${fillPercent}%`,
                 transitionDuration: cooldown === maxCooldown ? '0ms' : '1000ms',
@@ -346,7 +351,7 @@ export default function CommandBar() {
 
             {onCooldown && (
               <div className="absolute top-1.5 right-2 pointer-events-none z-30">
-                <span className={`text-[9px] font-bold tabular-nums ${isOverdriveReady ? 'text-red-400' : 'text-zinc-500'}`}>
+                <span className={`text-[9px] font-bold font-mono tabular-nums ${isOverdriveReady ? 'text-red-400' : 'text-zinc-500'}`}>
                   {cooldown}s
                 </span>
               </div>

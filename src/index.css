@@ -1,4 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+
+/* Tailwind v4 Core Import */
 @import "tailwindcss";
+
+/* Tailwind v4 Custom Theme Variables */
+@theme {
+  --font-display: "Orbitron", sans-serif;
+  --font-mono: "Share Tech Mono", monospace;
+}
 
 /* ─── Base Reset & Cyber Foundation ──────────────────────────────────────────── */
 @layer base {
