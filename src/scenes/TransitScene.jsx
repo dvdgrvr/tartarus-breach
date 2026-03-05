@@ -789,7 +789,7 @@ function JobFooter({ isLocked, onJackIn }) {
   const isTartarusReady = archiveLen === 11;
   const showTartarus    = isTartarusReady && !hasBeatenGame;
   const showDarknet     = hasBeatenGame;
-  const showPriority    = !showTartarus;
+  const showPriority    = !showTartarus && !hasBeatenGame;
 
   const lockClass = isLocked 
     ? 'opacity-50 cursor-not-allowed pointer-events-none' 
