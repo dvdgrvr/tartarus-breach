@@ -692,13 +692,25 @@ triggerFirstBoot: () => {
 
         let log = appendLog(s.terminalLog, `> ${toolId} // FW: ${fwDisplay} | TRACE: ${finalTrace.toFixed(0)}%`);
         if (isOverdriving) log = appendLog(log, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
-        if (isPerfectSync) log = appendLog(log, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
+        
+        let syncBonus = 0;
+        if (isPerfectSync) {
+          log = appendLog(log, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
+          
+          // NEW: 30% chance to extract passive intel during a perfect pulse
+          if (Math.random() < 0.3) {
+             syncBonus = Math.floor(Math.random() * 5) + 3; // Rewards 3 to 7 IF
+             log = appendLog(log, `>> [DATA_SNAGGED]: Perfect sync extracted +${syncBonus} IF.`);
+          }
+        }
 
         set({
           firewallHealth: newFirewall,
           digitalTrace:   finalTrace,
           physicalHeat:   newHeat,
           terminalLog:    log,
+          intelFragments: s.intelFragments + syncBonus,         // Add bonus to global bank
+          sessionIntelEarned: s.sessionIntelEarned + syncBonus, // Add bonus to session tracker
           toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
         });
 
@@ -722,7 +734,6 @@ triggerFirstBoot: () => {
           isGhostExit = s.digitalTrace >= 95 || s.physicalHeat >= 95;
           const baseMultiplier = isGhostExit ? 0.75 : 0.5; 
           
-          // Only reward if at least 20% damage was done to the node
           intelEarned = progress >= 0.2
             ? Math.floor(s.sessionPotentialIntel * baseMultiplier * progress * (s.currentSafehouse?.intelMod ?? 1))
             : 0;
@@ -730,6 +741,10 @@ triggerFirstBoot: () => {
           newBank = s.intelFragments + intelEarned;
         } else if (cause === 'heat_busted') {
           newBank = 0; 
+        } else if (cause === 'trace_busted') {
+          // NEW: You dropped the payload! Remove what you earned this session from your bank.
+          newBank = Math.max(0, s.intelFragments - s.sessionIntelEarned);
+          intelEarned = 0; // Ensures the summary screen accurately reflects the loss
         }
 
         if (cause !== 'escaped' && s.settings?.hapticsEnabled) haptic([200, 100, 300]);

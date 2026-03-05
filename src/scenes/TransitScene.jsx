@@ -847,7 +847,7 @@ function JobFooter({ isLocked, onJackIn }) {
         >
           <span>Access Darknet Router</span>
           <span className="text-[9px] font-normal text-fuchsia-300/80 mt-1 normal-case tracking-normal">
-            Tier {darknetTier} · {150 + darknetTier * 50} HP
+            Tier {darknetTier} (Best: {highestDarknetTier}) · {150 + darknetTier * 50} HP
           </span>
         </button>
       )}
