@@ -53,7 +53,7 @@ export default function TerminalLog({ className = '' }) {
       <div
         ref={scrollRef}
         /* FIX: Reduced padding on mobile (px-3 py-2) to reclaim screen space */
-        className="h-full overflow-y-auto px-3 py-2 sm:p-4 scrollbar-thin flex flex-col justify-start relative z-0"
+        className="h-full overflow-y-auto px-3 py-2 sm:p-4 scrollbar-thin flex flex-col justify-start relative z-0 [mask-image:linear-gradient(to_bottom,transparent,black_10%,black)]"
       >
         {/* FIX: Changed space-y-2 to space-y-0.5 on mobile to pack lines tighter */}
         <div className="mt-auto space-y-0.5 sm:space-y-1 pb-1">

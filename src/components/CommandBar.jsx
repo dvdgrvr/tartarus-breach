@@ -199,7 +199,9 @@ export default function CommandBar() {
     >
       {toolsConfig.map((tool) => {
         const toolInfo = toolState[tool.id];
-        const isLockedTool = toolInfo?.isLocked;
+        let isLockedTool = false;
+        if (tool.id === 'DECRYPT' && storyArchive.length < 1) isLockedTool = true;
+        if (tool.id === 'SCAN'    && storyArchive.length < 2) isLockedTool = true;
         
         const cooldown   = toolInfo?.cooldownRemaining ?? 0;
         const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (safehouse?.ramMod ?? 1)));
