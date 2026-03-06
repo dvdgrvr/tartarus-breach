@@ -93,6 +93,45 @@ function KernelPanicOverlay() {
   );
 }
 
+// ─── TUTORIAL OVERLAY ────────────────────────────────────────────────────────
+
+const TUTORIAL_PROMPTS = {
+  SCAN_INTRO:       { title: 'CALIBRATION REQUIRED',  body: 'Run SCAN to locate node frequency.' },
+  DECRYPT_INTRO:    { title: 'FIREWALL DETECTED',      body: 'Run DECRYPT to unmask the kernel.' },
+  PULSE_INTRO:      { title: 'SYNERGY PATH INITIATED', body: 'Run PULSE to synchronize signal.' },
+  BYPASS_INTRO:     { title: 'PAYLOAD PRIMED',         body: 'Execute BYPASS for a 3.5× Heavy Strike.' },
+  TRACE_HEAT_INTRO: { title: 'WARNING: TRACE SPIKE',   body: 'Run PULSE to mask your signature before it hits 100%.' },
+  OVERDRIVE_INTRO:  { title: 'HARDWARE LIMITS',        body: 'Fire SCAN now — costs heavy HEAT but breaks the cooldown.' },
+  FINISH_NODE:      { title: 'SYSTEMS UNDERSTOOD',     body: 'Destroy the remaining firewall.' },
+  SIPHON_INTRO:     { title: 'BREACH SUCCESSFUL',      body: 'Hold SIPHON to extract extra Intel before disconnecting.' },
+};
+
+function TutorialOverlay({ step }) {
+  const prompt = TUTORIAL_PROMPTS[step];
+  if (!prompt) return null;
+  return (
+    // Full-screen dim — pointer-events-none throughout so CommandBar stays clickable
+    <div className="absolute inset-0 z-[50] pointer-events-none">
+      {/* Background vignette — leaves CommandBar area interactive */}
+      <div className="absolute inset-0 bg-black/55" />
+      {/* Dialogue box pinned to the top-third of the screen */}
+      <div className="absolute top-[12%] left-1/2 -translate-x-1/2 w-[90%] max-w-sm">
+        <div className="glass-panel border-2 border-fuchsia-500/80 bg-zinc-950/95 backdrop-blur-md p-4 rounded-lg shadow-[0_0_30px_rgba(217,70,239,0.6)]">
+          <p className="font-mono text-[9px] uppercase tracking-widest text-fuchsia-400/60 mb-1">
+            [ NEURAL_CALIBRATION :: {step} ]
+          </p>
+          <p className="font-display font-black text-fuchsia-300 text-sm uppercase tracking-widest mb-1" style={{letterSpacing:'0.15em'}}>
+            {prompt.title}
+          </p>
+          <p className="font-mono text-[11px] text-zinc-300 leading-relaxed">
+            {prompt.body}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const SAFEHOUSE_TRAIT_COLOR = {
   cyan:    'text-cyan-400    border-cyan-500/30    bg-cyan-500/10',
   amber:   'text-amber-400   border-amber-500/30   bg-amber-500/10',
@@ -778,6 +817,9 @@ export default function HackingScene() {
   const startArcadeMode        = useGameStore(s => s.startArcadeMode);
   const setStatus              = useGameStore(s => s.setStatus);
 
+  const isTutorial             = useGameStore(s => s.isTutorial);
+  const tutorialStep           = useGameStore(s => s.tutorialStep);
+
   const [daemonFlash, setDaemonFlash] = useState(false);
   
   const prevExposed = useRef(exposedTicks);
@@ -1111,6 +1153,10 @@ export default function HackingScene() {
           <div className="bg-zinc-950/60 backdrop-blur-sm shrink-0">
             <ConsumableBar />
           </div>
+        )}
+
+        {isTutorial && tutorialStep && (
+          <TutorialOverlay step={tutorialStep} />
         )}
 
         <div className="shrink-0 bg-zinc-950">

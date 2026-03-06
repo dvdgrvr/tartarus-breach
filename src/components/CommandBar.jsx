@@ -70,6 +70,8 @@ export default function CommandBar() {
   const upgrades       = useGameStore(s => s.upgrades);
   const safehouse      = useGameStore(s => s.currentSafehouse);
   const storyArchive   = useGameStore(s => s.storyArchive);
+  const isTutorial     = useGameStore(s => s.isTutorial);
+  const tutorialStep   = useGameStore(s => s.tutorialStep);
 
   const [errorId, setErrorId]     = useState(null);
   
@@ -128,6 +130,7 @@ export default function CommandBar() {
   // ─── RESOLVED STATE UI (Win/Loss) ───
   if (status === 'resolved') {
     const isSuccess = transitOutcome === 'success';
+    const isSiphonHighlight = isTutorial && tutorialStep === 'SIPHON_INTRO';
     return (
       <div className="relative px-4 pt-2 pb-6 flex gap-2 sm:gap-3 justify-center items-stretch min-h-[100px]">
         {isSuccess && (
@@ -137,9 +140,11 @@ export default function CommandBar() {
             onPointerLeave={stopSiphon}
             onPointerCancel={stopSiphon}
             className={`flex-1 relative overflow-hidden py-3 border-[2px] border-b-[6px] rounded flex flex-col items-center justify-center transition-all duration-150 touch-none select-none ${
-              disconnectLocked 
-                ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale' 
-                : 'bg-fuchsia-950/20 border-fuchsia-700/60 active:border-b-[2px] active:translate-y-[4px] hover:bg-fuchsia-900/30 cursor-pointer shadow-[0_0_15px_rgba(217,70,239,0.2)]'
+              disconnectLocked
+                ? 'bg-zinc-950 border-zinc-800 opacity-60 cursor-not-allowed grayscale'
+                : isSiphonHighlight
+                  ? 'bg-fuchsia-950/40 border-fuchsia-400 shadow-[0_0_20px_rgba(217,70,239,0.9)] animate-pulse active:border-b-[2px] active:translate-y-[4px] cursor-pointer'
+                  : 'bg-fuchsia-950/20 border-fuchsia-700/60 active:border-b-[2px] active:translate-y-[4px] hover:bg-fuchsia-900/30 cursor-pointer shadow-[0_0_15px_rgba(217,70,239,0.2)]'
             }`}
           >
             <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
@@ -191,7 +196,13 @@ export default function CommandBar() {
 
   // ─── ACTIVE HACKING UI ───
   const ramLevel = upgrades['RAM']?.level ?? 0;
-  const overdriveUnlocked = storyArchive.length >= 1;
+  const overdriveUnlocked = storyArchive.length >= 1 || isTutorial;
+
+  const TUTORIAL_HIGHLIGHT_MAP = {
+    SCAN_INTRO: 'SCAN', DECRYPT_INTRO: 'DECRYPT', PULSE_INTRO: 'PULSE',
+    BYPASS_INTRO: 'BYPASS', TRACE_HEAT_INTRO: 'PULSE', OVERDRIVE_INTRO: 'SCAN',
+  };
+  const highlightToolId = isTutorial ? (TUTORIAL_HIGHLIGHT_MAP[tutorialStep] ?? null) : null;
 
   return (
     <div className="relative px-4 py-2 grid grid-cols-2 gap-2 sm:gap-3"
@@ -207,10 +218,13 @@ export default function CommandBar() {
                                                                                 const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (safehouse?.ramMod ?? 1)));
                                                                                         
                                                                                                 const onCooldown = cooldown > 0;
-                                                                                                        const isOverdriveReady = overdriveUnlocked && onCooldown && cooldown <= maxCooldown / 2 && (maxCooldown - cooldown >= 1);
+                                                                                                        const isOverdriveReadyBase = overdriveUnlocked && onCooldown && cooldown <= maxCooldown / 2 && (maxCooldown - cooldown >= 1);
+                                                                                                        // Tutorial OVERDRIVE_INTRO forces SCAN into overdrive-ready state
+                                                                                                        const isTutorialODTarget   = isTutorial && tutorialStep === 'OVERDRIVE_INTRO' && tool.id === 'SCAN';
+                                                                                                        const isOverdriveReady     = isOverdriveReadyBase || isTutorialODTarget;
                                                                                                                 
                                                                                                                         // 2. THE REAL FIX: Separate Functional logic from Visual logic
-                                                                                                                                const disabled = (onCooldown && !isOverdriveReady) || isLockedTool || status !== 'hacking' || systemOverride !== null;
+                                                                                                                                const disabled = ((onCooldown && !isOverdriveReady) || isLockedTool || status !== 'hacking' || systemOverride !== null) && !isTutorialODTarget;
                                                                                                                                         const isDarkened = onCooldown && !isOverdriveReady; // ONLY apply gray styles if it is ACTUALLY on cooldown!
                                                                                                                                                 
                                                                                                                                                         const styles     = TOOL_STYLES[tool.color] ?? TOOL_STYLES.green;
@@ -227,7 +241,12 @@ export default function CommandBar() {
                                                                                                                                                                                                                                                         : ''
                                                                                                                                                                                                                                                                 ];
 
-                                                                                                                                                                                                                                                                        // 3. APPLY STYLES
+                                                                                                                                                                                                                                                                                // Tutorial: glow the specific tool the player must press
+                                                                                                                                                                                                                                                                                if (isTutorial && highlightToolId === tool.id) {
+                                                                                                                                                                                                                                                                                  buttonClass.push('shadow-[0_0_18px_rgba(217,70,239,0.9)] !border-fuchsia-400 animate-pulse z-[60] relative');
+                                                                                                                                                                                                                                                                                }
+
+                                                                                                                                                                                                                                                                                                                                        // 3. APPLY STYLES
                                                                                                                                                                                                                                                                                 if (isLockedTool) {
                                                                                                                                                                                                                                                                                           buttonClass.push('bg-zinc-950 border-zinc-900 opacity-30 grayscale cursor-not-allowed pointer-events-none');
                                                                                                                                                                                                                                                                                                   } else if (isDarkened) {

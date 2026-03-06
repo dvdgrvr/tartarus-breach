@@ -548,6 +548,50 @@ const TOOL_TEXT_COLORS = {
   amber: "text-amber-400"
 };
 
+const TOOL_ACTION_LANGUAGE = {
+  SCAN:    "Maps node frequency to establish a data uplink.",
+  DECRYPT: "Cracks node armor and exposes the kernel.",
+  PULSE:   "Synchronizes signal to mask Trace and reduce Heat.",
+  BYPASS:  "Executes a direct strike on the exposed firewall.",
+};
+
+const COMBO_SEQUENCE = {
+  SCAN:    { next: 'DECRYPT', color: 'text-amber-400', synergy: 'Part 1 of 3. Link with DECRYPT to build payload.' },
+  DECRYPT: { next: 'PULSE',   color: 'text-blue-400',  synergy: 'Part 2 of 3. Link with PULSE to finalize payload.' },
+  PULSE:   { next: 'BYPASS',  color: 'text-green-400', synergy: 'Final Stage. Completing SCAN → DECRYPT → PULSE grants 3.5× Damage to the next BYPASS.' },
+};
+
+const MAX_COOLDOWN = 20;
+const MAX_HEAT     = 25;
+const MAX_IMPACT   = 15;
+
+function getSafehouseDiagnostic(safehouse) {
+  if (!safehouse) return [];
+  const lines = [];
+  const pct = (v) => `${v >= 1 ? '+' : ''}${Math.round((v - 1) * 100)}%`;
+  if (safehouse.heatMod !== undefined && safehouse.heatMod !== 1) {
+    const good = safehouse.heatMod < 1;
+    lines.push({ label: pct(safehouse.heatMod) + ' HEAT GEN',    desc: good ? 'Reduced thermal load on hardware.'              : 'Elevated thermal load on hardware.',            color: good ? 'text-cyan-400' : 'text-red-400' });
+  }
+  if (safehouse.ramMod !== undefined && safehouse.ramMod !== 1) {
+    const good = safehouse.ramMod < 1;
+    lines.push({ label: pct(safehouse.ramMod) + ' COOLDOWN',     desc: good ? 'Optimized RAM reduces tool recovery time.'      : 'Degraded RAM extends tool recovery time.',      color: good ? 'text-cyan-400' : 'text-red-400' });
+  }
+  if (safehouse.traceMod !== undefined && safehouse.traceMod !== 1) {
+    const good = safehouse.traceMod < 1;
+    lines.push({ label: pct(safehouse.traceMod) + ' TRACE GEN',  desc: good ? 'Local jammers reduce your digital footprint.'   : 'Poor signal isolation increases exposure.',     color: good ? 'text-cyan-400' : 'text-red-400' });
+  }
+  if (safehouse.dmgMod !== undefined && safehouse.dmgMod !== 1) {
+    const good = safehouse.dmgMod > 1;
+    lines.push({ label: pct(safehouse.dmgMod) + ' IMPACT DMG',   desc: good ? 'Hardline routing amplifies strike damage.'      : 'Throttled bandwidth reduces strike impact.',    color: good ? 'text-cyan-400' : 'text-red-400' });
+  }
+  if (safehouse.intelMod !== undefined && safehouse.intelMod !== 1) {
+    const good = safehouse.intelMod > 1;
+    lines.push({ label: pct(safehouse.intelMod) + ' INTEL YIELD', desc: good ? 'Local brokers increase extraction yield.'       : 'Limited access reduces intel extraction.',      color: good ? 'text-cyan-400' : 'text-red-400' });
+  }
+  return lines;
+}
+
 function DeckManual() {
   const upgrades      = useGameStore(s => s.upgrades);
   const safehouse     = useGameStore(s => s.currentSafehouse);
@@ -591,34 +635,61 @@ function DeckManual() {
              const cardStyle = TOOL_CARD_COLORS[tool.color] || "border-zinc-500/30 bg-zinc-500/10";
              const textStyle = TOOL_TEXT_COLORS[tool.color] || "text-zinc-400";
              
+             const speedPct  = Math.round(((MAX_COOLDOWN - tool.baseCooldown) / MAX_COOLDOWN) * 100);
+             const heatPct   = Math.round((heatGain / MAX_HEAT) * 100);
+             const impactPct = Math.round((tool.baseEffect.firewallDamage / MAX_IMPACT) * 100);
+             const combo     = COMBO_SEQUENCE[tool.id];
+             const actionDesc = TOOL_ACTION_LANGUAGE[tool.id] ?? tool.description;
+
              return (
-               <div key={tool.id} className={`glass-panel rounded-lg p-4 border ${cardStyle}`}>
-                 <div className="flex justify-between items-start mb-2">
-                   <span className={`font-mono text-sm font-bold ${textStyle}`}>{tool.label}</span>
-                   <span className="font-mono text-[10px] font-bold text-zinc-400 bg-zinc-950/50 px-2 py-0.5 rounded border border-zinc-800/50">
+               <div key={tool.id} className={`glass-panel rounded-lg p-4 border ${cardStyle} flex flex-col`}>
+
+                 {/* ── Header ── */}
+                 <div className="flex justify-between items-center mb-1">
+                   <span className={`font-mono text-sm font-black uppercase tracking-widest ${textStyle}`}>{tool.label}</span>
+                   <span className="font-mono text-[9px] font-bold text-zinc-500 bg-zinc-950/60 px-2 py-0.5 rounded border border-zinc-800/50 uppercase tracking-widest">
                      {actualCd}s CD
                    </span>
                  </div>
-                 <p className="font-mono text-[11px] text-zinc-300 leading-relaxed mb-3 min-h-[48px]">
-                   {tool.description}
+
+                 {/* ── Action Language ── */}
+                 <p className="font-mono text-[10px] text-zinc-400 leading-relaxed mb-3">
+                   {actionDesc}
                  </p>
-                 <div className="flex gap-2 font-mono text-[9px] font-bold uppercase tracking-widest flex-wrap">
-                   {actualDmg > 0 && (
-                     <span className="bg-violet-500/20 text-violet-300 px-1.5 py-0.5 rounded border border-violet-500/30 shadow-[0_0_8px_rgba(139,92,246,0.2)]">
-                       {actualDmg} DMG
-                     </span>
-                   )}
-                   {traceGain !== 0 && (
-                     <span className={`${traceGain > 0 ? 'bg-red-500/20 text-red-400 border-red-500/30' : 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30'} px-1.5 py-0.5 rounded border`}>
-                       {traceGain > 0 ? '+' : ''}{traceGain}% TRACE
-                     </span>
-                   )}
-                   {heatGain > 0 && (
-                     <span className="bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded border border-orange-500/30">
-                       +{heatGain}% HEAT
-                     </span>
-                   )}
+
+                 {/* ── Stat Bars ── */}
+                 <div className="space-y-1.5 mb-3">
+                   <div className="flex items-center gap-2">
+                     <span className="font-mono text-[8px] uppercase tracking-widest text-zinc-600 w-10 shrink-0">SPEED</span>
+                     <div className="flex-1 h-1 bg-zinc-900 rounded-full overflow-hidden">
+                       <div className="h-full bg-green-500/60 rounded-full transition-all" style={{width: `${speedPct}%`}} />
+                     </div>
+                     <span className="font-mono text-[8px] text-zinc-600 w-6 text-right tabular-nums">{actualCd}s</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <span className="font-mono text-[8px] uppercase tracking-widest text-zinc-600 w-10 shrink-0">HEAT</span>
+                     <div className="flex-1 h-1 bg-zinc-900 rounded-full overflow-hidden">
+                       <div className="h-full bg-orange-500/60 rounded-full transition-all" style={{width: `${heatPct}%`}} />
+                     </div>
+                     <span className="font-mono text-[8px] text-zinc-600 w-6 text-right tabular-nums">+{heatGain}</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <span className="font-mono text-[8px] uppercase tracking-widest text-zinc-600 w-10 shrink-0">IMPACT</span>
+                     <div className="flex-1 h-1 bg-zinc-900 rounded-full overflow-hidden">
+                       <div className="h-full bg-violet-500/60 rounded-full transition-all" style={{width: `${impactPct}%`}} />
+                     </div>
+                     <span className="font-mono text-[8px] text-zinc-600 w-6 text-right tabular-nums">{actualDmg > 0 ? actualDmg : '—'}</span>
+                   </div>
                  </div>
+
+                 {/* ── SYNERGY_PATH Footer ── */}
+                 {combo && (
+                   <div className="mt-auto pt-2.5 border-t border-zinc-800/50">
+                     <p className="font-mono text-[8px] uppercase tracking-widest text-zinc-600 mb-1">[ SYNERGY_PATH ]</p>
+                     <p className="font-mono text-[10px] text-zinc-400 leading-snug">{combo.synergy}</p>
+                   </div>
+                 )}
+
                </div>
              );
           })}
@@ -738,6 +809,37 @@ function DeckManual() {
           </p>
         </div>
       </div>
+
+      {/* ── LOCAL_ENVIRONMENT_DIAGNOSTIC ── */}
+      {(() => {
+        const diagLines = getSafehouseDiagnostic(safehouse);
+        return (
+          <div>
+            <p className="font-mono text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3 mt-4">
+              // Local_Environment_Diagnostic
+            </p>
+            <div className="glass-panel rounded-lg p-4 border border-fuchsia-900/40 bg-fuchsia-950/10">
+              <p className="font-mono text-[9px] uppercase tracking-widest text-fuchsia-400/50 mb-3">
+                SAFEHOUSE :: {safehouse?.id ?? 'ALPHA'} — {safehouse?.trait ?? 'Standard'}
+              </p>
+              {diagLines.length === 0 ? (
+                <p className="font-mono text-[11px] text-zinc-600 italic">No environmental modifiers active.</p>
+              ) : (
+                <div className="space-y-2">
+                  {diagLines.map((line, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <span className={`font-mono text-[9px] font-bold uppercase tracking-widest shrink-0 w-28 ${line.color}`}>
+                        {line.label}
+                      </span>
+                      <span className="font-mono text-[10px] text-zinc-400 leading-snug">{line.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );
@@ -1029,6 +1131,32 @@ export default function TransitScene() {
         </div>
       </div>
 
+      {/* ── SITE_ANALYSIS strip ── */}
+      {(() => {
+        const diagLines = getSafehouseDiagnostic(currentSafehouse);
+        const shColor   = currentSafehouse?.color ?? 'cyan';
+        const colorMap  = { cyan: 'text-cyan-400 border-cyan-700/50 bg-cyan-950/30', amber: 'text-amber-400 border-amber-700/50 bg-amber-950/30', emerald: 'text-emerald-400 border-emerald-700/50 bg-emerald-950/30', slate: 'text-slate-400 border-slate-700/50 bg-slate-950/30', fuchsia: 'text-fuchsia-400 border-fuchsia-700/50 bg-fuchsia-950/30' };
+        const cls = colorMap[shColor] ?? colorMap.cyan;
+        return (
+          <div className={`mx-4 mb-2 px-3 py-2 rounded border ${cls} shrink-0`}>
+            <p className="font-mono text-[9px] uppercase tracking-widest opacity-60 mb-1">
+              [ SITE_ANALYSIS ] — {currentSafehouse?.id ?? 'ALPHA'} · {currentSafehouse?.trait ?? 'Standard'}
+            </p>
+            {diagLines.length === 0 ? (
+              <p className="font-mono text-[10px] text-zinc-500">No environmental modifiers — clean operating conditions.</p>
+            ) : (
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                {diagLines.map((line, i) => (
+                  <span key={i} className={`font-mono text-[10px] font-bold ${line.color}`}>
+                    {line.label} <span className="font-normal text-zinc-500">{line.desc}</span>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <TabBar active={activeTab} onChange={setActiveTab} />
 
       <div className="flex-1 overflow-y-auto px-4 sm:px-5 py-5 scrollbar-thin flex flex-col items-center">
@@ -1037,6 +1165,28 @@ export default function TransitScene() {
           
           {activeTab === 'stash' && (
             <>
+              {/* ── ACTIVE_ENVIRONMENT strip ── */}
+              {(() => {
+                const diagLines = getSafehouseDiagnostic(currentSafehouse);
+                return (
+                  <div className="glass-panel rounded-lg px-3 py-2.5 mb-4 border border-fuchsia-900/40 bg-fuchsia-950/10">
+                    <p className="font-mono text-[9px] uppercase tracking-widest text-fuchsia-400/60 mb-1">
+                      [ ACTIVE_ENVIRONMENT ] — {currentSafehouse?.id ?? 'ALPHA'} · {currentSafehouse?.trait ?? 'Standard'}
+                    </p>
+                    {diagLines.length === 0 ? (
+                      <p className="font-mono text-[10px] text-zinc-600">No active modifiers.</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                        {diagLines.map((line, i) => (
+                          <span key={i} className={`font-mono text-[10px] font-bold ${line.color}`}>
+                            {line.label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
               <LootInventory />
               <BlackMarket />
             </>

@@ -3,6 +3,7 @@ import useGameStore from '../store/useGameStore';
 export default function MainMenuScene() {
   const setStatus          = useGameStore(s => s.setStatus);
   const startArcadeMode    = useGameStore(s => s.startArcadeMode);
+  const startTutorial      = useGameStore(s => s.startTutorial);
   const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
 
   return (
@@ -50,6 +51,16 @@ export default function MainMenuScene() {
               <span className="digital-glitch">[ 60-SEC SIMULATION ]</span>
               <span className="block text-[9px] font-normal text-cyan-400/50 mt-1 normal-case tracking-normal">
                 Breach as many nodes as possible in 60 seconds
+              </span>
+            </button>
+
+            <button
+              onClick={() => startTutorial()}
+              className="hardware-btn w-full py-4 border border-fuchsia-800/40 border-b-fuchsia-900/60 text-fuchsia-500 font-mono text-xs font-bold uppercase tracking-widest bg-fuchsia-950/20 hover:bg-fuchsia-900/20 hover:text-fuchsia-400 transition-all"
+            >
+              [ NEURAL_CALIBRATION ]
+              <span className="block text-[9px] font-normal text-fuchsia-600/60 mt-1 normal-case tracking-normal">
+                Guided operator tutorial
               </span>
             </button>
 

@@ -224,6 +224,10 @@ const useGameStore = create(
       arcadeStats: { timeRemaining: 60, score: 0, keystrokes: 0, eliteCombos: 0, multiplier: 1, toolUsage: {} },
       arcadeHighScore: 0,        // all-time best — never wiped by resetGame
 
+      // ── Tutorial ──────────────────────────────────────────────────────────
+      isTutorial:   false,
+      tutorialStep: null,  // 'SCAN_INTRO' | 'DECRYPT_INTRO' | 'PULSE_INTRO' | 'BYPASS_INTRO' | 'TRACE_HEAT_INTRO' | 'OVERDRIVE_INTRO' | 'FINISH_NODE' | 'SIPHON_INTRO'
+
       // ── Endless mode ──────────────────────────────────────────────────────
       hasBeatenGame:     false,  // global unlock — never wiped by resetGame
       tartarusBeaten:    false,  // per-run flag, reset on new campaign
@@ -333,6 +337,15 @@ triggerFirstBoot: () => {
       tick: () => {
         const s = get();
         if (s.status !== 'hacking' || s.isPaused) return;
+
+        // Tutorial: freeze all environmental pressure; only tick cooldowns
+        if (s.isTutorial) {
+          const newToolState = Object.fromEntries(
+            Object.entries(s.toolState).map(([id, ts]) => [id, { cooldownRemaining: Math.max(0, ts.cooldownRemaining - 1) }])
+          );
+          set({ toolState: newToolState });
+          return;
+        }
 
         let currentOverride = s.systemOverride;
         let spikeTrace      = 0;
@@ -518,6 +531,19 @@ triggerFirstBoot: () => {
         const s = get();
         if (s.status !== 'hacking' || s.isPaused) return;
 
+        // ── TUTORIAL GATE: only allow the specific tool for this step ──────
+        if (s.isTutorial && s.tutorialStep !== 'FINISH_NODE') {
+          const TUTORIAL_ALLOWED = {
+            SCAN_INTRO:       'SCAN',
+            DECRYPT_INTRO:    'DECRYPT',
+            PULSE_INTRO:      'PULSE',
+            BYPASS_INTRO:     'BYPASS',
+            TRACE_HEAT_INTRO: 'PULSE',
+            OVERDRIVE_INTRO:  'SCAN',
+          };
+          if (toolId !== (TUTORIAL_ALLOWED[s.tutorialStep] ?? null)) return;
+        }
+
         // ── ARCADE: Track keystrokes ───────────────────────────────────────
         if (s.gameMode === 'arcade') {
           set(cur => ({ arcadeStats: { ...cur.arcadeStats, keystrokes: cur.arcadeStats.keystrokes + 1 } }));
@@ -552,8 +578,8 @@ triggerFirstBoot: () => {
         // ─── OVERDRIVE CALCULATIONS ───
         const cooldownRemaining = s.toolState[toolId]?.cooldownRemaining ?? 0;
         
-        // NEW: Only allow Overdrive if the player has completed at least 1 mission
-        const overdriveUnlocked = s.storyArchive.length >= 1;
+        // Only allow Overdrive if the player has completed at least 1 mission (or is in tutorial)
+        const overdriveUnlocked = s.storyArchive.length >= 1 || s.isTutorial;
 
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
         let actualCooldown = Math.max(
@@ -569,12 +595,15 @@ triggerFirstBoot: () => {
           // 1. Blocks clicks if Overdrive is still locked by the story
           // 2. Blocks "spamming" (double-clicking within 1 second of use)
           if (s.gameMode !== 'arcade') {
-            if (!overdriveUnlocked || actualCooldown - cooldownRemaining < 1) return;
-
-            if (cooldownRemaining > actualCooldown / 2) {
-              set({ terminalLog: appendLog(currentLog, `!! ERROR: ${toolId} RECOVERY INCOMPLETE. SIGNAL WEAK !!`) });
-              AudioManager.playSFX('error');
-              return;
+            // Tutorial OVERDRIVE_INTRO: bypass all cooldown gates so the lesson can fire
+            const isTutorialOD = s.isTutorial && s.tutorialStep === 'OVERDRIVE_INTRO';
+            if (!isTutorialOD) {
+              if (!overdriveUnlocked || actualCooldown - cooldownRemaining < 1) return;
+              if (cooldownRemaining > actualCooldown / 2) {
+                set({ terminalLog: appendLog(currentLog, `!! ERROR: ${toolId} RECOVERY INCOMPLETE. SIGNAL WEAK !!`) });
+                AudioManager.playSFX('error');
+                return;
+              }
             }
           }
           
@@ -632,8 +661,9 @@ triggerFirstBoot: () => {
             terminalLog:      currentLog,
             comboChain:       newComboChain,
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
+            ...(s.isTutorial && s.tutorialStep === 'DECRYPT_INTRO' ? { tutorialStep: 'PULSE_INTRO' } : {}),
           });
-          if (s.physicalHeat + heatGain >= 100 && s.gameMode !== 'arcade') get().packUp('heat_busted');
+          if (s.physicalHeat + heatGain >= 100 && s.gameMode !== 'arcade' && !s.isTutorial) get().packUp('heat_busted');
           return;
         }
 
@@ -708,6 +738,7 @@ triggerFirstBoot: () => {
         if (newFirewall <= 0 && prevFirewall > 0) {
           // In arcade mode, advance to the next node directly from the store
           if (s.gameMode === 'arcade') {
+            // NOTE: arcade block handled below, before tutorial check
             set({
               firewallHealth: 0,
               digitalTrace:   finalTrace,
@@ -720,6 +751,29 @@ triggerFirstBoot: () => {
             });
             AudioManager.playSFX('success');
             get().nextArcadeNode();
+            return;
+          }
+
+          // ── TUTORIAL WIN STATE ──────────────────────────────────────────
+          if (s.isTutorial) {
+            AudioManager.playSFX('success');
+            currentLog = appendLog(currentLog, '>> [!] TARGET SECURED. TRACE ROUTING RESET. SAFE TO EXTRACT.');
+            currentLog = appendLog(currentLog, '// TRAINING_SIM COMPLETE. HOLD SIPHON TO EXTRACT INTEL.');
+            set({
+              status:         'resolved',
+              nextStatus:     'transit',
+              transitOutcome: 'success',
+              tutorialStep:   'SIPHON_INTRO',
+              firewallHealth: 0,
+              digitalTrace:   20,
+              physicalHeat:   newHeat,
+              exposedTicks:   newExposedTicks,
+              comboChain:     [],
+              systemOverride: null,
+              toolState:      { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
+              hasFirstBypass: hasFirstBypass,
+              terminalLog:    currentLog,
+            });
             return;
           }
 
@@ -817,6 +871,35 @@ triggerFirstBoot: () => {
           ? { ...s.arcadeStats, eliteCombos: (s.arcadeStats.eliteCombos ?? 0) + arcadeEliteCombosDelta, timeRemaining: Math.min(99, s.arcadeStats.timeRemaining + arcadeTimeDelta), multiplier: newArcadeMult }
           : s.arcadeStats;
 
+        // ── TUTORIAL: compute step advance patch ──────────────────────────
+        let tutorialPatch = {};
+        if (s.isTutorial && s.tutorialStep !== 'FINISH_NODE') {
+          const TUTORIAL_ADVANCE = {
+            SCAN_INTRO:       'DECRYPT_INTRO',
+            PULSE_INTRO:      'BYPASS_INTRO',
+            BYPASS_INTRO:     'TRACE_HEAT_INTRO',
+            TRACE_HEAT_INTRO: 'OVERDRIVE_INTRO',
+            OVERDRIVE_INTRO:  'FINISH_NODE',
+          };
+          const nextStep = TUTORIAL_ADVANCE[s.tutorialStep];
+          if (nextStep) {
+            tutorialPatch.tutorialStep = nextStep;
+            // BYPASS_INTRO → wipe all cooldowns & heat so PULSE is ready, then spike trace
+            if (s.tutorialStep === 'BYPASS_INTRO') {
+              tutorialPatch.physicalHeat = 0;
+              tutorialPatch.toolState   = Object.fromEntries(
+                Object.entries(finalToolState).map(([id]) => [id, { cooldownRemaining: 0 }])
+              );
+              currentLog = appendLog(currentLog, '>> [!] DIAGNOSTIC_RESET: Hardware cooled. Deck refreshed.');
+              tutorialPatch.digitalTrace = 85;
+            }
+            // TRACE_HEAT_INTRO → put SCAN on cooldown so OVERDRIVE lesson can fire
+            if (s.tutorialStep === 'TRACE_HEAT_INTRO') {
+              tutorialPatch.toolState = { ...finalToolState, SCAN: { cooldownRemaining: 2 } };
+            }
+          }
+        }
+
         set({
           firewallHealth: newFirewall,
           digitalTrace:   finalTrace,
@@ -829,9 +912,10 @@ triggerFirstBoot: () => {
           comboChain:     newComboChain,
           toolState:      finalToolState,
           arcadeStats:    finalArcadeStats,
+          ...tutorialPatch,
         });
 
-        if (newHeat >= 100 && s.gameMode !== 'arcade') get().packUp('heat_busted');
+        if (newHeat >= 100 && s.gameMode !== 'arcade' && !s.isTutorial) get().packUp('heat_busted');
       },
 
     // ─── PACK UP ──────────────────────────────────────────────────────
@@ -1021,6 +1105,8 @@ triggerFirstBoot: () => {
           currentReplayLevel:    replayLevel,
           isReplay,
           gameMode:              'campaign',
+          isTutorial:            false,
+          tutorialStep:          null,
           digitalTrace:          0,
           activeDaemon:          null,
           exposedTicks:          0,
@@ -1065,6 +1151,47 @@ triggerFirstBoot: () => {
             '// TRACE OVERFLOW = -10s PENALTY. GOOD LUCK.',
           ],
           toolState: buildInitialToolState(999),
+        });
+      },
+
+      // ─── START TUTORIAL ───────────────────────────────────────────────
+      startTutorial: () => {
+        const tutNode = {
+          id:            'TUTORIAL_01',
+          name:          'TRAINING_SIMULATION',
+          specialDefense: null,
+          firewallHP:    100,
+          maxFirewallHP: 100,
+          mutator:       null,
+        };
+        set({
+          isTutorial:            true,
+          tutorialStep:          'SCAN_INTRO',
+          gameMode:              'campaign',
+          status:                'hacking',
+          nextStatus:            'transit',
+          currentJobType:        'skim',
+          digitalTrace:          0,
+          physicalHeat:          0,
+          firewallHealth:        100,
+          firewallRevealed:      true,
+          currentNode:           tutNode,
+          sessionIntelEarned:    0,
+          sessionPotentialIntel: 20,
+          exposedTicks:          0,
+          activeDaemon:          null,
+          systemOverride:        null,
+          packUpHeat:            0,
+          packUpTrace:           0,
+          comboChain:            [],
+          transitOutcome:        null,
+          isReplay:              false,
+          toolState:             buildInitialToolState(999),
+          terminalLog: [
+            '// NEURAL_CALIBRATION :: TRAINING_SIMULATION_ONLINE',
+            '// MASHA: "No live traffic. This is a safe environment."',
+            '// MASHA: "Follow the prompts. Your operator license depends on it."',
+          ],
         });
       },
 
@@ -1186,6 +1313,8 @@ triggerFirstBoot: () => {
           },
           isFirstBoot:           true,
           hasFirstBypass:        false,
+          isTutorial:            false,
+          tutorialStep:          null,
           // NOTE: hasBeatenGame / highestDarknetTier / settings intentionally omitted — preserved via shallow merge
           terminalLog:           nodeBootLog(freshNode),
           toolState:             buildInitialToolState(),
@@ -1287,6 +1416,32 @@ triggerFirstBoot: () => {
     // ─── SIPHON VAULT / UPLOAD SKELETON KEY (Push Your Luck) ──────────
       siphonVault: () => {
         const s = get();
+
+        // Tutorial SIPHON — run normal math; complete when trace reaches 30%
+        if (s.isTutorial && s.tutorialStep === 'SIPHON_INTRO') {
+          AudioManager.playSFX('thock');
+          const newTrace    = s.digitalTrace + 3.5;
+          const newIntel    = s.collectedIntel + 1;
+          const isComplete  = newTrace >= 30;
+          let newLog = appendLog(s.terminalLog, `>> SIPHON PULSE ${newIntel}: +3.5% TRACE EXPOSURE — INTEL EXTRACTED.`);
+          if (isComplete) {
+            newLog = appendLog(newLog, '>> [!] CALIBRATION COMPLETE. SECURING CONNECTION AND RETURNING TO SAFEHOUSE.');
+          }
+          set({
+            digitalTrace:   newTrace,
+            collectedIntel: newIntel,
+            terminalLog:    newLog,
+            ...(isComplete ? {
+              isTutorial:     false,
+              tutorialStep:   null,
+              status:         'transit',
+              transitOutcome: 'success',
+              physicalHeat:   0,
+            } : {}),
+          });
+          return;
+        }
+
         if (s.status !== 'resolved' || s.transitOutcome !== 'success') return;
 
         const isTartarus = s.currentJobType === 'tartarus';
