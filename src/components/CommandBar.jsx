@@ -197,43 +197,56 @@ export default function CommandBar() {
     <div className="relative px-4 py-2 grid grid-cols-2 gap-2 sm:gap-3"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
     >
-      {toolsConfig.map((tool) => {
-        const toolInfo = toolState[tool.id];
-        let isLockedTool = false;
-        if (tool.id === 'DECRYPT' && storyArchive.length < 1) isLockedTool = true;
-        if (tool.id === 'SCAN'    && storyArchive.length < 2) isLockedTool = true;
-        
-        const cooldown   = toolInfo?.cooldownRemaining ?? 0;
-        const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (safehouse?.ramMod ?? 1)));
-        
-        const onCooldown = cooldown > 0;
-        const isOverdriveReady = overdriveUnlocked && onCooldown && cooldown <= maxCooldown / 2 && (maxCooldown - cooldown >= 1);
-        const disabled = (onCooldown && !isOverdriveReady) || isLockedTool || status !== 'hacking' || systemOverride !== null;
-        
-        const styles     = TOOL_STYLES[tool.color] ?? TOOL_STYLES.green;
-        const activeFill = FILL_STYLES[tool.color] ?? FILL_STYLES.green;
-        const isError     = errorId === tool.id;
-        const fillPercent = maxCooldown > 0 ? ((maxCooldown - cooldown) / maxCooldown) * 100 : 100;
+                        {toolsConfig.map((tool) => {
+                                const toolInfo = toolState[tool.id];
+                                        
+                                                // 1. REVERT THIS: Trust the store so your tools actually unlock!
+                                                        const isLockedTool = toolInfo?.isLocked;
+                                                                
+                                                                        const cooldown   = toolInfo?.cooldownRemaining ?? 0;
+                                                                                const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (safehouse?.ramMod ?? 1)));
+                                                                                        
+                                                                                                const onCooldown = cooldown > 0;
+                                                                                                        const isOverdriveReady = overdriveUnlocked && onCooldown && cooldown <= maxCooldown / 2 && (maxCooldown - cooldown >= 1);
+                                                                                                                
+                                                                                                                        // 2. THE REAL FIX: Separate Functional logic from Visual logic
+                                                                                                                                const disabled = (onCooldown && !isOverdriveReady) || isLockedTool || status !== 'hacking' || systemOverride !== null;
+                                                                                                                                        const isDarkened = onCooldown && !isOverdriveReady; // ONLY apply gray styles if it is ACTUALLY on cooldown!
+                                                                                                                                                
+                                                                                                                                                        const styles     = TOOL_STYLES[tool.color] ?? TOOL_STYLES.green;
+                                                                                                                                                                const activeFill = FILL_STYLES[tool.color] ?? FILL_STYLES.green;
+                                                                                                                                                                        const isError     = errorId === tool.id;
+                                                                                                                                                                                const fillPercent = maxCooldown > 0 ? ((maxCooldown - cooldown) / maxCooldown) * 100 : 100;
 
-        let buttonClass = [
-          'flex-1 relative overflow-hidden min-h-[60px] sm:min-h-[74px] py-1.5 sm:py-3 px-2 rounded touch-none flex flex-col items-center justify-center',
-          'border-[2px] border-b-[6px] transition-all duration-150 ease-out active:duration-0 select-none',
-          isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
-          (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled && !isOverdriveReady) 
-            ? 'border-amber-400/80 border-b-amber-600 shadow-[inset_0_0_20px_rgba(251,191,36,0.25)] animate-pulse z-20' 
-            : ''
-        ];
+                                                                                                                                                                                        let buttonClass = [
+                                                                                                                                                                                                  'flex-1 relative overflow-hidden min-h-[60px] sm:min-h-[74px] py-1.5 sm:py-3 px-2 rounded touch-none flex flex-col items-center justify-center',
+                                                                                                                                                                                                            'border-[2px] border-b-[6px] transition-all duration-150 ease-out active:duration-0 select-none',
+                                                                                                                                                                                                                      isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
+                                                                                                                                                                                                                                (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled && !isOverdriveReady) 
+                                                                                                                                                                                                                                            ? 'border-amber-400/80 border-b-amber-600 shadow-[inset_0_0_20px_rgba(251,191,36,0.25)] animate-pulse z-20' 
+                                                                                                                                                                                                                                                        : ''
+                                                                                                                                                                                                                                                                ];
 
-        if (isLockedTool) {
-          buttonClass.push('bg-zinc-950 border-zinc-900 opacity-30 grayscale cursor-not-allowed pointer-events-none');
-        } else if (disabled) {
-          buttonClass.push(styles.disabled);
-        } else if (isOverdriveReady) {
-          buttonClass.push('border-red-500/60 border-b-red-700/80 text-red-400 bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.3)] glow-red animate-pulse active:border-b-[2px] active:translate-y-[4px]');
-        } else {
-          buttonClass.push(`${styles.active} active:border-b-[2px] active:translate-y-[4px] active:shadow-[inset_0_8px_15px_rgba(0,0,0,0.8)]`);
-        }
+                                                                                                                                                                                                                                                                        // 3. APPLY STYLES
+                                                                                                                                                                                                                                                                                if (isLockedTool) {
+                                                                                                                                                                                                                                                                                          buttonClass.push('bg-zinc-950 border-zinc-900 opacity-30 grayscale cursor-not-allowed pointer-events-none');
+                                                                                                                                                                                                                                                                                                  } else if (isDarkened) {
+                                                                                                                                                                                                                                                                                                            buttonClass.push(styles.disabled); // It's on cooldown, turn it gray
+                                                                                                                                                                                                                                                                                                                    } else if (isOverdriveReady) {
+                                                                                                                                                                                                                                                                                                                              buttonClass.push('border-red-500/60 border-b-red-700/80 text-red-400 bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.3)] glow-red animate-pulse active:border-b-[2px] active:translate-y-[4px]');
+                                                                                                                                                                                                                                                                                                                                      } else {
+                                                                                                                                                                                                                                                                                                                                                // Keep neon colors bright even during the loading screen!
+                                                                                                                                                                                                                                                                                                                                                          buttonClass.push(styles.active);
+                                                                                                                                                                                                                                                                                                                                                                    if (!disabled) {
+                                                                                                                                                                                                                                                                                                                                                                                buttonClass.push('active:border-b-[2px] active:translate-y-[4px] active:shadow-[inset_0_8px_15px_rgba(0,0,0,0.8)]');
+                                                                                                                                                                                                                                                                                                                                                                                          } else {
+                                                                                                                                                                                                                                                                                                                                                                                                      buttonClass.push('cursor-not-allowed'); 
+                                                                                                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                        }
 
+                                                                                                                                                                                                                                                                                                                                                                                                                                return (
+                                                                                                                                                                                                                                                                                                                                                                                                                                          <button
+                                                                                                                                                                                                                                                                                                                                                                                                                                          
         return (
           <button
             key={tool.id}
