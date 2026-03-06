@@ -5,6 +5,10 @@ export default function MainMenuScene() {
   const startArcadeMode    = useGameStore(s => s.startArcadeMode);
   const startTutorial      = useGameStore(s => s.startTutorial);
   const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
+  const storyArchive       = useGameStore(s => s.storyArchive);
+  const intelFragments     = useGameStore(s => s.intelFragments);
+
+  const isNewGame = storyArchive.length === 0 && intelFragments === 0;
 
   return (
     <div className="h-full flex flex-col bg-zinc-950 relative overflow-hidden">
@@ -38,9 +42,9 @@ export default function MainMenuScene() {
               onClick={() => setStatus('transit')}
               className="hardware-btn w-full py-5 border-2 border-zinc-600/60 border-b-zinc-800 text-zinc-200 font-mono text-sm font-black uppercase tracking-widest bg-zinc-900/60 hover:bg-zinc-800/60 hover:border-zinc-500 transition-all shadow-[0_0_15px_rgba(217,70,239,0.2)]"
             >
-              [ RESUME CAMPAIGN ]
+              {isNewGame ? '[ INITIATE UPLINK ]' : '[ RESUME CAMPAIGN ]'}
               <span className="block text-[9px] font-normal text-zinc-600 mt-1 normal-case tracking-normal">
-                Continue your current run
+                {isNewGame ? 'Begin a new operator campaign' : 'Continue your current run'}
               </span>
             </button>
 
