@@ -464,15 +464,17 @@ const MENACING_SKULL_FACE = `
 function BossCore({ trace, heat, fwHealth, maxFw }) {
   const rawLog = useGameStore(s => s.terminalLog); 
   const exposedTicks = useGameStore(s => s.exposedTicks);
-  const isHitStopped = useGameStore(s => s.isHitStopped); // <-- Pull the time-freeze!
+  const isHitStopped = useGameStore(s => s.isHitStopped);
   
   const safeLog = rawLog || [];
   const recentLogs = safeLog.slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
+  
+  // Detection Logic
   const isStaggered = recentLogs.some(l => l.includes('CRITICAL OVERRIDE') || l.includes('2.0x MULTIPLIER'));
+  const isTripleThreat = recentLogs.some(l => l.includes('TRIPLE_THREAT_DETONATION'));
 
   const maxDanger = Math.max(trace, heat);
   const healthPercent = fwHealth / maxFw;
-
   const isEnraged = maxDanger >= 80;
   const isAlert = maxDanger >= 50;
 
@@ -481,11 +483,6 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
   const coreBg      = isEnraged ? 'bg-red-500' : isAlert ? 'bg-amber-500' : 'bg-cyan-500';
   const innerColor  = isEnraged ? 'bg-red-500/20' : isAlert ? 'bg-amber-500/20' : 'bg-cyan-500/10';
 
-  const spinSpeedOuter = isEnraged ? 'animate-[spin_2s_linear_infinite]' : 'animate-[spin_10s_linear_infinite]';
-  const spinSpeedInner = isEnraged ? 'animate-[spin_1.5s_linear_infinite_reverse]' : 'animate-[spin_7s_linear_infinite_reverse]';
-  const staggerEffect = isStaggered ? 'scale-95 brightness-150 contrast-125 danger-shake' : 'scale-100 brightness-100 contrast-100 animate-boss-breathe';
-
-  // ─── TWO-PART COMBAT VISUALS ───
   const [particles, setParticles] = useState([]);
   const [beams, setBeams] = useState([]);         
   const prevFw = useRef(fwHealth);
@@ -497,72 +494,85 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
       const newParticle = {
         id: Date.now() + Math.random(),
         dmg: Math.ceil(dmg),
-        isCrit: isStaggered,
-        x: (Math.random() - 0.5) * 120, 
-        y: (Math.random() - 0.5) * 60,
+        isCrit: isStaggered || isTripleThreat,
+        isMega: isTripleThreat,
+        x: (Math.random() - 0.5) * 140, 
+        y: (Math.random() - 0.5) * 80,
         rot: (Math.random() - 0.5) * 40 
       };
       
-      const numTracers = isStaggered ? 5 : 1; 
-      
+      const numTracers = isTripleThreat ? 12 : (isStaggered ? 5 : 1); 
       const newBeams = Array.from({ length: numTracers }).map((_, i) => ({
         id: Date.now() + Math.random(),
-        isCrit: isStaggered,
-        x: (Math.random() - 0.5) * (isStaggered ? 160 : 30), 
-        delay: i * 60, 
+        isCrit: isStaggered || isTripleThreat,
+        x: (Math.random() - 0.5) * (isTripleThreat ? 250 : 160), 
+        delay: i * (isTripleThreat ? 30 : 60), 
         tailHeight: 150 + Math.random() * 100,
-        hex: Math.floor(Math.random() * 65535).toString(16).padStart(4, '0').toUpperCase() 
+        hex: Math.floor(Math.random() * 65535).toString(16).toUpperCase() 
       }));
 
       setParticles(p => [...p, newParticle]);
       setBeams(b => [...b, ...newBeams]);
-
       setTimeout(() => setParticles(p => p.filter(x => x.id !== newParticle.id)), 1200);
       setTimeout(() => {
         const bIds = newBeams.map(b => b.id);
         setBeams(b => b.filter(x => !bIds.includes(x.id)));
-      }, 1000); 
+      }, 1000);
     }
     prevFw.current = fwHealth;
-  }, [fwHealth, isStaggered]);
+  }, [fwHealth, isStaggered, isTripleThreat]);
 
-  // ─── THE FREEZE FLAG ───
   const playState = isHitStopped ? 'paused' : 'running';
+  const staggerEffect = isStaggered ? 'scale-95 brightness-150 contrast-125 danger-shake' : 'scale-100 brightness-100 contrast-100 animate-boss-breathe';
+  const finisherClass = isTripleThreat ? 'animate-shake-extreme brightness-[2] saturate-200' : '';
 
   return (
     <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
+      {/* ─── FULL SCREEN FLASH ─── */}
+      {isTripleThreat && <div className="absolute inset-0 z-[100] bg-white animate-supernova" />}
+
       <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/10 via-zinc-950/40 to-zinc-950" />
       
-      {/* Pause the container's breathing animation */}
-      <div className={`absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 md:w-80 md:h-80 flex items-center justify-center opacity-90 mix-blend-screen transition-all duration-75 ease-out ${staggerEffect}`}
+      {/* MASSIVE CONTAINER */}
+      <div className={`absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-96 md:h-96 flex items-center justify-center opacity-90 mix-blend-screen transition-all duration-75 ease-out ${staggerEffect} ${finisherClass}`}
            style={{ animationPlayState: playState }}>
         
-        {/* 90s TARGET LOCK */}
+        {/* ─── 90s TARGET LOCK ─── */}
         {exposedTicks > 0 && (
-          <div className="absolute inset-0 flex items-center justify-center z-20 animate-[spin_4s_linear_infinite]"
+          <div className="absolute inset-[-40px] flex items-center justify-center z-20 animate-[spin_4s_linear_infinite]"
                style={{ animationPlayState: playState }}>
-            <div className="w-56 h-56 md:w-80 md:h-80 border-[3px] border-amber-400/80 rounded-full border-dashed opacity-80" />
-            <div className="absolute w-full h-[2px] bg-amber-400/40" />
-            <div className="absolute h-full w-[2px] bg-amber-400/40" />
+            <div className="w-full h-full border-[3px] border-amber-400/80 rounded-full border-dashed opacity-80" />
+            <div className="absolute w-[120%] h-[2px] bg-amber-400/40" />
+            <div className="absolute h-[120%] w-[2px] bg-amber-400/40" />
             <div className="absolute font-display text-[10px] md:text-xs text-black font-black bg-amber-400 tracking-widest px-2 shadow-[0_0_15px_rgba(251,191,36,0.8)]">
               CRITICAL_LOCK_ACQUIRED
             </div>
           </div>
         )}
 
-        {/* Pause all Boss Armor rings */}
-        <div className={`absolute inset-0 rounded-full border-t-[8px] border-b-[2px] border-r-[4px] border-dashed ${borderColor} ${shadowColor} ${spinSpeedOuter} transition-all duration-500`}
+        {/* ─── TRIPLE RING GEOMETRY ─── */}
+        
+        {/* Ring 1: Outer Shield (Heavy) */}
+        <div className={`absolute inset-0 rounded-full border-t-[10px] border-b-[4px] border-r-[6px] border-dashed ${borderColor} ${shadowColor} animate-[spin_10s_linear_infinite] transition-all duration-500`}
              style={{ opacity: 0.3 + (healthPercent * 0.7), animationPlayState: playState }} />
-        <div className={`absolute inset-4 rounded-full border-[4px] border-dotted ${borderColor} ${shadowColor} ${spinSpeedInner} opacity-80`}
+        
+        {/* Ring 2: Mid Processing (Dotted) */}
+        <div className={`absolute inset-8 rounded-full border-[6px] border-dotted ${borderColor} ${shadowColor} animate-[spin_15s_linear_infinite_reverse] opacity-80`}
              style={{ animationPlayState: playState }} />
-        <div className={`absolute w-14 h-14 md:w-20 md:h-20 rounded-sm border-[4px] rotate-45 ${borderColor} ${shadowColor} ${innerColor} transition-colors duration-500 flex items-center justify-center`}
+
+        {/* Ring 3: Inner Data (Thin) */}
+        <div className={`absolute inset-16 rounded-full border-[2px] border-dashed ${borderColor} opacity-40 animate-[spin_5s_linear_infinite]`}
+             style={{ animationPlayState: playState }} />
+        
+        {/* The Core Eye */}
+        <div className={`absolute w-16 h-16 md:w-24 md:h-24 rounded-sm border-[4px] rotate-45 ${borderColor} ${shadowColor} ${innerColor} transition-colors duration-500 flex items-center justify-center`}
              style={{ animationPlayState: playState }}>
           <div className={`w-1/2 h-1/2 rounded-full ${coreBg} ${isEnraged ? 'animate-pulse' : ''}`} 
                style={{ animationPlayState: playState }} />
-          {fwHealth < prevFw.current && <div className="absolute inset-0 bg-white rounded-sm animate-ping" />}
+          {(fwHealth < prevFw.current) && <div className="absolute inset-0 bg-white rounded-sm animate-ping" />}
         </div>
 
-        {/* EFFECT 1: CHUNKY DATA STRIKES */}
+        {/* ─── DATA BEAMS ─── */}
         {beams.map(b => (
           <div
             key={b.id}
@@ -571,7 +581,7 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
               left: `calc(50% + ${b.x}px)`,
               bottom: '-120px', 
               animationDelay: `${b.delay}ms`,
-              animationPlayState: playState // Freezes the beam mid-air!
+              animationPlayState: playState 
             }}
           >
             <span className={`font-mono text-xs sm:text-sm font-black leading-none mb-1 ${b.isCrit ? 'text-amber-300 drop-shadow-[0_0_10px_rgba(251,191,36,1)]' : 'text-cyan-300 drop-shadow-[0_0_10px_rgba(34,211,238,1)]'}`}>
@@ -587,7 +597,7 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
           </div>
         ))}
 
-        {/* EFFECT 2: CLEAN DAMAGE NUMBERS */}
+        {/* ─── DAMAGE NUMBERS ─── */}
         {particles.map(p => (
           <div
             key={p.id}
@@ -597,18 +607,12 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
               top:  `calc(50% + ${p.y}px)`,
               transform: `translate(-50%, -50%) rotate(${p.rot}deg)`,
               animationDelay: p.isCrit ? '250ms' : '100ms',
-              animationPlayState: playState // Freezes the pop text mid-air!
+              animationPlayState: playState
             }}
           >
-            {p.isCrit ? (
-              <span className="text-4xl sm:text-5xl font-black text-amber-400 drop-shadow-[0_0_20px_rgba(251,191,36,1)] whitespace-nowrap">
-                -{p.dmg} <span className="text-xl">CRIT</span>
-              </span>
-            ) : (
-              <span className="text-3xl sm:text-4xl font-bold text-cyan-300 drop-shadow-[0_0_15px_rgba(34,211,238,0.9)]">
-                -{p.dmg}
-              </span>
-            )}
+            <span className={`font-black uppercase tracking-tighter ${p.isMega ? 'text-6xl sm:text-8xl text-white drop-shadow-[0_0_30px_rgba(255,255,255,1)]' : 'text-4xl sm:text-5xl text-amber-400'}`}>
+              -{p.dmg} {p.isMega && '!!!'}
+            </span>
           </div>
         ))}
 
@@ -622,47 +626,49 @@ function MashaCodec() {
   const rawLog = useGameStore(s => s.terminalLog);
   const [message, setMessage] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [displayKey, setDisplayKey] = useState(0); // Forces effect reset
   
-  // Track the last message we showed so we don't accidentally repeat it
   const lastSeenRef = useRef(null);
 
   useEffect(() => {
     const safeLog = rawLog || [];
     if (safeLog.length === 0) return;
     
-    // Grab the last 3 logs just in case Masha's message got buried by a system alert
     const recentLogs = safeLog.slice(-3).map(l => typeof l === 'string' ? l : l?.text).filter(Boolean);
-    
-    // Find the most recent log containing "MASHA"
     const latestMashaLog = [...recentLogs].reverse().find(l => l.includes('MASHA'));
     
-    // If we found a Masha log AND it's a new one we haven't displayed yet
+    // Trigger if it's a new message
     if (latestMashaLog && latestMashaLog !== lastSeenRef.current) {
       lastSeenRef.current = latestMashaLog;
 
-      // Bulletproof Regex: Automatically strips out "// MASHA:", "// MEMO_FROM_MASHA - ", etc.
       const cleanText = latestMashaLog.replace(/^.*MASHA[^a-zA-Z0-9]*\s*/i, '').replace(/['"]/g, '');
       
       setMessage(cleanText);
       setIsVisible(true);
-      
-      // AudioManager.playSFX('radio_static'); // Uncomment when you add the sound!
-      
-      const timer = setTimeout(() => setIsVisible(false), 4500); 
-      return () => clearTimeout(timer);
+      setDisplayKey(prev => prev + 1); // Increment key to reset timer logic
     }
   }, [rawLog]);
 
+  // Dedicated timer effect that handles its own cleanup
+  useEffect(() => {
+    if (!isVisible) return;
+
+    // 2.2 seconds - Extremely fast, keeps the HUD clean
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+    }, 2200);
+
+    return () => clearTimeout(timer);
+  }, [displayKey, isVisible]);
+
   return (
-    <div className={`absolute top-4 left-4 right-4 z-[60] transition-all duration-500 ease-out flex justify-center pointer-events-none ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-10 opacity-0'}`}>
+    <div className={`absolute top-4 left-4 right-4 z-[60] transition-all duration-300 ease-in-out flex justify-center pointer-events-none ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-12 opacity-0'}`}>
       <div className="bg-zinc-950/95 backdrop-blur-md border-[2px] border-fuchsia-500/80 shadow-[0_10px_30px_rgba(217,70,239,0.3)] p-3 flex gap-4 items-center w-full max-w-sm">
         
-        {/* Avatar / Audio Waveform Box */}
         <div className="w-12 h-12 shrink-0 bg-fuchsia-950/50 border border-fuchsia-500/50 flex flex-col items-center justify-center relative overflow-hidden">
           <div className="absolute top-0 w-full bg-fuchsia-500 text-black font-mono text-[8px] font-black text-center tracking-widest uppercase leading-tight">
             MASHA
           </div>
-          {/* Animated Waveform */}
           <div className="flex items-end gap-0.5 h-4 mt-2">
             <div className="w-1 bg-fuchsia-400 animate-[bounce_0.8s_infinite] origin-bottom" />
             <div className="w-1 bg-fuchsia-400 animate-[bounce_0.5s_infinite] origin-bottom" style={{ animationDelay: '0.1s' }} />
@@ -671,7 +677,6 @@ function MashaCodec() {
           </div>
         </div>
 
-        {/* Dialogue Text */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
@@ -683,8 +688,52 @@ function MashaCodec() {
             "{message}"
           </p>
         </div>
-        
       </div>
+    </div>
+  );
+}
+
+// ─── COMBO INDICATOR: SCAN -> DECRYPT -> PULSE ──────────────────────────────
+function ComboDisplay() {
+  const chain = useGameStore(s => s.comboChain) || [];
+  const exposed = useGameStore(s => s.exposedTicks > 0);
+  
+  // Detection for the "Break" visual
+  const isBroken = chain.length === 0 && !exposed;
+
+  const TARGET = [
+    { id: 'SCAN',    color: 'text-cyan-400',    icon: '📡' },
+    { id: 'DECRYPT', color: 'text-fuchsia-400', icon: '🔑' },
+    { id: 'PULSE',   color: 'text-emerald-400', icon: '⚡' }
+  ];
+
+  return (
+    <div className={`px-4 flex items-center gap-3 mb-1 mt-1 transition-all ${isBroken ? 'animate-combo-break' : ''}`}>
+      <span className="font-mono text-[8px] text-zinc-600 uppercase tracking-tighter">Chain_Buffer:</span>
+      <div className="flex gap-1">
+        {TARGET.map((step, i) => {
+          const isActive = chain[i] === step.id;
+          
+          return (
+            <div 
+              key={i}
+              className={`w-6 h-4 border flex items-center justify-center text-[10px] transition-all duration-200 ${
+                isActive 
+                  ? `${step.color} border-current bg-current/5 shadow-[0_0_5px_currentColor]` 
+                  : 'text-zinc-900 border-zinc-900 bg-transparent'
+              }`}
+            >
+              {isActive ? step.icon : ''}
+            </div>
+          );
+        })}
+      </div>
+      
+      {chain.length === 3 && exposed && (
+        <span className="font-mono text-[9px] font-black text-amber-500/80 animate-pulse ml-auto tracking-tighter">
+          [!] PAYLOAD_READY
+        </span>
+      )}
     </div>
   );
 }
@@ -719,6 +768,11 @@ export default function HackingScene() {
   const prevDaemon = useRef(activeDaemon);
 
   const hapticsEnabled = useGameStore(s => s.settings?.hapticsEnabled);
+
+  // This logic chooses the animation based on your settings
+  const transitionClass = (status === 'hacking') 
+    ? (reducedMotion ? "animate-fade-in" : "animate-rip-in") 
+    : "";
 
   // --- HANDLE INSPECT ---
   const handleInspect = (id) => {
@@ -786,11 +840,19 @@ export default function HackingScene() {
   const isWin = status === 'resolved' && transitOutcome === 'success';
   const isBusted = status === 'resolved' && (transitOutcome === 'trace_busted' || transitOutcome === 'heat_busted');
   
-  const breachTearClass = isWin
+  const entranceClass = (status === 'hacking') 
+    ? (reducedMotion ? "animate-fade-in" : "animate-rip-in") 
+    : "";
+
+  // 2. Handle the "End of Mission" Success/Failure Tints
+  const outcomeClass = isWin
     ? isPerfectBreach
       ? "contrast-[1.15] saturate-150 brightness-90 transition-all duration-500"
       : "contrast-[1.15] saturate-150 hue-rotate-[15deg] brightness-90 transition-all duration-500"
     : "transition-all duration-300 ease-in";
+
+  // Combine them into one clean string
+  const finalTransitionClass = `${entranceClass} ${outcomeClass}`;
 
   let popupConfig = null;
   if (status === 'resolved') {
@@ -830,7 +892,10 @@ export default function HackingScene() {
   }
 
   return (
-    <div className={`flex flex-col h-full bg-zinc-950 relative ${breachTearClass}`}>
+    <div 
+      key={status} // THIS IS THE TRIGGER: Forces the animation to play on status change
+      className={`flex flex-col h-full bg-zinc-950 relative overflow-hidden ${finalTransitionClass}`}
+    >
       
       {/* ─── QUICK LOOK OVERLAY ─── */}
       {inspectingModifier && (
@@ -979,6 +1044,7 @@ export default function HackingScene() {
         </div>
 
         <div className="border-t border-zinc-800/60 pt-1 pb-0.5 bg-zinc-950/60 backdrop-blur-sm shrink-0">
+          <ComboDisplay />
           <FirewallRow />
           <TraceRow />
         </div>

@@ -1,7 +1,6 @@
 import useGameStore from '../store/useGameStore';
 
 // ─── Toggle Switch ─────────────────────────────────────────────────────────────
-
 function Toggle({ label, description, value, onChange }) {
   return (
     <div className="flex items-center justify-between py-3 border-b border-zinc-800/60 last:border-0">
@@ -31,7 +30,6 @@ function Toggle({ label, description, value, onChange }) {
 }
 
 // ─── Settings Modal ────────────────────────────────────────────────────────────
-
 export default function SettingsModal({ onClose }) {
   const settings         = useGameStore(s => s.settings);
   const updateSettings   = useGameStore(s => s.updateSettings);
@@ -43,8 +41,11 @@ export default function SettingsModal({ onClose }) {
   return (
     <div className="absolute inset-0 z-50 bg-zinc-950/96 backdrop-blur-sm flex flex-col">
 
-      {/* ── Header ── */}
-      <div className="px-5 py-4 border-b border-zinc-800 bg-zinc-950/80 flex items-center justify-between shrink-0">
+      {/* ── Header: Fixed for iPhone Notch ── */}
+      <div 
+        className="px-5 border-b border-zinc-800 bg-zinc-950/80 flex items-center justify-between shrink-0"
+        style={{ paddingTop: 'calc(1rem + var(--sat))', paddingBottom: '1rem' }}
+      >
         <div>
           <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-green-400/80">
             // System
@@ -55,7 +56,7 @@ export default function SettingsModal({ onClose }) {
         </div>
         <button
           onClick={onClose}
-          className="hardware-btn font-mono text-xs font-bold uppercase tracking-widest text-zinc-300 hover:text-red-400 border-[2px] border-zinc-600 border-b-zinc-800 bg-zinc-800/50 hover:border-red-500/60 hover:bg-zinc-800 px-4 py-2 rounded"
+          className="hardware-btn font-mono text-xs font-bold uppercase tracking-widest text-zinc-300 hover:text-red-400 border-[2px] border-zinc-600 border-b-zinc-800 bg-zinc-800/50 px-4 py-2 rounded"
         >
           Close
         </button>
@@ -69,9 +70,7 @@ export default function SettingsModal({ onClose }) {
           <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
             // Audio
           </p>
-
-          {/* Master Volume slider */}
-          <div className="glass-panel rounded-lg px-4 py-4 mb-3">
+          <div className="glass-panel rounded-lg px-4 py-4 mb-3 border border-zinc-800 bg-zinc-900/20">
             <div className="flex items-center justify-between mb-3">
               <span className="font-mono text-sm font-bold text-zinc-200">Master Volume</span>
               <span className="font-mono text-sm font-bold text-cyan-300 tabular-nums w-8 text-right">
@@ -79,151 +78,85 @@ export default function SettingsModal({ onClose }) {
               </span>
             </div>
             <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
+              type="range" min="0" max="1" step="0.05"
               value={settings?.masterVolume ?? 0.8}
               onChange={(e) => updateSettings({ masterVolume: parseFloat(e.target.value) })}
               className="w-full h-1.5 rounded-full appearance-none bg-zinc-700 accent-cyan-400 cursor-pointer"
             />
           </div>
-
-          {/* Audio toggles */}
-          <div className="glass-panel rounded-lg px-4 py-1">
-            <Toggle
-              label="SFX"
-              description="Keystroke clicks and interaction sounds"
-              value={settings?.sfxEnabled ?? true}
-              onChange={(v) => updateSettings({ sfxEnabled: v })}
-            />
-            <Toggle
-              label="Ambient Audio"
-              description="Background atmosphere and drone layers"
-              value={settings?.ambienceEnabled ?? true}
-              onChange={(v) => updateSettings({ ambienceEnabled: v })}
-            />
+          <div className="glass-panel rounded-lg px-4 py-1 border border-zinc-800 bg-zinc-900/20">
+            <Toggle label="SFX" description="Interaction sounds" value={settings?.sfxEnabled ?? true} onChange={(v) => updateSettings({ sfxEnabled: v })} />
+            <Toggle label="Ambient Audio" description="Background drone layers" value={settings?.ambienceEnabled ?? true} onChange={(v) => updateSettings({ ambienceEnabled: v })} />
           </div>
         </div>
 
-        {/* Hardware section */}
+        {/* Hardware & Display */}
         <div>
           <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
-            // Hardware
+            // Deck Setup
           </p>
-          <div className="glass-panel rounded-lg px-4 py-1">
-            <Toggle
-              label="Haptic Feedback"
-              description="Vibration on tool use and critical events"
-              value={settings?.hapticsEnabled ?? true}
-              onChange={(v) => updateSettings({ hapticsEnabled: v })}
-            />
+          <div className="glass-panel rounded-lg px-4 py-1 border border-zinc-800 bg-zinc-900/20">
+            <Toggle label="Haptic Feedback" description="Tactile response on click" value={settings?.hapticsEnabled ?? true} onChange={(v) => updateSettings({ hapticsEnabled: v })} />
+            <Toggle label="Screen Shake" description="Micro-tremors on danger" value={settings?.shakeEnabled ?? true} onChange={(v) => updateSettings({ shakeEnabled: v })} />
+            <Toggle label="UI Glitch Effects" description="Text jitter on high trace" value={settings?.glitchEnabled ?? true} onChange={(v) => updateSettings({ glitchEnabled: v })} />
+            <Toggle label="CRT Scanlines" description="Phosphor overlay" value={settings?.crtEnabled ?? true} onChange={(v) => updateSettings({ crtEnabled: v })} />
+            <Toggle label="1995 CYBERDELIA" description="// ANALOG OVERRIDE" value={settings?.cyberdeliaMode ?? false} onChange={() => toggleCyberdelia()} />
           </div>
         </div>
 
-        {/* Display section */}
-        <div>
-          <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
-            // Display
-          </p>
-          <div className="glass-panel rounded-lg px-4 py-1">
-            <Toggle
-              label="Screen Shake"
-              description="Micro-tremor on critical threat bars"
-              value={settings?.shakeEnabled ?? true}
-              onChange={(v) => updateSettings({ shakeEnabled: v })}
-            />
-            <Toggle
-              label="UI Glitch Effects"
-              description="Text jitter and corruption on high trace"
-              value={settings?.glitchEnabled ?? true}
-              onChange={(v) => updateSettings({ glitchEnabled: v })}
-            />
-            <Toggle
-              label="CRT Scanlines"
-              description="Phosphor scanline overlay across the display"
-              value={settings?.crtEnabled ?? true}
-              onChange={(v) => updateSettings({ crtEnabled: v })}
-            />
-            <Toggle
-              label="1995 CYBERDELIA MODE"
-              description="// WARNING: HIGH VOLTAGE ANALOG OVERRIDE."
-              value={settings?.cyberdeliaMode ?? false}
-              onChange={() => toggleCyberdelia()}
-            />
-          </div>
-        </div>
-
-        {/* Data Management section */}
+        {/* Data Management */}
         <div>
           <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-zinc-400 mb-3">
             // Data Management
           </p>
           <div className="flex gap-3">
-            {/* EXPORT BUTTON */}
             <button
               onClick={() => {
                 const save = localStorage.getItem('tartarus-save');
-                if (!save) { alert('No save data found.'); return; }
-                navigator.clipboard.writeText(save).then(() => {
-                  alert('Save string copied to clipboard!');
-                });
+                if (!save) return;
+                navigator.clipboard.writeText(save).then(() => alert('Save copied!'));
               }}
-              className="hardware-btn flex-1 py-3 px-2 rounded border-[2px] border-zinc-600 border-b-zinc-800 text-zinc-200 bg-zinc-800/60 hover:bg-zinc-700/80 hover:text-white font-mono text-xs font-bold uppercase tracking-widest flex flex-col items-center gap-1 select-none"
+              className="hardware-btn flex-1 py-3 px-2 rounded border-[2px] border-zinc-600 border-b-zinc-800 text-zinc-200 bg-zinc-800/60 font-mono text-xs font-bold uppercase flex flex-col items-center gap-1"
             >
               Export Save
-              <span className="text-[9px] font-normal text-zinc-400 normal-case tracking-normal text-center leading-tight">
-                Copy to clipboard
-              </span>
+              <span className="text-[8px] text-zinc-500 normal-case">Clipboard</span>
             </button>
 
-            {/* IMPORT BUTTON */}
             <button
               onClick={() => {
-                const pasted = window.prompt('Paste your save string here:');
+                const pasted = window.prompt('Paste save string:');
                 if (!pasted) return;
-                try {
-                  JSON.parse(pasted);
-                } catch {
-                  alert('Invalid save string. Import cancelled.');
-                  return;
-                }
                 localStorage.setItem('tartarus-save', pasted);
                 window.location.reload();
               }}
-              className="hardware-btn flex-1 py-3 px-2 rounded border-[2px] border-cyan-500/60 border-b-cyan-700 text-cyan-300 bg-cyan-900/50 hover:bg-cyan-800/60 hover:text-cyan-100 font-mono text-xs font-bold uppercase tracking-widest flex flex-col items-center justify-center gap-1 select-none"
+              className="hardware-btn flex-1 py-3 px-2 rounded border-[2px] border-cyan-500/60 border-b-cyan-700 text-cyan-300 bg-cyan-900/50 font-mono text-xs font-bold uppercase flex flex-col items-center"
             >
               Import Save
-              <span className="text-[9px] font-normal text-cyan-400/70 normal-case tracking-normal text-center leading-tight">
-                Restore from string
-              </span>
+              <span className="text-[8px] text-cyan-400/60 normal-case">Restore</span>
             </button>
           </div>
         </div>
-
       </div>
 
-      {/* ── Footer ── */}
-      <div className="px-5 py-5 border-t border-zinc-800 shrink-0 space-y-4 bg-zinc-950/90">
+      {/* ── Footer: Fixed for iPhone Home Bar ── */}
+      <div 
+        className="px-5 border-t border-zinc-800 shrink-0 space-y-4 bg-zinc-950/90"
+        style={{ paddingBottom: 'calc(1.5rem + var(--sab))', paddingTop: '1.25rem' }}
+      >
         <p className="font-mono text-[10px] uppercase tracking-widest text-zinc-500 text-center">
           Settings saved automatically
         </p>
         <button
           onClick={() => {
-            const confirmed = window.confirm(
-              'RESTART CAMPAIGN\n\nThis will wipe your intel bank, upgrades, and consumables.\n\nYour high score and global unlocks will be preserved.\n\nProceed?'
-            );
-            if (confirmed) {
+            if (window.confirm('RESTART CAMPAIGN?\n\nThis wipes all intel and upgrades.')) {
               resetGame();
               onClose();
             }
           }}
-          className="hardware-btn w-full py-3 px-4 rounded border-[2px] border-red-500/80 border-b-red-800 text-red-400 bg-red-950/60 hover:bg-red-900/80 hover:text-red-200 font-mono text-xs font-bold uppercase tracking-widest flex flex-col items-center gap-1 select-none"
+          className="hardware-btn w-full py-3 px-4 rounded border-[2px] border-red-500/80 border-b-red-800 text-red-400 bg-red-950/60 font-mono text-xs font-bold uppercase flex flex-col items-center gap-1"
         >
           Erase Safehouse
-          <span className="text-[10px] font-normal text-red-400/80 normal-case tracking-normal">
-            Restart campaign & wipe intel
-          </span>
+          <span className="text-[9px] font-normal text-red-400/60 normal-case">Restart campaign</span>
         </button>
       </div>
 

@@ -75,8 +75,18 @@ const haptic = (pattern) => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const buildInitialToolState = () =>
-  Object.fromEntries(toolsConfig.map(t => [t.id, { cooldownRemaining: 0 }]));
+const buildInitialToolState = (archiveLen = 0) =>
+  Object.fromEntries(toolsConfig.map(t => {
+    // Determine lock status based on story progression
+    let isLocked = !['BYPASS', 'PULSE'].includes(t.id);
+    if (t.id === 'DECRYPT' && archiveLen >= 1) isLocked = false;
+    if (t.id === 'SCAN' && archiveLen >= 2) isLocked = false;
+
+    return [t.id, { 
+      cooldownRemaining: 0,
+      isLocked 
+    }];
+  }));
 
 const buildInitialUpgradeState = () =>
   Object.fromEntries(upgradesConfig.map(u => [u.id, { level: 0 }]));
@@ -165,6 +175,7 @@ const useGameStore = create(
       inventory: [],           // <--- NEW: Holds looted hardware
       activeModifiers: [],     // <--- NEW: Holds active buffs like Admin Key
       lootAccumulator: 0,      // <--- NEW: Tracks how much data you've siphoned
+      comboChain:           [], // Stores the IDs of the last few tools used
 
       // ── Upgrades ─────────────────────────────────────────────────────────
       upgrades: buildInitialUpgradeState(),
@@ -487,11 +498,35 @@ triggerFirstBoot: () => {
         const tool = toolsConfig.find(t => t.id === toolId);
         if (!tool) return;
 
-        // --- NEW: Track the log sequentially! ---
         let currentLog = [...s.terminalLog];
+
+        // ─── COMBO CHAIN TRACKING ───
+        const sequenceOrder = ['SCAN', 'DECRYPT', 'PULSE'];
+        let newComboChain = [...s.comboChain];
+
+        // LOGIC: If the current tool matches the next step in the sequence, add it.
+        // If it breaks the sequence and isn't a BYPASS, reset the chain to the current tool.
+        const nextExpectedStep = sequenceOrder[newComboChain.length];
+        
+        if (toolId === nextExpectedStep) {
+          newComboChain.push(toolId);
+        } else if (toolId !== 'BYPASS') {
+          // If the chain was active and we just broke it
+          if (newComboChain.length > 0) {
+            if (s.settings?.hapticsEnabled) haptic(10); // A tiny, sharp 10ms 'click'
+            AudioManager.playSFX('thud'); // A low-freq muffled sound, not an error beep
+          }
+          newComboChain = toolId === 'SCAN' ? ['SCAN'] : [];
+        }
+
+        const isPerfectSequence = newComboChain.length === 3;
 
         // ─── OVERDRIVE CALCULATIONS ───
         const cooldownRemaining = s.toolState[toolId]?.cooldownRemaining ?? 0;
+        
+        // NEW: Only allow Overdrive if the player has completed at least 1 mission
+        const overdriveUnlocked = s.storyArchive.length >= 1;
+
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
         let actualCooldown = Math.max(
           1,
@@ -502,7 +537,10 @@ triggerFirstBoot: () => {
         let isOverdriving = false;
 
         if (cooldownRemaining > 0) {
-          if (actualCooldown - cooldownRemaining < 1) return;
+          // GATEKEEPER: 
+          // 1. Blocks clicks if Overdrive is still locked by the story
+          // 2. Blocks "spamming" (double-clicking within 1 second of use)
+          if (!overdriveUnlocked || actualCooldown - cooldownRemaining < 1) return;
 
           if (cooldownRemaining > actualCooldown / 2) {
             set({ terminalLog: appendLog(currentLog, `!! ERROR: ${toolId} RECOVERY INCOMPLETE. SIGNAL WEAK !!`) });
@@ -519,24 +557,17 @@ triggerFirstBoot: () => {
         // ─── HAPTICS & AUDIO ───
         AudioManager.playSFX('thock');
         if (s.settings?.hapticsEnabled) {
-          if (isOverdriving) {
-            haptic([80, 40, 80]); 
-          } else if (toolId === 'SCAN') {
-            haptic(10); 
-          } else if (toolId === 'BYPASS') {
-            haptic([30, 40, 30]); 
-          } else if (toolId === 'PULSE') {
-            haptic([15, 20, 15]); 
-          } else if (toolId === 'DECRYPT') {
-            haptic(50); 
-          } else {
-            haptic(15); 
-          }
+          if (isOverdriving) haptic([80, 40, 80]); 
+          else if (toolId === 'SCAN') haptic(10); 
+          else if (toolId === 'BYPASS') haptic([30, 40, 30]); 
+          else if (toolId === 'PULSE') haptic([15, 20, 15]); 
+          else if (toolId === 'DECRYPT') haptic(50); 
+          else haptic(15); 
         }
 
         let firewallDamage = tool.baseEffect.firewallDamage ?? 0;
-        const traceGain    = tool.baseEffect.traceGain      ?? 0;
-        const heatGain     = (tool.baseEffect.heatGain      ?? 0) + overdrivePenalty;
+        const traceGain     = tool.baseEffect.traceGain       ?? 0;
+        const heatGain      = (tool.baseEffect.heatGain       ?? 0) + overdrivePenalty;
         
         let newExposedTicks = s.exposedTicks;
         let newFirewallRevealed = s.firewallRevealed;
@@ -546,23 +577,19 @@ triggerFirstBoot: () => {
         if (toolId === 'DECRYPT') {
           currentLog = appendLog(currentLog, `> DECRYPT // +${heatGain.toFixed(0)}% HEAT | TRACE: ${Math.min(100, s.digitalTrace + traceGain).toFixed(0)}%`);
           if (isOverdriving) currentLog = appendLog(currentLog, `!! HARDWARE OVERDRIVE: DECRYPT FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
-          
           if (s.currentNode?.mutator?.id === 'ICE_WALL') {
             actualCooldown = 1; 
             currentLog = appendLog(currentLog, '>> ICE-WALL BRITTLE. DECRYPT RAPIDLY RECHARGED.');
           }
-
           if (s.activeDaemon) {
             currentLog = appendLog(currentLog, `>> DAEMON '${s.activeDaemon}' KILLED.`);
             newActiveDaemon = null;
           }
-          
           const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
           if (isEncrypted && !s.firewallRevealed) {
             currentLog = appendLog(currentLog, `>> ENCRYPTED LOGS CRACKED — FW: ${s.firewallHealth}`);
             newFirewallRevealed = true;
           }
-          
           currentLog = appendLog(currentLog, '>> TARGET EXPOSED. CRITICAL STRIKE WINDOW OPEN.');
           newExposedTicks = 4;
 
@@ -573,9 +600,9 @@ triggerFirstBoot: () => {
             activeDaemon:     newActiveDaemon,
             exposedTicks:     newExposedTicks,
             terminalLog:      currentLog,
+            comboChain:       newComboChain,
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
           });
-
           if (s.physicalHeat + heatGain >= 100) get().packUp('heat_busted');
           return;
         }
@@ -587,27 +614,28 @@ triggerFirstBoot: () => {
           firewallDamage += bsLevel * 10;
 
           if (s.exposedTicks > 0) {
-            firewallDamage *= 2;
-            newExposedTicks = 0; // Close the window
-            currentLog = appendLog(currentLog, `>> [!!] CRITICAL OVERRIDE [!!] — 2.0x MULTIPLIER APPLIED`);
-            
-            // ── VISCERAL FEEDBACK: Hit-Stop & Heavy Haptics ──
-            if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) {
-              navigator.vibrate([100, 100, 150]); // A heavy, double-beat vibration
+            if (isPerfectSequence) {
+              firewallDamage *= 3.5;
+              currentLog = appendLog(currentLog, `>> [!!!] TRIPLE_THREAT_DETONATION [!!!] — 3.5x COMBO MAXIMIZED`);
+              if (s.settings?.hapticsEnabled) haptic([50, 50, 50, 50, 200]);
+              AudioManager.playSFX('error');
+            } else {
+              firewallDamage *= 2;
+              currentLog = appendLog(currentLog, `>> [!!] CRITICAL OVERRIDE [!!] — 2.0x MULTIPLIER APPLIED`);
+              if (s.settings?.hapticsEnabled) haptic([100, 100, 150]);
             }
-            
-            // Trigger the Time Freeze!
+            newExposedTicks = 0; 
+            newComboChain = []; // Always reset on Bypass strike
+
             set({ isHitStopped: true });
             setTimeout(() => {
               useGameStore.setState({ isHitStopped: false });
-            }, 120); // Freezes the screen for exactly 120ms
+            }, 120);
           }
-
           if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
             currentLog = appendLog(currentLog, '[!] DATA_OBFUSCATION: Target metrics encrypted. Blind strikes are inefficient. Recommend structural dissection.');
             set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, decryptWarning: true } }));
           }
-
           if (!hasFirstBypass) {
             currentLog = appendLog(currentLog, "// MASHA: 'First strike confirmed. We're in the system. Keep the pressure up.'");
             hasFirstBypass = true;
@@ -633,27 +661,24 @@ triggerFirstBoot: () => {
         // ─── WIN STATE ───
         if (newFirewall <= 0 && prevFirewall > 0) {
           if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([100, 50, 150]);
-
           const isPerfect    = finalTrace >= 90;
           const intelEarned  = isPerfect ? Math.floor(s.sessionPotentialIntel * 1.25) : s.sessionPotentialIntel;
           const isTartarus   = s.currentJobType === 'tartarus';
           const isDarknet    = s.currentJobType === 'darknet';
           const isPriority   = s.currentJobType === 'priority' || isTartarus;
 
-          let newArchive  = s.storyArchive;
+          let newArchive = s.storyArchive;
           let fragmentIdx = null;
           if (isPriority && !s.isReplay && s.storyArchive.length < storyFragments.length) {
             fragmentIdx = s.storyArchive.length;
-            newArchive  = [...s.storyArchive, fragmentIdx];
+            newArchive = [...s.storyArchive, fragmentIdx];
           }
 
           currentLog = appendLog(currentLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`);
           if (isOverdriving) currentLog = appendLog(currentLog, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
           currentLog = appendLog(currentLog, `>> [ ACCESS GRANTED ]`);
-
           const mashaLine = getMashaReaction('breach', finalTrace);
           if (mashaLine) currentLog = appendLog(currentLog, mashaLine);
-
           if (isPerfect) currentLog = appendLog(currentLog, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
           currentLog = appendLog(currentLog, `>> NODE BREACHED. PAYLOAD SECURED: +${intelEarned} IF.`);
           if (fragmentIdx !== null) currentLog = appendLog(currentLog, `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
@@ -678,6 +703,7 @@ triggerFirstBoot: () => {
             highestDarknetTier: Math.max(s.highestDarknetTier, isDarknet ? s.darknetTier + 1 : s.darknetTier),
             pendingFragmentIdx: s.isReplay ? null : fragmentIdx,
             terminalLog:        currentLog,
+            comboChain:         [], 
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
             isPerfectBreach:    isPerfect,
             isBreaching:        false,
@@ -710,6 +736,7 @@ triggerFirstBoot: () => {
           sessionIntelEarned: s.sessionIntelEarned + syncBonus, 
           exposedTicks:   newExposedTicks,
           hasFirstBypass: hasFirstBypass,
+          comboChain:     newComboChain, 
           toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
         });
 
@@ -804,8 +831,8 @@ triggerFirstBoot: () => {
       // ─── START NEW SESSION ────────────────────────────────────────────
       startNewSession: (jobType = 'skim', isReplay = false, replayLevel = null) => {
         const s = get();
-
-        const frontierLevel = s.storyArchive.length + 1;
+        const archiveLen = s.storyArchive.length; // Current progress
+        const frontierLevel = archiveLen + 1;
 
         let nextNode;
         let firewallHP;
@@ -813,7 +840,6 @@ triggerFirstBoot: () => {
         if (jobType === 'tartarus') {
           nextNode   = TARTARUS_NODE_DEF;
           firewallHP = TARTARUS_NODE_DEF.firewallHP;
-
         } else if (jobType === 'darknet') {
           const tier = s.darknetTier;
           nextNode   = {
@@ -824,12 +850,10 @@ triggerFirstBoot: () => {
             traceMultiplier: 2 + tier * 0.5,
           };
           firewallHP = nextNode.firewallHP;
-
         } else if (jobType === 'priority') {
           const level = (isReplay && replayLevel !== null) ? replayLevel : frontierLevel;
           nextNode   = pickPriorityNode(s.storyArchive.length);
           firewallHP = calcScaledFW(level);
-
         } else {
           nextNode   = pickSkimNode();
           firewallHP = Math.floor(calcScaledFW(frontierLevel) * 0.70);
@@ -839,9 +863,7 @@ triggerFirstBoot: () => {
           ? 100 + s.darknetTier * 25
           : calcPotentialIntel(jobType);
 
-        let potentialIntel = isReplay
-          ? Math.floor(basePotential * 0.5)
-          : basePotential;
+        let potentialIntel = isReplay ? Math.floor(basePotential * 0.5) : basePotential;
 
         let activeMods = [...s.activeModifiers];
         if (activeMods.includes('ADMIN_KEY')) {
@@ -863,14 +885,12 @@ triggerFirstBoot: () => {
           ];
           mutator = MUTATORS[Math.floor(Math.random() * MUTATORS.length)];
           
-          if (mutator.id === 'SNIFFER') {
-            potentialIntel = Math.floor(potentialIntel * 1.5);
-          } else if (mutator.id === 'GOLD_CACHE') {
-            potentialIntel = Math.floor(potentialIntel * 3.0); // 3x Payout!
-            finalTraceMultiplier *= 2.0; // Very fast trace
+          if (mutator.id === 'SNIFFER') potentialIntel = Math.floor(potentialIntel * 1.5);
+          else if (mutator.id === 'GOLD_CACHE') {
+            potentialIntel = Math.floor(potentialIntel * 3.0);
+            finalTraceMultiplier *= 2.0;
           } else if (mutator.id === 'VOLATILE') {
             potentialIntel = Math.floor(potentialIntel * 1.5);
-            // Heat logic handled in the tick() function
           }
         }
 
@@ -884,6 +904,16 @@ triggerFirstBoot: () => {
 
         // --- CUSTOM BOOT LOGS ---
         let initialLogs = nodeBootLog(sessionNode);
+
+        // --- NEW: PROGRESSIVE UNLOCK LOGS ---
+        // Check if this is the first time they see these tools
+        if (archiveLen === 1 && s.toolState['DECRYPT']?.isLocked) {
+          initialLogs.push("// MASHA: 'Protocol DECRYPT uploaded. Use it to crack node armor.'");
+        }
+        if (archiveLen === 2 && s.toolState['SCAN']?.isLocked) {
+          initialLogs.push("// MASHA: 'SCAN module active. Now we can actually see their security gaps.'");
+        }
+
         if (mutator?.id === 'GOLD_CACHE') {
           initialLogs.push('// [$$$] GOLDEN CACHE DETECTED: Unusually high data density.');
           initialLogs.push('// [!] WARNING: Target is actively pinging trace authorities. SPRINT REQUIRED.');
@@ -913,7 +943,8 @@ triggerFirstBoot: () => {
           systemOverride:        null, 
           activeModifiers:       activeMods,
           terminalLog:           initialLogs,
-          toolState:             buildInitialToolState(),
+          // PASS ARCHIVE LENGTH TO HELPER
+          toolState:             buildInitialToolState(archiveLen), 
         });
       },
 

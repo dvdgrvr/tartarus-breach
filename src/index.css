@@ -1,3 +1,17 @@
+/* Universal Safe Area variables */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+}
+
+/* Apply a global buffer to the main app container */
+#root {
+  padding-top: var(--sat);
+  padding-bottom: var(--sab);
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile browsers */
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
 
 /* Tailwind v4 Core Import */
@@ -709,4 +723,89 @@
   /* Slowed down to 0.5s so you can actually enjoy the visual */
   animation: data-strike 0.5s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
   transform-origin: bottom center;
+}
+
+/* ─── TRIPLE THREAT FINISHER EFFECTS ─── */
+
+@keyframes supernova-flash {
+  0% { opacity: 0; }
+  10% { opacity: 1; filter: brightness(5); } /* Blinding white */
+  100% { opacity: 0; filter: brightness(1); }
+}
+
+@keyframes glitch-shake-extreme {
+  0% { transform: translate(0,0) scale(1); }
+  10% { transform: translate(-10px, 8px) scale(1.1); }
+  20% { transform: translate(12px, -10px) scale(0.95); }
+  30% { transform: translate(-15px, -5px) scale(1.05); }
+  40% { transform: translate(10px, 12px) scale(1); }
+  100% { transform: translate(0,0) scale(1); }
+}
+
+.animate-supernova {
+  animation: supernova-flash 0.6s ease-out forwards;
+}
+
+.animate-shake-extreme {
+  animation: glitch-shake-extreme 0.4s steps(2) forwards;
+}
+
+@keyframes micro-shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  50% { transform: translateX(2px); }
+  75% { transform: translateX(-1px); }
+  100% { transform: translateX(0); }
+}
+
+.animate-combo-break {
+  animation: micro-shake 0.2s ease-in-out;
+  filter: grayscale(1) brightness(0.5); /* Drains the neon color immediately */
+}
+
+/* ─── TERMINAL RIP TRANSITION ─── */
+@keyframes terminal-rip-out {
+  0% { 
+    transform: scaleY(1); 
+    filter: brightness(1) contrast(1);
+    opacity: 1;
+  }
+  20% {
+    transform: scaleY(1.05); /* Slight stretch before the rip */
+    filter: brightness(1.5);
+  }
+  100% { 
+    transform: scaleY(0); 
+    filter: brightness(4) contrast(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes terminal-rip-in {
+  0% { 
+    transform: scaleY(0); 
+    filter: brightness(4);
+    opacity: 0;
+  }
+  100% { 
+    transform: scaleY(1); 
+    filter: brightness(1);
+    opacity: 1;
+  }
+}
+
+.animate-rip-out {
+  animation: terminal-rip-out 0.2s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+}
+
+.animate-rip-in {
+  animation: terminal-rip-in 0.3s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out forwards;
 }
