@@ -214,7 +214,7 @@ export default function CommandBar() {
         const fillPercent = maxCooldown > 0 ? ((maxCooldown - cooldown) / maxCooldown) * 100 : 100;
 
         let buttonClass = [
-          'flex-1 relative overflow-hidden min-h-[74px] py-3 px-2 rounded touch-none flex flex-col items-center justify-center',
+          'flex-1 relative overflow-hidden min-h-[60px] sm:min-h-[74px] py-1.5 sm:py-3 px-2 rounded touch-none flex flex-col items-center justify-center',
           'border-[2px] border-b-[6px] transition-all duration-150 ease-out active:duration-0 select-none',
           isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
           (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled && !isOverdriveReady) 
@@ -239,7 +239,8 @@ export default function CommandBar() {
             className={buttonClass.join(' ')}
           >
             <div className="relative z-10 flex flex-col items-center">
-              <span className="font-display text-[12px] sm:text-[14px] font-black uppercase tracking-[0.2em]">
+              {/* FIX: Added text-glow to the main label */}
+              <span className="font-display text-[12px] sm:text-[14px] font-black uppercase tracking-[0.2em] text-glow">
                 <GlitchLabel 
                   text={isLockedTool ? '---' : (isOverdriveReady ? 'OVR' : tool.id)} 
                   isDanger={digitalTrace >= 85 && (settings?.glitchEnabled ?? true)} 
@@ -247,7 +248,8 @@ export default function CommandBar() {
               </span>
               
               {!isLockedTool && (
-                <span className="font-mono text-[9px] font-black text-zinc-100/70 uppercase tracking-wider mt-1 whitespace-nowrap bg-black/40 px-1 rounded-sm">
+                /* FIX: Reduced top margin (mt-0 sm:mt-1) to save vertical pixels */
+                <span className="font-mono text-[9px] font-black text-zinc-100/70 uppercase tracking-wider mt-0 sm:mt-1 whitespace-nowrap bg-black/40 px-1 rounded-sm">
                   {tool.id === 'BYPASS' && '[ STRIKE CORE ]'}
                   {tool.id === 'PULSE' && '[ DROP TRACE ]'}
                   {tool.id === 'DECRYPT' && '[ CRACK ARMOR ]'}
@@ -256,7 +258,7 @@ export default function CommandBar() {
               )}
 
               {isLockedTool && (
-                <span className="font-mono text-[6px] text-zinc-600 uppercase mt-1">
+                <span className="font-mono text-[6px] text-zinc-600 uppercase mt-0 sm:mt-1">
                   OFFLINE_PROTOCOL
                 </span>
               )}

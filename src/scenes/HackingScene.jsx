@@ -1034,7 +1034,8 @@ export default function HackingScene() {
           </div>
 
           {/* The "RPG Chat Box" Constrained Terminal */}
-          <div className="h-[45%] md:h-[40%] w-full relative pointer-events-auto border-t-[2px] border-zinc-800/80 bg-zinc-950/90 shadow-[0_-15px_40px_rgba(0,0,0,0.6)] flex flex-col transition-all duration-300">
+          {/* FIX: Swapped hard percentages for flex properties and a min-height */}
+          <div className="flex-[0.5] sm:flex-none sm:h-[40%] min-h-[110px] w-full relative pointer-events-auto border-t-[2px] border-zinc-800/80 bg-zinc-950/90 shadow-[0_-15px_40px_rgba(0,0,0,0.6)] flex flex-col transition-all duration-300">
             {/* A sick little hardware tab label for the log box */}
             <div className="absolute top-0 left-4 -translate-y-1/2 bg-zinc-950 px-3 py-0.5 border-[2px] border-zinc-800 text-[9px] font-mono text-cyan-500 font-bold tracking-widest uppercase shadow-[0_0_10px_rgba(0,0,0,1)] z-20">
               Terminal_Uplink

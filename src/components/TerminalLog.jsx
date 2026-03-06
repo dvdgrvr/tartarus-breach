@@ -47,22 +47,21 @@ export default function TerminalLog({ className = '' }) {
   return (
     <div className={`flex-1 overflow-hidden relative border-t border-zinc-800/40 bg-transparent ${className}`}>
       
-      {/* Scanline overlay - reduced opacity so it doesn't fight the text */}
       <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.15)_50%),linear-gradient(90deg,rgba(255,0,0,0.03),rgba(0,255,0,0.01),rgba(0,0,255,0.03))] bg-[length:100%_4px,3px_100%] pointer-events-none z-10" />
-      
-      {/* Vignette shadow */}
       <div className="absolute inset-0 shadow-[inset_0_0_60px_rgba(0,0,0,0.8)] pointer-events-none z-10" />
 
       <div
         ref={scrollRef}
-        className="h-full overflow-y-auto px-4 py-4 scrollbar-thin flex flex-col justify-start relative z-0"
+        /* FIX: Reduced padding on mobile (px-3 py-2) to reclaim screen space */
+        className="h-full overflow-y-auto px-3 py-2 sm:p-4 scrollbar-thin flex flex-col justify-start relative z-0"
       >
-        <div className="mt-auto space-y-2 pb-2">
+        {/* FIX: Changed space-y-2 to space-y-0.5 on mobile to pack lines tighter */}
+        <div className="mt-auto space-y-0.5 sm:space-y-1 pb-1">
           {log.map((entry, i) => (
             <p 
               key={i} 
-              // Bumped font size to 11px/12px, removed the inline text-shadow
-              className={`font-mono text-[11px] sm:text-xs leading-normal tracking-wide ${getLineColor(entry)}`}
+              /* FIX: Added text-glow-sm and tightened leading */
+              className={`font-mono text-[10px] sm:text-xs leading-snug tracking-wide text-glow-sm ${getLineColor(entry)}`}
             >
               {entry}
             </p>
