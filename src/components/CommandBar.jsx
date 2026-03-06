@@ -197,10 +197,10 @@ export default function CommandBar() {
     <div className="relative px-4 py-2 grid grid-cols-2 gap-2 sm:gap-3"
       style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
     >
-                        {toolsConfig.map((tool) => {
-                                const toolInfo = toolState[tool.id];
+      {toolsConfig.map((tool) => {
+      const toolInfo = toolState[tool.id];
                                         
-                                                // 1. REVERT THIS: Trust the store so your tools actually unlock!
+                // 1. REVERT THIS: Trust the store so your tools actually unlock!
                                                         const isLockedTool = toolInfo?.isLocked;
                                                                 
                                                                         const cooldown   = toolInfo?.cooldownRemaining ?? 0;
@@ -244,8 +244,6 @@ export default function CommandBar() {
                                                                                                                                                                                                                                                                                                                                                                                                                 }
                                                                                                                                                                                                                                                                                                                                                                                                                         }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                return (
-                                                                                                                                                                                                                                                                                                                                                                                                                                          <button
                                                                                                                                                                                                                                                                                                                                                                                                                                           
         return (
           <button
