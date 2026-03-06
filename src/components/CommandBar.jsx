@@ -289,7 +289,7 @@ export default function CommandBar() {
             {onCooldown && !isLockedTool && (
               <div className="absolute top-1 right-1.5 pointer-events-none z-30">
                 <span className={`text-[8px] font-bold font-mono tabular-nums ${isOverdriveReady ? 'text-red-400' : 'text-zinc-500'}`}>
-                  {cooldown}s
+                  {parseFloat(cooldown.toFixed(1))}s
                 </span>
               </div>
             )}

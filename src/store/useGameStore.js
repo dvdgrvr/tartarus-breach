@@ -219,6 +219,11 @@ const useGameStore = create(
       // ── Safehouse ────────────────────────────────────────────────────────
       currentSafehouse: SAFEHOUSE_ROSTER[0],
 
+      // ── Game mode ─────────────────────────────────────────────────────────
+      gameMode:   'campaign',
+      arcadeStats: { timeRemaining: 60, score: 0, keystrokes: 0, eliteCombos: 0, multiplier: 1, toolUsage: {} },
+      arcadeHighScore: 0,        // all-time best — never wiped by resetGame
+
       // ── Endless mode ──────────────────────────────────────────────────────
       hasBeatenGame:     false,  // global unlock — never wiped by resetGame
       tartarusBeaten:    false,  // per-run flag, reset on new campaign
@@ -274,6 +279,9 @@ const useGameStore = create(
 
       // ── Terminal log ─────────────────────────────────────────────────────
       terminalLog: nodeBootLog(_initialNode),
+
+      // ─── STATUS ───────────────────────────────────────────────────────
+      setStatus: (newStatus) => set({ status: newStatus }),
 
       // ─── TICK ─────────────────────────────────────────────────────────
       setPaused: (paused) => set({ isPaused: paused }),
@@ -472,8 +480,23 @@ triggerFirstBoot: () => {
           }));
         }
 
-        if (newHeat >= 100) { get().packUp('heat_busted');  return; }
-        if (newTrace >= 100) { get().packUp('trace_busted'); return; }
+        if (newHeat >= 100) {
+          if (s.gameMode === 'arcade') {
+            AudioManager.playSFX('error');
+            const newTime = Math.max(0, s.arcadeStats.timeRemaining - 5);
+            let penaltyLog = appendLog(newLog, `!! THERMAL OVERLOAD — PENALTY: -5s | TIME: ${newTime}s REMAINING !!`);
+            penaltyLog = appendLog(penaltyLog, `>> ARCADE: Multiplier Reset — Connection Unstable`);
+            set({ physicalHeat: 0, arcadeStats: { ...s.arcadeStats, timeRemaining: newTime, multiplier: 1 }, terminalLog: penaltyLog });
+            return;
+          }
+          get().packUp('heat_busted');
+          return;
+        }
+        if (newTrace >= 100) {
+          if (s.gameMode === 'arcade') { get().applyArcadeTracePenalty(); return; }
+          get().packUp('trace_busted');
+          return;
+        }
       },
 
       // ─── PHASE 4: RESOLVE OVERRIDE ───
@@ -494,6 +517,11 @@ triggerFirstBoot: () => {
       executeCommand: (toolId) => {
         const s = get();
         if (s.status !== 'hacking' || s.isPaused) return;
+
+        // ── ARCADE: Track keystrokes ───────────────────────────────────────
+        if (s.gameMode === 'arcade') {
+          set(cur => ({ arcadeStats: { ...cur.arcadeStats, keystrokes: cur.arcadeStats.keystrokes + 1 } }));
+        }
 
         const tool = toolsConfig.find(t => t.id === toolId);
         if (!tool) return;
@@ -537,15 +565,17 @@ triggerFirstBoot: () => {
         let isOverdriving = false;
 
         if (cooldownRemaining > 0) {
-          // GATEKEEPER: 
+          // GATEKEEPER (campaign only — arcade bypasses for flow state):
           // 1. Blocks clicks if Overdrive is still locked by the story
           // 2. Blocks "spamming" (double-clicking within 1 second of use)
-          if (!overdriveUnlocked || actualCooldown - cooldownRemaining < 1) return;
+          if (s.gameMode !== 'arcade') {
+            if (!overdriveUnlocked || actualCooldown - cooldownRemaining < 1) return;
 
-          if (cooldownRemaining > actualCooldown / 2) {
-            set({ terminalLog: appendLog(currentLog, `!! ERROR: ${toolId} RECOVERY INCOMPLETE. SIGNAL WEAK !!`) });
-            AudioManager.playSFX('error');
-            return; 
+            if (cooldownRemaining > actualCooldown / 2) {
+              set({ terminalLog: appendLog(currentLog, `!! ERROR: ${toolId} RECOVERY INCOMPLETE. SIGNAL WEAK !!`) });
+              AudioManager.playSFX('error');
+              return;
+            }
           }
           
           const isTactical = ['SCAN', 'BYPASS'].includes(toolId);
@@ -603,9 +633,14 @@ triggerFirstBoot: () => {
             comboChain:       newComboChain,
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
           });
-          if (s.physicalHeat + heatGain >= 100) get().packUp('heat_busted');
+          if (s.physicalHeat + heatGain >= 100 && s.gameMode !== 'arcade') get().packUp('heat_busted');
           return;
         }
+
+        // Arcade-specific stat deltas — collected here and applied in the final set
+        let arcadeTimeDelta        = 0;
+        let newArcadeMult          = s.arcadeStats?.multiplier ?? 1;
+        let arcadeEliteCombosDelta = 0;
 
         // ─── TOOL: BYPASS ───
         let hasFirstBypass = s.hasFirstBypass;
@@ -617,6 +652,13 @@ triggerFirstBoot: () => {
             if (isPerfectSequence) {
               firewallDamage *= 3.5;
               currentLog = appendLog(currentLog, `>> [!!!] TRIPLE_THREAT_DETONATION [!!!] — 3.5x COMBO MAXIMIZED`);
+              if (s.gameMode === 'arcade') {
+                arcadeTimeDelta        += 2;
+                newArcadeMult           = Math.min(5, newArcadeMult + 1);
+                arcadeEliteCombosDelta += 1;
+                currentLog = appendLog(currentLog, `>> ARCADE BONUS: Triple Threat +2s`);
+                currentLog = appendLog(currentLog, `>> ARCADE: Multiplier increased to x${newArcadeMult}`);
+              }
               if (s.settings?.hapticsEnabled) haptic([50, 50, 50, 50, 200]);
               AudioManager.playSFX('error');
             } else {
@@ -656,10 +698,31 @@ triggerFirstBoot: () => {
           : Math.min(100, Math.max(0, s.digitalTrace + traceGain));
 
         if (isPerfectSync && s.settings?.hapticsEnabled) haptic([30, 50, 30]);
-        const newHeat = Math.min(100, s.physicalHeat + heatGain);
+        let newHeat = Math.min(100, s.physicalHeat + heatGain);
+        if (s.gameMode === 'arcade' && toolId === 'PULSE') {
+          newHeat = Math.max(0, s.physicalHeat - 20); // fully offset heatGain + deep vent
+          currentLog = appendLog(currentLog, `>> ARCADE_VENT: Thermal load reduced -20%`);
+        }
 
         // ─── WIN STATE ───
         if (newFirewall <= 0 && prevFirewall > 0) {
+          // In arcade mode, advance to the next node directly from the store
+          if (s.gameMode === 'arcade') {
+            set({
+              firewallHealth: 0,
+              digitalTrace:   finalTrace,
+              physicalHeat:   newHeat,
+              exposedTicks:   newExposedTicks,
+              comboChain:     [],
+              terminalLog:    appendLog(currentLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`),
+              toolState:      { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
+              arcadeStats:    { ...s.arcadeStats, eliteCombos: (s.arcadeStats.eliteCombos ?? 0) + arcadeEliteCombosDelta, timeRemaining: Math.min(99, s.arcadeStats.timeRemaining + arcadeTimeDelta), multiplier: newArcadeMult },
+            });
+            AudioManager.playSFX('success');
+            get().nextArcadeNode();
+            return;
+          }
+
           if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([100, 50, 150]);
           const isPerfect    = finalTrace >= 90;
           const intelEarned  = isPerfect ? Math.floor(s.sessionPotentialIntel * 1.25) : s.sessionPotentialIntel;
@@ -721,26 +784,54 @@ triggerFirstBoot: () => {
         let syncBonus = 0;
         if (isPerfectSync) {
           currentLog = appendLog(currentLog, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
+          if (s.gameMode === 'arcade') {
+            arcadeTimeDelta        += 1;
+            newArcadeMult           = Math.min(5, newArcadeMult + 1);
+            arcadeEliteCombosDelta += 1;
+            currentLog = appendLog(currentLog, `>> ARCADE BONUS: Perfect Sync +1s`);
+            currentLog = appendLog(currentLog, `>> ARCADE: Multiplier increased to x${newArcadeMult}`);
+          }
           if (Math.random() < 0.3) {
              syncBonus = Math.floor(Math.random() * 5) + 3;
              currentLog = appendLog(currentLog, `>> [DATA_SNAGGED]: Perfect sync extracted +${syncBonus} IF.`);
           }
         }
 
+        // ── ARCADE: Every tool use reduces all other tools' cooldowns (adrenaline system) ──
+        let finalToolState = { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } };
+        if (s.gameMode === 'arcade') {
+          const isFrenzyMult = (s.arcadeStats.multiplier ?? 1) >= 3;
+          const reduction    = toolId === 'BYPASS'
+            ? (isFrenzyMult ? 3.0 : 1.5)
+            : (isFrenzyMult ? 0.6 : 0.3);
+          finalToolState = Object.fromEntries(
+            Object.entries(finalToolState).map(([key, val]) =>
+              key !== toolId && (val?.cooldownRemaining ?? 0) > 0
+                ? [key, { ...val, cooldownRemaining: Math.max(0, val.cooldownRemaining - reduction) }]
+                : [key, val]
+            )
+          );
+        }
+
+        const finalArcadeStats = s.gameMode === 'arcade'
+          ? { ...s.arcadeStats, eliteCombos: (s.arcadeStats.eliteCombos ?? 0) + arcadeEliteCombosDelta, timeRemaining: Math.min(99, s.arcadeStats.timeRemaining + arcadeTimeDelta), multiplier: newArcadeMult }
+          : s.arcadeStats;
+
         set({
           firewallHealth: newFirewall,
           digitalTrace:   finalTrace,
           physicalHeat:   newHeat,
           terminalLog:    currentLog,
-          intelFragments: s.intelFragments + syncBonus,         
-          sessionIntelEarned: s.sessionIntelEarned + syncBonus, 
+          intelFragments: s.intelFragments + syncBonus,
+          sessionIntelEarned: s.sessionIntelEarned + syncBonus,
           exposedTicks:   newExposedTicks,
           hasFirstBypass: hasFirstBypass,
-          comboChain:     newComboChain, 
-          toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
+          comboChain:     newComboChain,
+          toolState:      finalToolState,
+          arcadeStats:    finalArcadeStats,
         });
 
-        if (newHeat >= 100) get().packUp('heat_busted');
+        if (newHeat >= 100 && s.gameMode !== 'arcade') get().packUp('heat_busted');
       },
 
     // ─── PACK UP ──────────────────────────────────────────────────────
@@ -929,6 +1020,7 @@ triggerFirstBoot: () => {
           currentJobType:        jobType,
           currentReplayLevel:    replayLevel,
           isReplay,
+          gameMode:              'campaign',
           digitalTrace:          0,
           activeDaemon:          null,
           exposedTicks:          0,
@@ -940,11 +1032,110 @@ triggerFirstBoot: () => {
           sessionPotentialIntel: potentialIntel,
           packUpHeat:            0,
           packUpTrace:           0,
-          systemOverride:        null, 
+          systemOverride:        null,
           activeModifiers:       activeMods,
           terminalLog:           initialLogs,
           // PASS ARCHIVE LENGTH TO HELPER
-          toolState:             buildInitialToolState(archiveLen), 
+          toolState:             buildInitialToolState(archiveLen),
+        });
+      },
+
+      // ─── START ARCADE MODE ────────────────────────────────────────────
+      startArcadeMode: () => {
+        const arcadeNode = {
+          id:             'ARCADE_01',
+          name:           'SIM_TARGET_01',
+          firewallHP:     50,
+          maxFirewallHP:  50,
+          specialDefense: null,
+        };
+        set({
+          gameMode:         'arcade',
+          arcadeStats:      { timeRemaining: 60, score: 0, keystrokes: 0, eliteCombos: 0, multiplier: 1, toolUsage: {} },
+          status:           'hacking',
+          transitOutcome:   null,
+          digitalTrace:     0,
+          physicalHeat:     0,
+          firewallRevealed: true,
+          currentNode:      arcadeNode,
+          firewallHealth:   50,
+          terminalLog: [
+            '// ARCADE_MODE :: SIM_TARGET_01 ONLINE',
+            '// BREACH AS MANY NODES AS POSSIBLE IN 60 SECONDS.',
+            '// TRACE OVERFLOW = -10s PENALTY. GOOD LUCK.',
+          ],
+          toolState: buildInitialToolState(999),
+        });
+      },
+
+      // ─── TICK ARCADE TIMER ────────────────────────────────────────────
+      tickArcadeTimer: () => {
+        const s = get();
+        const newTime = s.arcadeStats.timeRemaining - 1;
+        if (newTime <= 0) {
+          set({
+            arcadeStats:     { ...s.arcadeStats, timeRemaining: 0 },
+            arcadeHighScore: Math.max(s.arcadeHighScore ?? 0, s.arcadeStats.score),
+            status:          'resolved',
+            transitOutcome:  'arcade_timeout',
+          });
+        } else {
+          set({ arcadeStats: { ...s.arcadeStats, timeRemaining: newTime } });
+        }
+      },
+
+      // ─── NEXT ARCADE NODE ─────────────────────────────────────────────
+      nextArcadeNode: () => {
+        const s = get();
+        const prevMaxHP  = s.currentNode?.maxFirewallHP ?? 50;
+        const multiplier = s.arcadeStats.multiplier ?? 1;
+        const newHP      = prevMaxHP + 15;
+        const newScore   = s.arcadeStats.score + multiplier;
+        const newTime    = Math.min(99, s.arcadeStats.timeRemaining + 5);
+
+        const ARCADE_MUTATORS = [
+          { id: 'ARCHITECT', name: 'The Architect', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
+          { id: 'SNIFFER',   name: 'The Sniffer',   color: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10' },
+          { id: 'ICE_WALL',  name: 'Ice-Wall',      color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
+          { id: 'VOLATILE',  name: 'Volatile Relay', color: 'text-orange-500 border-orange-600/50 bg-orange-600/10' },
+        ];
+        const mutator = (newScore % 3 === 0)
+          ? ARCADE_MUTATORS[Math.floor(Math.random() * ARCADE_MUTATORS.length)]
+          : null;
+
+        const nodeIdx = newScore + 1;
+        const nextNode = {
+          id:             `ARCADE_${String(nodeIdx).padStart(2, '0')}`,
+          name:           `SIM_TARGET_${String(nodeIdx).padStart(2, '0')}`,
+          firewallHP:     newHP,
+          maxFirewallHP:  newHP,
+          specialDefense: null,
+          mutator,
+        };
+
+        const scoreLog   = multiplier > 1 ? `+${multiplier} (x${multiplier} MULT)` : `+1`;
+        const mutatorLog = mutator ? ` | MUTATOR: ${mutator.name.toUpperCase()}` : '';
+        set({
+          arcadeStats:     { ...s.arcadeStats, score: newScore, timeRemaining: newTime },
+          digitalTrace:    0,
+          currentNode:     nextNode,
+          firewallHealth:  newHP,
+          firewallRevealed: true,
+          terminalLog:     appendLog(s.terminalLog, `// NODE BREACHED. SCORE ${scoreLog} | NEXT: ${nextNode.name} | FW: ${newHP} | TIME +5s${mutatorLog}`),
+        });
+      },
+
+      // ─── APPLY ARCADE TRACE PENALTY ──────────────────────────────────
+      applyArcadeTracePenalty: () => {
+        const s = get();
+        AudioManager.playSFX('error');
+        const newTime = Math.max(0, s.arcadeStats.timeRemaining - 10);
+        let penaltyLog = appendLog(s.terminalLog, `!! TRACE CRITICAL — PENALTY: -10s | TIME: ${newTime}s REMAINING !!`);
+        penaltyLog = appendLog(penaltyLog, `>> ARCADE: Multiplier Reset — Connection Unstable`);
+        set({
+          digitalTrace: 0,
+          arcadeStats:  { ...s.arcadeStats, timeRemaining: newTime, multiplier: 1 },
+          terminalLog:  penaltyLog,
         });
       },
 
@@ -954,6 +1145,7 @@ triggerFirstBoot: () => {
         const freshNode = pickSkimNode();
         set({
           status:                'transit',
+          gameMode:              'campaign',
           nextStatus:            'transit',
           isBreaching:           false,
           transitOutcome:        'initial',

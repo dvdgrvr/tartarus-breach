@@ -114,8 +114,10 @@
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;
     user-select: none;
-    /* Optional: Slight inner shadow to make it look 3D */
-    box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+    /* Lit-from-within: subtle text glow + 1px inner border + 3D inset */
+    text-shadow: 0 0 6px currentColor;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 1px rgba(255,255,255,0.1);
+    text-align: center;
   }
 
   .text-glow-sm { text-shadow: 0 0 6px currentColor; }
@@ -186,6 +188,13 @@
   }
   .glow-violet:hover {
     box-shadow: 0 0 20px rgba(167, 139, 250, 0.22);
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 16px rgba(34, 211, 238, 0.25);
+  }
+  .glow-cyan:hover {
+    box-shadow: 0 0 28px rgba(34, 211, 238, 0.45);
   }
 
   /* Game container — faint neon bloom so it looks like it casts light */

@@ -883,6 +883,7 @@ export default function TransitScene() {
   const setPaused           = useGameStore(s => s.setPaused);
   const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
   const reducedMotion       = useGameStore(s => s.settings?.reducedMotion);
+  const setStatus           = useGameStore(s => s.setStatus);
 
   // ── THE JACK IN FUNCTION ──
   const handleJackIn = (type, isReplay = false, level = null) => {
@@ -1050,6 +1051,14 @@ export default function TransitScene() {
       <div className="w-full bg-zinc-950/90 backdrop-blur-sm shrink-0 border-t border-zinc-800 flex justify-center">
         <div className="w-full max-w-md">
           <JobFooter isLocked={isLocked || isJackingIn} onJackIn={handleJackIn} />
+          <div className="flex justify-end px-4 pb-3">
+            <button
+              onClick={() => setStatus('main_menu')}
+              className="hardware-btn px-3 py-1.5 border border-zinc-800/80 border-b-zinc-900 text-zinc-600 font-mono text-[9px] font-bold uppercase tracking-widest bg-transparent hover:bg-zinc-900/60 hover:text-zinc-400 transition-all"
+            >
+              [ DISCONNECT_TO_MENU ]
+            </button>
+          </div>
         </div>
       </div>
     </div>

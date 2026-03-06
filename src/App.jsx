@@ -3,6 +3,7 @@ import useGameStore from './store/useGameStore';
 import HackingScene from './scenes/HackingScene';
 import TransitScene from './scenes/TransitScene';
 import LoadingScene from './scenes/LoadingScene';
+import MainMenuScene from './scenes/MainMenuScene';
 import SettingsModal from './components/SettingsModal';
 import FragmentModal from './components/FragmentModal';
 import storyFragments from './data/storyFragments.json';
@@ -197,7 +198,8 @@ export default function App() {
 
   // Determine the active screen content
   let Content;
-  if (isBooting) Content = <LoadingScene onComplete={() => setIsBooting(false)} />; // <-- NEW LOGIC
+  if (isBooting) Content = <LoadingScene onComplete={() => { setIsBooting(false); useGameStore.getState().setStatus('main_menu'); }} />;
+  else if (status === 'main_menu') Content = <MainMenuScene />;
   else if (status === 'victory') Content = <VictoryScene />;
   else if (status === 'game_over') Content = <GameOverScene />;
   else if (status === 'hacking' || status === 'resolved') Content = <HackingScene />;

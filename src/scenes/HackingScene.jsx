@@ -4,6 +4,7 @@ import TerminalLog from '../components/TerminalLog';
 import CommandBar from '../components/CommandBar';
 import useGameStore from '../store/useGameStore';
 import AudioManager from '../utils/audioManager';
+import ArcadeResults from '../components/ArcadeResults';
 
 // ─── MODIFIER DATA (For Quick Look) ──────────────────────────────────────────
 
@@ -469,7 +470,9 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
   // ── THE MAGIC MATH ──
   const getCurrentAct = useGameStore(s => s.getCurrentAct);
   const act = getCurrentAct ? getCurrentAct() : 1;
-  const hueShift = (act - 1) * 60; // Shifts the color wheel by 60 degrees per act
+  const gameMode    = useGameStore(s => s.gameMode);
+  const arcadeScore = useGameStore(s => s.arcadeStats?.score ?? 0);
+  const hueShift = gameMode === 'arcade' ? arcadeScore * 15 : (act - 1) * 60;
   
   const safeLog = rawLog || [];
   const recentLogs = safeLog.slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
@@ -767,9 +770,15 @@ export default function HackingScene() {
   const exposedTicks   = useGameStore(s => s.exposedTicks);
   const firewallHealth = useGameStore(s => s.firewallHealth);
   const activeDaemon   = useGameStore(s => s.activeDaemon); 
-  const rabbitTicks    = useGameStore(s => s.rabbitTicks);  
-  
-  const [daemonFlash, setDaemonFlash] = useState(false); 
+  const rabbitTicks    = useGameStore(s => s.rabbitTicks);
+
+  const gameMode               = useGameStore(s => s.gameMode);
+  const arcadeStats            = useGameStore(s => s.arcadeStats);
+  const tickArcadeTimer        = useGameStore(s => s.tickArcadeTimer);
+  const startArcadeMode        = useGameStore(s => s.startArcadeMode);
+  const setStatus              = useGameStore(s => s.setStatus);
+
+  const [daemonFlash, setDaemonFlash] = useState(false);
   
   const prevExposed = useRef(exposedTicks);
   const prevFW = useRef(firewallHealth);
@@ -829,6 +838,13 @@ export default function HackingScene() {
   useEffect(() => {
     if (status !== 'resolved') setPopupDismissed(false);
   }, [status]);
+
+  // ── ARCADE: 1-second countdown ──
+  useEffect(() => {
+    if (gameMode !== 'arcade' || status !== 'hacking') return;
+    const interval = setInterval(() => tickArcadeTimer(), 1000);
+    return () => clearInterval(interval);
+  }, [gameMode, status]);
 
   const handleDismissPopup = () => {
     AudioManager.playSFX('thock');
@@ -947,6 +963,32 @@ export default function HackingScene() {
       {/* ── THE LIVE COMMS OVERLAY ── */}
       <MashaCodec />
 
+      {/* ── ARCADE: COUNTDOWN TIMER ── */}
+      {gameMode === 'arcade' && status === 'hacking' && (() => {
+        const mult      = arcadeStats.multiplier ?? 1;
+        const isDanger  = arcadeStats.timeRemaining <= 10;
+        const isFrenzy  = mult >= 3;
+        const borderCls = isDanger ? 'border-red-500 danger-shake' : isFrenzy ? 'border-fuchsia-400 danger-shake' : 'border-cyan-500';
+        const labelCls  = isDanger ? 'text-red-400' : isFrenzy ? 'text-fuchsia-400' : 'text-cyan-400';
+        const timeCls   = isDanger ? 'text-red-400 text-glow danger-shake' : isFrenzy ? 'text-fuchsia-300 text-glow' : 'text-cyan-300';
+        return (
+          <div className={`absolute top-16 left-1/2 -translate-x-1/2 z-[55] glass-panel border-2 px-6 py-3 flex flex-col items-center gap-1 pointer-events-none ${borderCls}`}>
+            <div className={`font-mono text-[10px] uppercase tracking-widest font-bold flex items-center gap-2 ${labelCls}`}>
+              <span>SCORE:</span>
+              <span className={isFrenzy ? 'animate-pulse text-glow' : ''}>{arcadeStats.score}</span>
+              {mult > 1 && (
+                <span className={`text-[9px] px-1.5 py-0.5 rounded border ${isFrenzy ? 'text-fuchsia-300 border-fuchsia-500/60 bg-fuchsia-500/10 animate-pulse text-glow' : 'text-cyan-300 border-cyan-500/40 bg-cyan-500/10'}`}>
+                  x{mult} MULT
+                </span>
+              )}
+            </div>
+            <div className={`font-mono text-4xl font-black tabular-nums leading-none ${timeCls}`}>
+              00:{String(arcadeStats.timeRemaining).padStart(2, '0')}
+            </div>
+          </div>
+        );
+      })()}
+
       <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         
         {/* --- Extreme Overlay Effects --- */}
@@ -957,7 +999,14 @@ export default function HackingScene() {
           <div className="absolute inset-0 pointer-events-none z-30 shadow-[inset_0_0_120px_rgba(249,115,22,0.15)] border-[2px] border-orange-500/30 animate-pulse mix-blend-screen" />
         )}
         
-        {status === 'resolved' && popupConfig && !popupDismissed && (
+        {gameMode === 'arcade' && status === 'resolved' && (
+          <ArcadeResults
+            onRestart={startArcadeMode}
+            onExit={() => setStatus('main_menu')}
+          />
+        )}
+
+        {gameMode !== 'arcade' && status === 'resolved' && popupConfig && !popupDismissed && (
           <div className={`absolute top-[40%] left-4 right-4 -translate-y-1/2 z-50 bg-black border-2 ${popupConfig.border} ${popupConfig.shadow} flex flex-col`}>
             <div className={`px-2 py-1 flex justify-between items-center ${popupConfig.headerBg}`}>
               <span className="font-mono text-[10px] font-black text-black uppercase tracking-widest">
