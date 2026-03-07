@@ -52,13 +52,13 @@ function KernelDiagnostic({ modifierId, onClose }) {
           </span>
         </div>
         
-        <p className="font-mono text-[11px] leading-relaxed text-zinc-300 uppercase italic">
+        <p className="font-mono text-xs leading-relaxed text-zinc-300 uppercase italic">
           {data.desc}
         </p>
 
         <div className="mt-5 flex justify-between items-center opacity-50">
-          <span className="font-mono text-[9px] text-zinc-500 animate-pulse">[ SCANNING... ]</span>
-          <span className="font-mono text-[9px] text-zinc-500 underline uppercase tracking-tighter">Tap to resume</span>
+          <span className="font-mono text-xs text-zinc-500 animate-pulse">[ SCANNING... ]</span>
+          <span className="font-mono text-xs text-zinc-500 underline uppercase tracking-tighter">Tap to resume</span>
         </div>
       </div>
     </div>
@@ -85,7 +85,7 @@ function KernelPanicOverlay() {
   return (
     <div className="absolute inset-0 z-40 bg-red-950/90 flex flex-col justify-end overflow-hidden pointer-events-none mix-blend-overlay opacity-80">
       {garbage.map((line, i) => (
-        <div key={i} className="font-mono text-[8px] text-red-500 leading-none break-all whitespace-nowrap opacity-50">
+        <div key={i} className="font-mono text-xs text-red-500 leading-none break-all whitespace-nowrap opacity-50">
           {line}
         </div>
       ))}
@@ -116,13 +116,13 @@ function TutorialOverlay({ step }) {
       {/* Dialogue box pinned to the top-third of the screen */}
       <div className="absolute top-[12%] left-1/2 -translate-x-1/2 w-[90%] max-w-sm">
         <div className="glass-panel border-2 border-fuchsia-500/80 bg-zinc-950/95 backdrop-blur-md p-4 rounded-lg shadow-[0_0_30px_rgba(217,70,239,0.6)]">
-          <p className="font-mono text-[9px] uppercase tracking-widest text-fuchsia-400/60 mb-1">
+          <p className="font-mono text-xs uppercase tracking-widest text-fuchsia-400/60 mb-1">
             [ NEURAL_CALIBRATION :: {step} ]
           </p>
           <p className="font-display font-black text-fuchsia-300 text-sm uppercase tracking-widest mb-1" style={{letterSpacing:'0.15em'}}>
             {prompt.title}
           </p>
-          <p className="font-mono text-[11px] text-zinc-300 leading-relaxed">
+          <p className="font-mono text-xs text-zinc-300 leading-relaxed">
             {prompt.body}
           </p>
         </div>
@@ -155,7 +155,7 @@ function NodeStatusStrip({ onInspect }) {
 
   return (
     <div className="px-4 py-1.5 border-b border-zinc-800/50 flex items-center justify-between gap-2 bg-zinc-900/40">
-      <span className="font-mono text-[11px] font-bold text-zinc-400 uppercase tracking-widest truncate">
+      <span className="font-mono text-xs font-bold text-zinc-400 uppercase tracking-widest truncate">
         root@node:~/{node.name}#
       </span>
 
@@ -164,7 +164,7 @@ function NodeStatusStrip({ onInspect }) {
         {showTrait && (
           <button 
             onClick={() => onInspect(safehouse.trait)}
-            className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border ${traitColor} active:scale-95 transition-transform flex items-center gap-1.5`}
+            className={`font-mono text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border ${traitColor} active:scale-95 transition-transform flex items-center gap-1.5`}
           >
             <span>{traitData?.icon}</span>
             <span className="hidden sm:inline">[{safehouse.trait}]</span>
@@ -175,7 +175,7 @@ function NodeStatusStrip({ onInspect }) {
         {node.specialDefense && (
           <button 
             onClick={() => onInspect(node.specialDefense)}
-            className="font-mono text-[10px] font-black px-1.5 py-0.5 rounded-sm border border-red-950 bg-red-900/20 text-red-500 animate-pulse flex items-center gap-1.5 active:scale-95"
+            className="font-mono text-xs font-black px-1.5 py-0.5 rounded-sm border border-red-950 bg-red-900/20 text-red-500 animate-pulse flex items-center gap-1.5 active:scale-95"
           >
             <span>{DIAGNOSTIC_MAP[node.specialDefense]?.icon}</span>
             <span className="hidden sm:inline uppercase tracking-tighter">DEFENSE</span>
@@ -186,7 +186,7 @@ function NodeStatusStrip({ onInspect }) {
         {node.mutator && (
           <button 
             onClick={() => onInspect(node.mutator.id)}
-            className={`font-mono text-[10px] font-black px-1.5 py-0.5 rounded-sm border animate-pulse flex items-center gap-1.5 active:scale-95 ${
+            className={`font-mono text-xs font-black px-1.5 py-0.5 rounded-sm border animate-pulse flex items-center gap-1.5 active:scale-95 ${
               node.mutator.id === 'GOLD_CACHE' ? 'border-yellow-500/50 text-yellow-400 bg-yellow-500/20 shadow-[0_0_8px_rgba(234,179,8,0.4)]' :
               node.mutator.id === 'VOLATILE' ? 'border-orange-500/50 text-orange-400 bg-orange-500/20 shadow-[0_0_8px_rgba(249,115,22,0.4)]' :
               'border-fuchsia-500/50 text-fuchsia-400 bg-fuchsia-500/20'
@@ -198,7 +198,7 @@ function NodeStatusStrip({ onInspect }) {
         )}
 
         {isHeatWarning && (
-          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm ${isHeatCritical ? 'text-red-400 bg-red-500/10 animate-pulse border border-red-500/50' : 'text-orange-400 bg-orange-500/10'}`}>
+          <span className={`font-mono text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm ${isHeatCritical ? 'text-red-400 bg-red-500/10 animate-pulse border border-red-500/50' : 'text-orange-400 bg-orange-500/10'}`}>
             HEAT: {heat.toFixed(0)}%
           </span>
         )}
@@ -252,17 +252,17 @@ function FirewallRow() {
       {(exposedTicks > 0 || rabbitTicks > 0 || isHidden) && (
         <div className="flex gap-2 mb-1 pl-16">
           {isHidden && (
-             <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-amber-400 border-amber-500/30 bg-amber-500/10">
+             <span className="font-mono text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-amber-400 border-amber-500/30 bg-amber-500/10">
                !_ENCRYPTED_!
              </span>
           )}
           {exposedTicks > 0 && (
-             <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-amber-300 border-amber-400/50 bg-amber-400/10 shadow-[0_0_8px_rgba(251,191,36,0.5)] animate-pulse">
+             <span className="font-mono text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-amber-300 border-amber-400/50 bg-amber-400/10 shadow-[0_0_8px_rgba(251,191,36,0.5)] animate-pulse">
                EXPOSED [{exposedTicks}s]
              </span>
           )}
           {rabbitTicks > 0 && (
-             <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-green-400 border-green-500/50 bg-green-500/10 shadow-[0_0_8px_rgba(74,222,128,0.5)]">
+             <span className="font-mono text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-green-400 border-green-500/50 bg-green-500/10 shadow-[0_0_8px_rgba(74,222,128,0.5)]">
                RABBIT.exe [{rabbitTicks}s]
              </span>
           )}
@@ -271,14 +271,14 @@ function FirewallRow() {
 
       {/* Shake the entire row aggressively if it's a critical hit! */}
       <div className={`flex items-center gap-4 transition-colors duration-150 ${isHit ? 'bg-white/5' : ''} ${isCrit ? 'danger-shake' : ''}`}>
-        <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-400'}`}>
+        <span className={`font-mono text-xs uppercase tracking-widest w-12 shrink-0 font-bold transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-400'}`}>
           FW_HP
         </span>
 
         {isHidden ? (
           <div className="flex-1 flex gap-0.5 h-3">
             <div className="h-full w-full bg-amber-500/40 opacity-80 animate-pulse border border-amber-500/50" />
-            <span className="font-mono text-[11px] font-bold tabular-nums w-7 text-right text-amber-500/80 ml-2">
+            <span className="font-mono text-xs font-bold tabular-nums w-7 text-right text-amber-500/80 ml-2">
               ??
             </span>
           </div>
@@ -301,7 +301,7 @@ function FirewallRow() {
                 />
               );
             })}
-            <span className={`font-mono text-[11px] tabular-nums w-8 text-right font-bold ml-1 shrink-0 transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-300'}`}>
+            <span className={`font-mono text-xs tabular-nums w-8 text-right font-bold ml-1 shrink-0 transition-colors ${isHit ? 'text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.8)]' : 'text-zinc-300'}`}>
               {Math.ceil(firewallHealth)}
             </span>
           </div>
@@ -364,17 +364,17 @@ function TraceRow() {
       {(activeDaemon || ghostTicks > 0 || isAccelerated) && (
         <div className="flex gap-2 mb-1 pl-16">
           {activeDaemon && (
-            <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-red-500 border-red-500/50 bg-red-500/10 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]">
+            <span className="font-mono text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-red-500 border-red-500/50 bg-red-500/10 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]">
               ! {activeDaemon} ACTIVE !
             </span>
           )}
           {ghostTicks > 0 && (
-            <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-slate-300 border-slate-400/50 bg-slate-400/10 shadow-[0_0_8px_rgba(148,163,184,0.5)]">
+            <span className="font-mono text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-slate-300 border-slate-400/50 bg-slate-400/10 shadow-[0_0_8px_rgba(148,163,184,0.5)]">
               GHOST.sys [{ghostTicks}s]
             </span>
           )}
           {isAccelerated && !ghostTicks && (
-             <span className="font-mono text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-red-400 border-red-500/30 bg-red-500/10">
+             <span className="font-mono text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded-sm border text-red-400 border-red-500/30 bg-red-500/10">
                TRACE x2
              </span>
           )}
@@ -382,7 +382,7 @@ function TraceRow() {
       )}
 
       <div className="flex items-center gap-4">
-        <span className={`font-mono text-[11px] uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${(isDanger || pulseActive) && glitchEnabled ? 'animate-pulse' : ''}`}>
+        <span className={`font-mono text-xs uppercase tracking-widest w-12 shrink-0 font-bold ${labelColor} ${(isDanger || pulseActive) && glitchEnabled ? 'animate-pulse' : ''}`}>
           {isDanger ? '[GHOST_SYNC]' : pulseActive ? 'SYNC' : 'TRACE'}
         </span>
 
@@ -396,7 +396,7 @@ function TraceRow() {
           />
         </div>
 
-        <span className={`font-mono text-[11px] tabular-nums w-8 text-right font-bold shrink-0 ${labelColor}`}>
+        <span className={`font-mono text-xs tabular-nums w-8 text-right font-bold shrink-0 ${labelColor}`}>
           {trace.toFixed(0)}%
         </span>
       </div>
@@ -405,13 +405,14 @@ function TraceRow() {
 }
 
 function ConsumableBar() {
-  const consumables    = useGameStore(s => s.consumables);
-  const useConsumable  = useGameStore(s => s.useConsumable);
-  const inventory      = useGameStore(s => s.inventory || []);
-  const useHardware    = useGameStore(s => s.useHardware);
-  const hasBeatenGame  = useGameStore(s => s.hasBeatenGame);
-  const getCurrentAct  = useGameStore(s => s.getCurrentAct);
-  
+  const consumables             = useGameStore(s => s.consumables);
+  const useConsumable           = useGameStore(s => s.useConsumable);
+  const inventory               = useGameStore(s => s.inventory || []);
+  const useHardware             = useGameStore(s => s.useHardware);
+  const hasBeatenGame           = useGameStore(s => s.hasBeatenGame);
+  const getCurrentAct           = useGameStore(s => s.getCurrentAct);
+  const globalConsumableCooldown = useGameStore(s => s.globalConsumableCooldown || 0);
+
   const rabbit = consumables?.rabbit ?? 0;
   const ghost  = consumables?.ghost ?? 0;
 
@@ -421,33 +422,35 @@ function ConsumableBar() {
   const showBar = hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0 || activeHardware.length > 0;
   if (!showBar) return null;
 
+  const onGlobalCooldown = globalConsumableCooldown > 0;
+
   return (
     <div className="flex flex-col gap-2 px-4 py-2 border-t border-zinc-800/40 pb-3">
       {(hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0) && (
         <div className="flex gap-2">
           <button
             onClick={() => useConsumable('rabbit')}
-            disabled={rabbit === 0}
+            disabled={rabbit === 0 || onGlobalCooldown}
             className={[
-              'flex-1 py-3 px-4 rounded-sm font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
-              rabbit > 0
+              'flex-1 py-3 px-4 rounded-sm font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
+              rabbit > 0 && !onGlobalCooldown
                 ? 'border-green-500/60 border-b-green-700 text-green-400 bg-green-500/5 hover:bg-green-500/15 glow-green'
-                : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed',
+                : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed opacity-50',
             ].join(' ')}
           >
-            RABBIT [×{rabbit}]
+            RABBIT [×{rabbit}]{onGlobalCooldown ? ` — ${globalConsumableCooldown}s` : ''}
           </button>
           <button
             onClick={() => useConsumable('ghost')}
-            disabled={ghost === 0}
+            disabled={ghost === 0 || onGlobalCooldown}
             className={[
-              'flex-1 py-3 px-4 rounded-sm font-mono text-[11px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
-              ghost > 0
+              'flex-1 py-3 px-4 rounded-sm font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
+              ghost > 0 && !onGlobalCooldown
                 ? 'border-slate-400/60 border-b-slate-600 text-slate-300 bg-slate-500/5 hover:bg-slate-500/15 glow-slate'
-                : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed',
+                : 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed opacity-50',
             ].join(' ')}
           >
-            GHOST.sys [×{ghost}]
+            GHOST.sys [×{ghost}]{onGlobalCooldown ? ` — ${globalConsumableCooldown}s` : ''}
           </button>
         </div>
       )}
@@ -458,7 +461,13 @@ function ConsumableBar() {
              <button
                key={`${item.id}-${i}`}
                onClick={() => useHardware(item.originalIndex)}
-               className="shrink-0 flex-1 min-w-[120px] py-2.5 px-3 rounded-sm font-mono text-[10px] font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] active:border-b active:translate-y-[2px] border-cyan-500/50 border-b-cyan-700 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 snap-center shadow-[0_0_10px_rgba(34,211,238,0.15)]"
+               disabled={onGlobalCooldown}
+               className={[
+                 'shrink-0 flex-1 min-w-[120px] py-2.5 px-3 rounded-sm font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] active:border-b active:translate-y-[2px] snap-center',
+                 onGlobalCooldown
+                   ? 'border-zinc-800 border-b-zinc-900 text-zinc-600 bg-zinc-900/50 cursor-not-allowed opacity-50'
+                   : 'border-cyan-500/50 border-b-cyan-700 text-cyan-300 bg-cyan-500/10 hover:bg-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.15)]',
+               ].join(' ')}
              >
                INJECT {item.name} {(item.count || 1) > 1 ? `[×${item.count}]` : ''}
              </button>
@@ -593,7 +602,7 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
             <div className="w-full h-full border-[3px] border-amber-400/80 rounded-full border-dashed opacity-80" />
             <div className="absolute w-[120%] h-[2px] bg-amber-400/40" />
             <div className="absolute h-[120%] w-[2px] bg-amber-400/40" />
-            <div className="absolute font-display text-[10px] md:text-xs text-black font-black bg-amber-400 tracking-widest px-2 shadow-[0_0_15px_rgba(251,191,36,0.8)]">
+            <div className="absolute font-display text-xs md:text-xs text-black font-black bg-amber-400 tracking-widest px-2 shadow-[0_0_15px_rgba(251,191,36,0.8)]">
               CRITICAL_LOCK_ACQUIRED
             </div>
           </div>
@@ -715,7 +724,7 @@ function MashaCodec() {
       <div className="bg-zinc-950/95 backdrop-blur-md border-[2px] border-fuchsia-500/80 shadow-[0_10px_30px_rgba(217,70,239,0.3)] p-3 flex gap-4 items-center w-full max-w-sm">
         
         <div className="w-12 h-12 shrink-0 bg-fuchsia-950/50 border border-fuchsia-500/50 flex flex-col items-center justify-center relative overflow-hidden">
-          <div className="absolute top-0 w-full bg-fuchsia-500 text-black font-mono text-[8px] font-black text-center tracking-widest uppercase leading-tight">
+          <div className="absolute top-0 w-full bg-fuchsia-500 text-black font-mono text-xs font-black text-center tracking-widest uppercase leading-tight">
             MASHA
           </div>
           <div className="flex items-end gap-0.5 h-4 mt-2">
@@ -729,7 +738,7 @@ function MashaCodec() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
             <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="font-mono text-[9px] text-fuchsia-300 font-bold uppercase tracking-widest">
+            <span className="font-mono text-xs text-fuchsia-300 font-bold uppercase tracking-widest">
               Live Transmission
             </span>
           </div>
@@ -758,7 +767,7 @@ function ComboDisplay() {
 
   return (
     <div className={`px-4 flex items-center gap-3 mb-1 mt-1 transition-all ${isBroken ? 'animate-combo-break' : ''}`}>
-      <span className="font-mono text-[8px] text-zinc-600 uppercase tracking-tighter">Chain_Buffer:</span>
+      <span className="font-mono text-xs text-zinc-600 uppercase tracking-tighter">Chain_Buffer:</span>
       <div className="flex gap-1">
         {TARGET.map((step, i) => {
           const isActive = chain[i] === step.id;
@@ -766,7 +775,7 @@ function ComboDisplay() {
           return (
             <div 
               key={i}
-              className={`w-6 h-4 border flex items-center justify-center text-[10px] transition-all duration-200 ${
+              className={`w-6 h-4 border flex items-center justify-center text-xs transition-all duration-200 ${
                 isActive 
                   ? `${step.color} border-current bg-current/5 shadow-[0_0_5px_currentColor]` 
                   : 'text-zinc-900 border-zinc-900 bg-transparent'
@@ -779,7 +788,7 @@ function ComboDisplay() {
       </div>
       
       {chain.length === 3 && exposed && (
-        <span className="font-mono text-[9px] font-black text-amber-500/80 animate-pulse ml-auto tracking-tighter">
+        <span className="font-mono text-xs font-black text-amber-500/80 animate-pulse ml-auto tracking-tighter">
           [!] PAYLOAD_READY
         </span>
       )}
@@ -1014,11 +1023,11 @@ export default function HackingScene() {
         const timeCls   = isDanger ? 'text-red-400 text-glow danger-shake' : isFrenzy ? 'text-fuchsia-300 text-glow' : 'text-cyan-300';
         return (
           <div className={`absolute top-16 left-1/2 -translate-x-1/2 z-[55] glass-panel border-2 px-6 py-3 flex flex-col items-center gap-1 pointer-events-none ${borderCls}`}>
-            <div className={`font-mono text-[10px] uppercase tracking-widest font-bold flex items-center gap-2 ${labelCls}`}>
+            <div className={`font-mono text-xs uppercase tracking-widest font-bold flex items-center gap-2 ${labelCls}`}>
               <span>SCORE:</span>
               <span className={isFrenzy ? 'animate-pulse text-glow' : ''}>{arcadeStats.score}</span>
               {mult > 1 && (
-                <span className={`text-[9px] px-1.5 py-0.5 rounded border ${isFrenzy ? 'text-fuchsia-300 border-fuchsia-500/60 bg-fuchsia-500/10 animate-pulse text-glow' : 'text-cyan-300 border-cyan-500/40 bg-cyan-500/10'}`}>
+                <span className={`text-xs px-1.5 py-0.5 rounded border ${isFrenzy ? 'text-fuchsia-300 border-fuchsia-500/60 bg-fuchsia-500/10 animate-pulse text-glow' : 'text-cyan-300 border-cyan-500/40 bg-cyan-500/10'}`}>
                   x{mult} MULT
                 </span>
               )}
@@ -1030,7 +1039,7 @@ export default function HackingScene() {
         );
       })()}
 
-      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10 min-h-0">
         
         {/* --- Extreme Overlay Effects --- */}
         {isGoldCache && !reducedMotion && (
@@ -1050,12 +1059,12 @@ export default function HackingScene() {
         {gameMode !== 'arcade' && status === 'resolved' && popupConfig && !popupDismissed && (
           <div className={`absolute top-[40%] left-4 right-4 -translate-y-1/2 z-50 bg-black border-2 ${popupConfig.border} ${popupConfig.shadow} flex flex-col`}>
             <div className={`px-2 py-1 flex justify-between items-center ${popupConfig.headerBg}`}>
-              <span className="font-mono text-[10px] font-black text-black uppercase tracking-widest">
+              <span className="font-mono text-xs font-black text-black uppercase tracking-widest">
                 SYS_DIALOG.exe
               </span>
               <button 
                 onClick={handleDismissPopup}
-                className="font-mono text-[10px] text-black font-bold hover:bg-black/20 px-1"
+                className="font-mono text-xs text-black font-bold hover:bg-black/20 px-1"
               >
                 [X]
               </button>
@@ -1066,7 +1075,7 @@ export default function HackingScene() {
                 {popupConfig.title}
               </h2>
               
-              <p className="font-mono text-[11px] text-zinc-300 uppercase tracking-widest mb-1 relative z-10">
+              <p className="font-mono text-xs text-zinc-300 uppercase tracking-widest mb-1 relative z-10">
                 {popupConfig.sub}
               </p>
               
@@ -1075,25 +1084,25 @@ export default function HackingScene() {
               </p>
               
               <div className="mt-5 pt-3 border-t border-dashed border-zinc-800 w-full relative z-10 flex flex-col items-center gap-2">
-                <span className="font-mono text-[9px] text-zinc-500 uppercase tracking-widest mb-1">
+                <span className="font-mono text-xs text-zinc-500 uppercase tracking-widest mb-1">
                   -- AWAITING MANUAL OVERRIDE --
                 </span>
                 
                 {transitOutcome === 'success' ? (
                   <div className="flex flex-col items-center gap-1">
-                    <span className="font-mono text-[11px] font-black text-fuchsia-400 uppercase tracking-[0.15em] animate-pulse">
+                    <span className="font-mono text-xs font-black text-fuchsia-400 uppercase tracking-[0.15em] animate-pulse">
                       {useGameStore.getState().currentJobType === 'tartarus' 
                         ? "HOLD [UPLOAD] TO INJECT SKELETON KEY" 
                         : "HOLD [SIPHON] TO DRAIN VAULT"}
                     </span>
-                    <span className="font-mono text-[10px] font-bold text-cyan-500/80 uppercase tracking-widest">
+                    <span className="font-mono text-xs font-bold text-cyan-500/80 uppercase tracking-widest">
                       {useGameStore.getState().currentJobType === 'tartarus' 
                         ? "OR [DISCONNECT] TO ABORT MISSION" 
                         : "OR [DISCONNECT] TO SECURE"}
                     </span>
                   </div>
                 ) : (
-                  <span className="font-mono text-[11px] font-bold text-cyan-400/90 uppercase tracking-widest">
+                  <span className="font-mono text-xs font-bold text-cyan-400/90 uppercase tracking-widest">
                     SELECT [DISCONNECT] TO SEVER UPLINK
                   </span>
                 )}
@@ -1105,7 +1114,7 @@ export default function HackingScene() {
         {systemOverride !== null && (
           <div className="absolute inset-x-4 top-[15%] bottom-[20%] z-50 flex flex-col justify-center relative overflow-hidden">
             
-            <pre className="absolute inset-0 flex items-center justify-center font-mono text-[8px] sm:text-[10px] leading-tight text-red-500/20 animate-skull pointer-events-none select-none z-0">
+            <pre className="absolute inset-0 flex items-center justify-center font-mono text-xs sm:text-xs leading-tight text-red-500/20 animate-skull pointer-events-none select-none z-0">
               {MENACING_SKULL_FACE}
             </pre>
 
@@ -1116,7 +1125,7 @@ export default function HackingScene() {
               <span className="font-mono text-xl font-black text-red-500 uppercase tracking-[0.2em] animate-pulse drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
                 {getCurrentAct() === 1 ? "SYSTEM OVERRIDE" : getCurrentAct() === 2 ? "PATTERN RECOGNIZED" : "I SEE YOU, BUG"}
               </span>
-              <span className="font-mono text-[11px] font-bold text-white uppercase tracking-widest mt-3 bg-red-600/90 px-4 py-1.5 rounded-none">
+              <span className="font-mono text-xs font-bold text-white uppercase tracking-widest mt-3 bg-red-600/90 px-4 py-1.5 rounded-none">
                 {getCurrentAct() === 1 ? "TAP TO INTERCEPT // " : getCurrentAct() === 2 ? "EVADE ALCHEMIST // " : "KERNEL OVERWRITING // "}{systemOverride}s
               </span>
             </button>
@@ -1133,9 +1142,9 @@ export default function HackingScene() {
 
           {/* The "RPG Chat Box" Constrained Terminal */}
           {/* FIX: Swapped hard percentages for flex properties and a min-height */}
-          <div className="flex-[0.5] sm:flex-none sm:h-[40%] min-h-[110px] w-full relative pointer-events-auto border-t-[2px] border-zinc-800/80 bg-zinc-950/90 shadow-[0_-15px_40px_rgba(0,0,0,0.6)] flex flex-col transition-all duration-300">
+          <div className="flex-[0.5] sm:flex-none sm:h-[40%] min-h-[70px] w-full relative pointer-events-auto border-t-[2px] border-zinc-800/80 bg-zinc-950/90 shadow-[0_-15px_40px_rgba(0,0,0,0.6)] flex flex-col transition-all duration-300">
             {/* A sick little hardware tab label for the log box */}
-            <div className="absolute top-0 left-4 -translate-y-1/2 bg-zinc-950 px-3 py-0.5 border-[2px] border-zinc-800 text-[9px] font-mono text-cyan-500 font-bold tracking-widest uppercase shadow-[0_0_10px_rgba(0,0,0,1)] z-20">
+            <div className="absolute top-0 left-4 -translate-y-1/2 bg-zinc-950 px-3 py-0.5 border-[2px] border-zinc-800 text-xs font-mono text-cyan-500 font-bold tracking-widest uppercase shadow-[0_0_10px_rgba(0,0,0,1)] z-20">
               Terminal_Uplink
             </div>
             <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />

@@ -227,6 +227,7 @@ const useGameStore = create(
       darknetTier:       1,
       highestDarknetTier: 1,     // all-time best — never wiped by resetGame
       consumables:       { rabbit: 0, ghost: 0 },
+      globalConsumableCooldown: 0,
 
       // ── User settings ─────────────────────────────────────────────────────
       settings: {
@@ -431,9 +432,11 @@ triggerFirstBoot: () => {
           Object.entries(s.toolState).map(([id, ts]) => [id, { cooldownRemaining: Math.max(0, ts.cooldownRemaining - 1) }])
         );
 
+        const newConsumableCooldown = Math.max(0, (s.globalConsumableCooldown || 0) - 1);
+
         const newHeat      = Math.min(100, s.physicalHeat  + heatGain);
         const newTrace     = Math.min(100, s.digitalTrace + traceGain + spikeTrace + daemonTrace);
-        
+
         const isPulse      = (newTickCount % PULSE_INTERVAL_TICKS) < PULSE_WINDOW_TICKS;
 
         let newLog = s.terminalLog;
@@ -451,7 +454,8 @@ triggerFirstBoot: () => {
           rabbitTicks: newRabbitTicks,
           ghostTicks: newGhostTicks,
           firewallHealth: newFirewall,
-          terminalLog: newLog
+          terminalLog: newLog,
+          globalConsumableCooldown: newConsumableCooldown,
         });
 
         if (newTrace >= 50 && !s.tutorialFlags.scanPrompt) {
@@ -1266,7 +1270,27 @@ triggerFirstBoot: () => {
       // ─── ENTER DARKNET ────────────────────────────────────────────────
       // Transitions from the victory screen directly into the transit hub
       // so the player can access the Darknet Router without a full reset.
-      enterDarknet: () => set({ status: 'transit' }),
+      enterDarknet: () => {
+        const freshNode = pickSkimNode();
+        set({
+          status: 'transit',
+          currentJobType: 'darknet',
+          transitOutcome: 'initial',
+          physicalHeat: 0,
+          digitalTrace: 0,
+          packUpHeat: 0,
+          packUpTrace: 0,
+          firewallHealth: freshNode.firewallHP,
+          currentNode: freshNode,
+          systemOverride: null,
+          activeDaemon: null,
+          exposedTicks: 0,
+          rabbitTicks: 0,
+          ghostTicks: 0,
+          terminalLog: nodeBootLog(freshNode),
+          toolState: buildInitialToolState()
+        });
+      },
 
       // ─── DISMISS FRAGMENT MODAL ───────────────────────────────────────
       dismissFragmentModal: () => set({ pendingFragmentIdx: null }),
@@ -1326,6 +1350,7 @@ triggerFirstBoot: () => {
       useConsumable: (itemId) => {
         const s = get();
         if (s.status !== 'hacking') return;
+        if ((s.globalConsumableCooldown || 0) > 0) return;
         if ((s.consumables[itemId] ?? 0) <= 0) return;
 
         if (s.settings?.hapticsEnabled) haptic(15);
@@ -1341,6 +1366,7 @@ triggerFirstBoot: () => {
             ghostTicks:  4, // 4 seconds of trace freeze
             consumables: newConsumables,
             terminalLog: appendLog(s.terminalLog, '>> GHOST.sys ACTIVATED. TRACE METRICS FROZEN.'),
+            globalConsumableCooldown: 3,
           });
           return;
         }
@@ -1350,6 +1376,7 @@ triggerFirstBoot: () => {
             rabbitTicks: 5, // 5 seconds of DOT
             consumables: newConsumables,
             terminalLog: appendLog(s.terminalLog, '>> RABBIT VIRUS INJECTED — THEY ARE MULTIPLYING.'),
+            globalConsumableCooldown: 3,
           });
           return;
         }
@@ -1462,6 +1489,7 @@ triggerFirstBoot: () => {
       // ─── USE HARDWARE / LOOT ──────────────────────────────────────────
       useHardware: (inventoryIndex) => {
         const s = get();
+        if ((s.globalConsumableCooldown || 0) > 0) return;
         if (inventoryIndex < 0 || inventoryIndex >= s.inventory.length) return;
 
         const item = s.inventory[inventoryIndex];
@@ -1495,7 +1523,8 @@ triggerFirstBoot: () => {
 
         set(state => ({
           ...update,
-          terminalLog: appendLog(state.terminalLog, logMsg)
+          terminalLog: appendLog(state.terminalLog, logMsg),
+          globalConsumableCooldown: 3,
         }));
       },
 

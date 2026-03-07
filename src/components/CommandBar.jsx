@@ -139,7 +139,7 @@ const isTutorial     = useGameStore(s => s.isTutorial);
             <span className="relative z-10 font-display text-[12px] sm:text-[14px] font-black uppercase tracking-[0.2em]">
               {disconnectLocked ? 'SECURING' : 'SIPHON'}
             </span>
-            <span className="relative z-10 font-mono text-[8px] font-bold tracking-widest mt-1 uppercase">
+            <span className="relative z-10 font-mono text-xs font-bold tracking-widest mt-1 uppercase">
               {disconnectLocked ? '// Sync' : '// Hold to Drain'}
             </span>
           </button>
@@ -157,7 +157,7 @@ const isTutorial     = useGameStore(s => s.isTutorial);
           <span className="relative z-10 font-display text-[12px] sm:text-[14px] font-black uppercase tracking-[0.2em]">
             {disconnectLocked ? 'SECURING' : 'DISCONNECT'}
           </span>
-          <span className="relative z-10 font-mono text-[8px] font-bold tracking-widest mt-1 uppercase">
+          <span className="relative z-10 font-mono text-xs font-bold tracking-widest mt-1 uppercase">
             {disconnectLocked ? '// Sync' : '// Sever Connection'}
           </span>
         </button>
@@ -242,7 +242,7 @@ const isTutorial     = useGameStore(s => s.isTutorial);
               </span>
 
               {!isLockedTool && (
-                <span className="font-mono text-[9px] font-black text-zinc-100/70 uppercase tracking-wider mt-0 sm:mt-1 whitespace-nowrap bg-black/40 px-1 rounded-sm">
+                <span className="font-mono text-xs font-black text-zinc-100/70 uppercase tracking-wider mt-0 sm:mt-1 whitespace-nowrap bg-black/40 px-1 rounded-sm">
                   {tool.id === 'BYPASS' && '[ STRIKE CORE ]'}
                   {tool.id === 'PULSE' && '[ DROP TRACE ]'}
                   {tool.id === 'DECRYPT' && '[ CRACK ARMOR ]'}
