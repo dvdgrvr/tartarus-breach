@@ -434,6 +434,38 @@
   100% { opacity: 1; }
 }
 
+/* CSS-only glitch for GlitchLabel — GPU-accelerated, no JS state ─────────── */
+/* Requires data-text attribute on the element with the label text            */
+.css-glitch {
+  position: relative;
+}
+.css-glitch::before,
+.css-glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.css-glitch::before {
+  animation: css-glitch-before 0.4s steps(2) infinite;
+  clip-path: polygon(0 20%, 100% 20%, 100% 40%, 0 40%);
+}
+.css-glitch::after {
+  animation: css-glitch-after 0.4s steps(2) infinite 0.15s;
+  clip-path: polygon(0 60%, 100% 60%, 100% 80%, 0 80%);
+}
+
+@keyframes css-glitch-before {
+  0%   { transform: translate(-1px, 0); color: rgba(239, 68, 68, 0.9); }
+  50%  { transform: translate(1px, 0);  color: rgba(34, 211, 238, 0.9); }
+  100% { transform: translate(0, 0);   color: inherit; }
+}
+@keyframes css-glitch-after {
+  0%   { transform: translate(1px, 0);  color: rgba(34, 211, 238, 0.9); }
+  50%  { transform: translate(-1px, 0); color: rgba(239, 68, 68, 0.9); }
+  100% { transform: translate(0, 0);   color: inherit; }
+}
+
 /* Legacy glitch — kept for backwards compatibility */
 @keyframes glitch {
   0%, 88%, 100% { transform: translate(0); filter: none; }

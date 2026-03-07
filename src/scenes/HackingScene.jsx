@@ -101,7 +101,6 @@ const TUTORIAL_PROMPTS = {
   PULSE_INTRO:      { title: 'SYNERGY PATH INITIATED', body: 'Run PULSE to synchronize signal.' },
   BYPASS_INTRO:     { title: 'PAYLOAD PRIMED',         body: 'Execute BYPASS for a 3.5× Heavy Strike.' },
   TRACE_HEAT_INTRO: { title: 'WARNING: TRACE SPIKE',   body: 'Run PULSE to mask your signature before it hits 100%.' },
-  OVERDRIVE_INTRO:  { title: 'HARDWARE LIMITS',        body: 'Fire SCAN now — costs heavy HEAT but breaks the cooldown.' },
   FINISH_NODE:      { title: 'SYSTEMS UNDERSTOOD',     body: 'Destroy the remaining firewall.' },
   SIPHON_INTRO:     { title: 'BREACH SUCCESSFUL',      body: 'Hold SIPHON to extract extra Intel before disconnecting.' },
 };

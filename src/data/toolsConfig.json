@@ -20,7 +20,7 @@
     "label": "PULSE",
     "description": "Scramble signatures. Drops trace drastically, but fries your rig (massive heat spike).",
     "color": "blue",
-    "baseCooldown": 20,
+    "baseCooldown": 15,
     "baseEffect": { "firewallDamage": 0, "traceGain": -30, "heatGain": 20 }
   },
   {
@@ -28,7 +28,7 @@
     "label": "DECRYPT",
     "description": "Crack encrypted logs. Unmasks firewall health, but requires intense local processing.",
     "color": "amber",
-    "baseCooldown": 20,
+    "baseCooldown": 12,
     "baseEffect": { "firewallDamage": 0, "traceGain": 5, "heatGain": 25 }
   }
 ]

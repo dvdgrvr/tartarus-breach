@@ -75,18 +75,11 @@ const haptic = (pattern) => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const buildInitialToolState = (archiveLen = 0) =>
-  Object.fromEntries(toolsConfig.map(t => {
-    // Determine lock status based on story progression
-    let isLocked = !['BYPASS', 'PULSE'].includes(t.id);
-    if (t.id === 'DECRYPT' && archiveLen >= 1) isLocked = false;
-    if (t.id === 'SCAN' && archiveLen >= 2) isLocked = false;
-
-    return [t.id, { 
-      cooldownRemaining: 0,
-      isLocked 
-    }];
-  }));
+const buildInitialToolState = () =>
+  Object.fromEntries(toolsConfig.map(t => [t.id, {
+    cooldownRemaining: 0,
+    isLocked: false,
+  }]));
 
 const buildInitialUpgradeState = () =>
   Object.fromEntries(upgradesConfig.map(u => [u.id, { level: 0 }]));
@@ -226,7 +219,7 @@ const useGameStore = create(
 
       // ── Tutorial ──────────────────────────────────────────────────────────
       isTutorial:   false,
-      tutorialStep: null,  // 'SCAN_INTRO' | 'DECRYPT_INTRO' | 'PULSE_INTRO' | 'BYPASS_INTRO' | 'TRACE_HEAT_INTRO' | 'OVERDRIVE_INTRO' | 'FINISH_NODE' | 'SIPHON_INTRO'
+      tutorialStep: null,  // 'SCAN_INTRO' | 'DECRYPT_INTRO' | 'PULSE_INTRO' | 'BYPASS_INTRO' | 'TRACE_HEAT_INTRO' | 'FINISH_NODE' | 'SIPHON_INTRO'
 
       // ── Endless mode ──────────────────────────────────────────────────────
       hasBeatenGame:     false,  // global unlock — never wiped by resetGame
@@ -539,7 +532,6 @@ triggerFirstBoot: () => {
             PULSE_INTRO:      'PULSE',
             BYPASS_INTRO:     'BYPASS',
             TRACE_HEAT_INTRO: 'PULSE',
-            OVERDRIVE_INTRO:  'SCAN',
           };
           if (toolId !== (TUTORIAL_ALLOWED[s.tutorialStep] ?? null)) return;
         }
@@ -575,11 +567,11 @@ triggerFirstBoot: () => {
 
         const isPerfectSequence = newComboChain.length === 3;
 
-        // ─── OVERDRIVE CALCULATIONS ───
+        // ─── COOLDOWN GATE ───
         const cooldownRemaining = s.toolState[toolId]?.cooldownRemaining ?? 0;
-        
-        // Only allow Overdrive if the player has completed at least 1 mission (or is in tutorial)
-        const overdriveUnlocked = s.storyArchive.length >= 1 || s.isTutorial;
+
+        // Block execution if tool is still recovering
+        if (cooldownRemaining > 0) return;
 
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
         let actualCooldown = Math.max(
@@ -587,46 +579,19 @@ triggerFirstBoot: () => {
           Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (s.currentSafehouse?.ramMod ?? 1))
         );
 
-        let overdrivePenalty = 0;
-        let isOverdriving = false;
-
-        if (cooldownRemaining > 0) {
-          // GATEKEEPER (campaign only — arcade bypasses for flow state):
-          // 1. Blocks clicks if Overdrive is still locked by the story
-          // 2. Blocks "spamming" (double-clicking within 1 second of use)
-          if (s.gameMode !== 'arcade') {
-            // Tutorial OVERDRIVE_INTRO: bypass all cooldown gates so the lesson can fire
-            const isTutorialOD = s.isTutorial && s.tutorialStep === 'OVERDRIVE_INTRO';
-            if (!isTutorialOD) {
-              if (!overdriveUnlocked || actualCooldown - cooldownRemaining < 1) return;
-              if (cooldownRemaining > actualCooldown / 2) {
-                set({ terminalLog: appendLog(currentLog, `!! ERROR: ${toolId} RECOVERY INCOMPLETE. SIGNAL WEAK !!`) });
-                AudioManager.playSFX('error');
-                return;
-              }
-            }
-          }
-          
-          const isTactical = ['SCAN', 'BYPASS'].includes(toolId);
-          const maxPenalty = isTactical ? 30 : 15;
-          isOverdriving = true;
-          overdrivePenalty = (cooldownRemaining / actualCooldown) * maxPenalty;
-        }
-
         // ─── HAPTICS & AUDIO ───
         AudioManager.playSFX('thock');
         if (s.settings?.hapticsEnabled) {
-          if (isOverdriving) haptic([80, 40, 80]); 
-          else if (toolId === 'SCAN') haptic(10); 
-          else if (toolId === 'BYPASS') haptic([30, 40, 30]); 
-          else if (toolId === 'PULSE') haptic([15, 20, 15]); 
-          else if (toolId === 'DECRYPT') haptic(50); 
-          else haptic(15); 
+          if (toolId === 'SCAN') haptic(10);
+          else if (toolId === 'BYPASS') haptic([30, 40, 30]);
+          else if (toolId === 'PULSE') haptic([15, 20, 15]);
+          else if (toolId === 'DECRYPT') haptic(50);
+          else haptic(15);
         }
 
         let firewallDamage = tool.baseEffect.firewallDamage ?? 0;
         const traceGain     = tool.baseEffect.traceGain       ?? 0;
-        const heatGain      = (tool.baseEffect.heatGain       ?? 0) + overdrivePenalty;
+        const heatGain      = tool.baseEffect.heatGain ?? 0;
         
         let newExposedTicks = s.exposedTicks;
         let newFirewallRevealed = s.firewallRevealed;
@@ -635,7 +600,6 @@ triggerFirstBoot: () => {
         // ─── TOOL: DECRYPT ───
         if (toolId === 'DECRYPT') {
           currentLog = appendLog(currentLog, `> DECRYPT // +${heatGain.toFixed(0)}% HEAT | TRACE: ${Math.min(100, s.digitalTrace + traceGain).toFixed(0)}%`);
-          if (isOverdriving) currentLog = appendLog(currentLog, `!! HARDWARE OVERDRIVE: DECRYPT FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
           if (s.currentNode?.mutator?.id === 'ICE_WALL') {
             actualCooldown = 1; 
             currentLog = appendLog(currentLog, '>> ICE-WALL BRITTLE. DECRYPT RAPIDLY RECHARGED.');
@@ -792,7 +756,6 @@ triggerFirstBoot: () => {
           }
 
           currentLog = appendLog(currentLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`);
-          if (isOverdriving) currentLog = appendLog(currentLog, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
           currentLog = appendLog(currentLog, `>> [ ACCESS GRANTED ]`);
           const mashaLine = getMashaReaction('breach', finalTrace);
           if (mashaLine) currentLog = appendLog(currentLog, mashaLine);
@@ -833,8 +796,7 @@ triggerFirstBoot: () => {
         // ─── STANDARD EXECUTION LOG ───
         const fwDisplay = (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !newFirewallRevealed) ? '???' : `${Math.ceil(newFirewall)}`;
         currentLog = appendLog(currentLog, `> ${toolId} // FW: ${fwDisplay} | TRACE: ${finalTrace.toFixed(0)}%`);
-        if (isOverdriving) currentLog = appendLog(currentLog, `!! HARDWARE OVERDRIVE: ${toolId} FORCED // +${overdrivePenalty.toFixed(1)}% THERMAL SPIKE !!`);
-        
+
         let syncBonus = 0;
         if (isPerfectSync) {
           currentLog = appendLog(currentLog, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
@@ -851,21 +813,16 @@ triggerFirstBoot: () => {
           }
         }
 
-        // ── ARCADE: Every tool use reduces all other tools' cooldowns (adrenaline system) ──
+        // ── ADRENALINE: Every tool use reduces all other tools' cooldowns (universal) ──
         let finalToolState = { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } };
-        if (s.gameMode === 'arcade') {
-          const isFrenzyMult = (s.arcadeStats.multiplier ?? 1) >= 3;
-          const reduction    = toolId === 'BYPASS'
-            ? (isFrenzyMult ? 3.0 : 1.5)
-            : (isFrenzyMult ? 0.6 : 0.3);
-          finalToolState = Object.fromEntries(
-            Object.entries(finalToolState).map(([key, val]) =>
-              key !== toolId && (val?.cooldownRemaining ?? 0) > 0
-                ? [key, { ...val, cooldownRemaining: Math.max(0, val.cooldownRemaining - reduction) }]
-                : [key, val]
-            )
-          );
-        }
+        const adrenalineReduction = toolId === 'BYPASS' ? 1.5 : 0.5;
+        finalToolState = Object.fromEntries(
+          Object.entries(finalToolState).map(([key, val]) =>
+            key !== toolId && (val?.cooldownRemaining ?? 0) > 0
+              ? [key, { ...val, cooldownRemaining: Math.max(0, val.cooldownRemaining - adrenalineReduction) }]
+              : [key, val]
+          )
+        );
 
         const finalArcadeStats = s.gameMode === 'arcade'
           ? { ...s.arcadeStats, eliteCombos: (s.arcadeStats.eliteCombos ?? 0) + arcadeEliteCombosDelta, timeRemaining: Math.min(99, s.arcadeStats.timeRemaining + arcadeTimeDelta), multiplier: newArcadeMult }
@@ -878,8 +835,7 @@ triggerFirstBoot: () => {
             SCAN_INTRO:       'DECRYPT_INTRO',
             PULSE_INTRO:      'BYPASS_INTRO',
             BYPASS_INTRO:     'TRACE_HEAT_INTRO',
-            TRACE_HEAT_INTRO: 'OVERDRIVE_INTRO',
-            OVERDRIVE_INTRO:  'FINISH_NODE',
+            TRACE_HEAT_INTRO: 'FINISH_NODE',
           };
           const nextStep = TUTORIAL_ADVANCE[s.tutorialStep];
           if (nextStep) {
@@ -892,10 +848,6 @@ triggerFirstBoot: () => {
               );
               currentLog = appendLog(currentLog, '>> [!] DIAGNOSTIC_RESET: Hardware cooled. Deck refreshed.');
               tutorialPatch.digitalTrace = 85;
-            }
-            // TRACE_HEAT_INTRO → put SCAN on cooldown so OVERDRIVE lesson can fire
-            if (s.tutorialStep === 'TRACE_HEAT_INTRO') {
-              tutorialPatch.toolState = { ...finalToolState, SCAN: { cooldownRemaining: 2 } };
             }
           }
         }
@@ -1080,15 +1032,6 @@ triggerFirstBoot: () => {
         // --- CUSTOM BOOT LOGS ---
         let initialLogs = nodeBootLog(sessionNode);
 
-        // --- NEW: PROGRESSIVE UNLOCK LOGS ---
-        // Check if this is the first time they see these tools
-        if (archiveLen === 1 && s.toolState['DECRYPT']?.isLocked) {
-          initialLogs.push("// MASHA: 'Protocol DECRYPT uploaded. Use it to crack node armor.'");
-        }
-        if (archiveLen === 2 && s.toolState['SCAN']?.isLocked) {
-          initialLogs.push("// MASHA: 'SCAN module active. Now we can actually see their security gaps.'");
-        }
-
         if (mutator?.id === 'GOLD_CACHE') {
           initialLogs.push('// [$$$] GOLDEN CACHE DETECTED: Unusually high data density.');
           initialLogs.push('// [!] WARNING: Target is actively pinging trace authorities. SPRINT REQUIRED.');
@@ -1121,8 +1064,7 @@ triggerFirstBoot: () => {
           systemOverride:        null,
           activeModifiers:       activeMods,
           terminalLog:           initialLogs,
-          // PASS ARCHIVE LENGTH TO HELPER
-          toolState:             buildInitialToolState(archiveLen),
+          toolState:             buildInitialToolState(),
         });
       },
 
@@ -1150,7 +1092,7 @@ triggerFirstBoot: () => {
             '// BREACH AS MANY NODES AS POSSIBLE IN 60 SECONDS.',
             '// TRACE OVERFLOW = -10s PENALTY. GOOD LUCK.',
           ],
-          toolState: buildInitialToolState(999),
+          toolState: buildInitialToolState(),
         });
       },
 
