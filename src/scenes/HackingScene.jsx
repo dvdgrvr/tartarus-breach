@@ -243,8 +243,8 @@ function FirewallRow() {
   const maxHP    = node?.firewallHP ?? 100;
   
   const totalBlocks = 10;
-  const hpPercentage = Math.max(0, firewallHealth / maxHP);
-  const activeBlocks = Math.ceil(hpPercentage * totalBlocks);
+  const hpPercentage = Math.max(0, firewallHealth / (maxHP || 1));
+  const activeBlocks = isNaN(hpPercentage) ? totalBlocks : Math.ceil(hpPercentage * totalBlocks);
 
   return (
     <div className="flex flex-col px-4 py-1">
@@ -412,6 +412,8 @@ function ConsumableBar() {
   const hasBeatenGame           = useGameStore(s => s.hasBeatenGame);
   const getCurrentAct           = useGameStore(s => s.getCurrentAct);
   const globalConsumableCooldown = useGameStore(s => s.globalConsumableCooldown || 0);
+  const gameMode                = useGameStore(s => s.gameMode);
+  const isTutorial              = useGameStore(s => s.isTutorial);
 
   const rabbit = consumables?.rabbit ?? 0;
   const ghost  = consumables?.ghost ?? 0;
@@ -420,7 +422,7 @@ function ConsumableBar() {
     .filter(item => item.id === 'LIQUID_COOLER' || item.id === 'SIGNAL_BOOSTER');
 
   const showBar = hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0 || activeHardware.length > 0;
-  if (!showBar) return null;
+  if (!showBar || gameMode === 'arcade' || isTutorial) return null;
 
   const onGlobalCooldown = globalConsumableCooldown > 0;
 
@@ -1157,12 +1159,6 @@ export default function HackingScene() {
           <TraceRow />
         </div>
 
-        {status === 'hacking' && (
-          <div className="bg-zinc-950/60 backdrop-blur-sm shrink-0">
-            <ConsumableBar />
-          </div>
-        )}
-
         {isTutorial && tutorialStep && (
           <TutorialOverlay step={tutorialStep} />
         )}
@@ -1170,6 +1166,12 @@ export default function HackingScene() {
         <div className="shrink-0 bg-zinc-950">
           <CommandBar />
         </div>
+
+        {status === 'hacking' && (
+          <div className="bg-zinc-950/60 backdrop-blur-sm shrink-0">
+            <ConsumableBar />
+          </div>
+        )}
 
       </div>
 

@@ -972,7 +972,7 @@ triggerFirstBoot: () => {
           nextNode   = TARTARUS_NODE_DEF;
           firewallHP = TARTARUS_NODE_DEF.firewallHP;
         } else if (jobType === 'darknet') {
-          const tier = s.darknetTier;
+          const tier = s.darknetTier || 1;
           nextNode   = {
             id:              `DARKNET_T${tier}`,
             name:            `Darknet Router — Tier ${tier}`,
@@ -1091,6 +1091,8 @@ triggerFirstBoot: () => {
           firewallRevealed: true,
           currentNode:      arcadeNode,
           firewallHealth:   50,
+          isTutorial:       false,
+          tutorialStep:     null,
           terminalLog: [
             '// ARCADE_MODE :: SIM_TARGET_01 ONLINE',
             '// BREACH AS MANY NODES AS POSSIBLE IN 60 SECONDS.',
