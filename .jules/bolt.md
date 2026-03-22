@@ -1,0 +1,3 @@
+## 2024-05-18 - [Terminal Log React Re-renders]
+**Learning:** In highly dynamic scenes like `HackingScene` where global state changes rapidly (e.g., every tick due to `digitalTrace` and `physicalHeat`), components that map over arrays (like `TerminalLog` mapping over log entries) will unnecessarily re-render and recalculate styles for every single item on every state change unless explicitly memoized.
+**Action:** Always wrap list item components in `React.memo` when the list is frequently updated but individual items remain static once added. Move global state subscriptions as close to the leaf components as possible to prevent cascading re-renders in large wrapper components.
