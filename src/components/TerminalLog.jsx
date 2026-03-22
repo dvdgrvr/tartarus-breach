@@ -1,7 +1,40 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, memo } from 'react';
 import useGameStore from '../store/useGameStore';
 
-export default function TerminalLog({ className = '' }) {
+// Memoize individual log lines to prevent recalculating colors and re-rendering 25 strings every tick
+const LogLine = memo(({ entry }) => {
+  const getLineColor = (line) => {
+    if (line.includes('!!') || line.includes('CRITICAL OVERRIDE') || line.includes('FATAL') || line.includes('SEVERED')) {
+      return 'text-red-400 font-bold drop-shadow-md';
+    }
+    if (line.includes('[!]') || line.includes('EXPOSED') || line.includes('WARNING')) {
+      return 'text-amber-300 font-bold';
+    }
+    if (line.includes('// MASHA:') || line.includes('// MEMO_FROM_MASHA:')) {
+      return 'text-fuchsia-300 font-bold';
+    }
+    if (line.includes('// AMBIENT:')) {
+      return 'text-zinc-400/80';
+    }
+    if (line.includes('(\\_/)')) {
+      return 'text-green-400 font-bold';
+    }
+    if (line.startsWith('> ') || line.startsWith('>> ')) {
+      return 'text-green-300 font-bold';
+    }
+    return 'text-cyan-300/90';
+  };
+
+  return (
+    <p className={`font-mono text-[10px] sm:text-xs leading-snug tracking-wide text-glow-sm ${getLineColor(entry)}`}>
+      {entry}
+    </p>
+  );
+});
+
+LogLine.displayName = 'LogLine';
+
+const TerminalLog = memo(function TerminalLog({ className = '' }) {
   const rawLog = useGameStore(s => s.terminalLog);
   const scrollRef = useRef(null);
 
@@ -13,36 +46,6 @@ export default function TerminalLog({ className = '' }) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [log]);
-
-  // Dynamic syntax highlighting for the terminal (BRIGHTENED FOR READABILITY)
-  const getLineColor = (line) => {
-    // Errors, Daemons, and Busted states
-    if (line.includes('!!') || line.includes('CRITICAL OVERRIDE') || line.includes('FATAL') || line.includes('SEVERED')) {
-      return 'text-red-400 font-bold drop-shadow-md';
-    }
-    // Warnings and Exposures
-    if (line.includes('[!]') || line.includes('EXPOSED') || line.includes('WARNING')) {
-      return 'text-amber-300 font-bold';
-    }
-    // Operator/Masha Dialogue
-    if (line.includes('// MASHA:') || line.includes('// MEMO_FROM_MASHA:')) {
-      return 'text-fuchsia-300 font-bold';
-    }
-    // Ambient flavor text
-    if (line.includes('// AMBIENT:')) {
-      return 'text-zinc-400/80';
-    }
-    // Rabbit Virus
-    if (line.includes('(\\_/)')) {
-      return 'text-green-400 font-bold';
-    }
-    // Player Tool Actions & Successes
-    if (line.startsWith('> ') || line.startsWith('>> ')) {
-      return 'text-green-300 font-bold';
-    }
-    // Default system text (Brightened significantly)
-    return 'text-cyan-300/90';
-  };
 
   return (
     <div className={`flex-1 overflow-hidden relative border-t border-zinc-800/40 bg-transparent ${className}`}>
@@ -58,16 +61,12 @@ export default function TerminalLog({ className = '' }) {
         {/* FIX: Changed space-y-2 to space-y-0.5 on mobile to pack lines tighter */}
         <div className="mt-auto space-y-0.5 sm:space-y-1 pb-1">
           {log.map((entry, i) => (
-            <p 
-              key={i} 
-              /* FIX: Added text-glow-sm and tightened leading */
-              className={`font-mono text-[10px] sm:text-xs leading-snug tracking-wide text-glow-sm ${getLineColor(entry)}`}
-            >
-              {entry}
-            </p>
+            <LogLine key={i} entry={entry} />
           ))}
         </div>
       </div>
     </div>
   );
-}
+});
+
+export default TerminalLog;
