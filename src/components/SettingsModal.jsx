@@ -78,6 +78,7 @@ export default function SettingsModal({ onClose }) {
               </span>
             </div>
             <input
+              aria-label="Master Volume"
               type="range" min="0" max="1" step="0.05"
               value={settings?.masterVolume ?? 0.8}
               onChange={(e) => updateSettings({ masterVolume: parseFloat(e.target.value) })}
