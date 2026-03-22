@@ -7,8 +7,9 @@ export default function MainMenuScene() {
   const toggleSettingsModal = useGameStore(s => s.toggleSettingsModal);
   const storyArchive       = useGameStore(s => s.storyArchive);
   const intelFragments     = useGameStore(s => s.intelFragments);
+  const tartarusBeaten     = useGameStore(s => s.tartarusBeaten);
 
-  const isNewGame = storyArchive.length === 0 && intelFragments === 0;
+  const isNewGame = storyArchive.length === 0 && intelFragments === 0 && !tartarusBeaten;
 
   return (
     <div className="h-full flex flex-col bg-zinc-950 relative overflow-hidden">
@@ -40,11 +41,19 @@ export default function MainMenuScene() {
 
             <button
               onClick={() => setStatus('transit')}
-              className="hardware-btn w-full py-5 border-2 border-zinc-600/60 border-b-zinc-800 text-zinc-200 font-mono text-sm font-black uppercase tracking-widest bg-zinc-900/60 hover:bg-zinc-800/60 hover:border-zinc-500 transition-all shadow-[0_0_15px_rgba(217,70,239,0.2)]"
+              className={`hardware-btn w-full py-5 border-2 transition-all shadow-[0_0_15px_rgba(217,70,239,0.2)] ${
+                tartarusBeaten
+                  ? 'border-fuchsia-600/60 border-b-fuchsia-800 text-fuchsia-300 bg-fuchsia-900/20 hover:bg-fuchsia-800/40 hover:border-fuchsia-500'
+                  : 'border-zinc-600/60 border-b-zinc-800 text-zinc-200 bg-zinc-900/60 hover:bg-zinc-800/60 hover:border-zinc-500'
+              } font-mono text-sm font-black uppercase tracking-widest`}
             >
-              {isNewGame ? '[ INITIATE UPLINK ]' : '[ RESUME CAMPAIGN ]'}
-              <span className="block text-xs font-normal text-zinc-600 mt-1 normal-case tracking-normal">
-                {isNewGame ? 'Begin a new operator campaign' : 'Continue your current run'}
+              {tartarusBeaten ? '[ ENTER DARKNET ]' : isNewGame ? '[ INITIATE UPLINK ]' : '[ RESUME CAMPAIGN ]'}
+              <span className={`block text-xs font-normal mt-1 normal-case tracking-normal ${
+                tartarusBeaten ? 'text-fuchsia-400/60' : 'text-zinc-600'
+              }`}>
+                {tartarusBeaten
+                  ? 'Continue endless Darknet mode'
+                  : isNewGame ? 'Begin a new operator campaign' : 'Continue your current run'}
               </span>
             </button>
 
