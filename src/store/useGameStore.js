@@ -1290,7 +1290,10 @@ triggerFirstBoot: () => {
           rabbitTicks: 0,
           ghostTicks: 0,
           terminalLog: nodeBootLog(freshNode),
-          toolState: buildInitialToolState()
+          toolState: buildInitialToolState(),
+          isTutorial: false,
+          tutorialStep: null,
+          isReplay: false
         });
       },
 

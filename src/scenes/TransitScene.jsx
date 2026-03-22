@@ -888,6 +888,7 @@ function JobFooter({ isLocked, onJackIn }) {
   const archiveLen      = useGameStore(s => s.storyArchive.length);
   const hasBeatenGame   = useGameStore(s => s.hasBeatenGame);
   const darknetTier     = useGameStore(s => s.darknetTier);
+  const highestDarknetTier = useGameStore(s => s.highestDarknetTier);
 
   const isTartarusReady = archiveLen === 11;
   const showTartarus    = isTartarusReady && !hasBeatenGame;
