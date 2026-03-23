@@ -18,10 +18,12 @@ import {
   PRIORITY_INTEL_MAX,
   TARTARUS_INTEL,
   MAX_LOG_ENTRIES,
-  SAVE_VERSION,
   PULSE_INTERVAL_TICKS,
   PULSE_WINDOW_TICKS,
 } from '../config/constants';
+
+// Forcing a new SAVE_VERSION since we changed the schema
+const SAVE_VERSION = 11;
 
 // ─── Node Pools ───────────────────────────────────────────────────────────────
 
@@ -165,6 +167,7 @@ const useGameStore = create(
 
       // ── Player resources ─────────────────────────────────────────────────
       intelFragments: 0,
+      rootAccessKeys: 0,       // Deep skill tree currency
       inventory: [],           // <--- NEW: Holds looted hardware
       activeModifiers: [],     // <--- NEW: Holds active buffs like Admin Key
       lootAccumulator: 0,      // <--- NEW: Tracks how much data you've siphoned
@@ -172,6 +175,7 @@ const useGameStore = create(
 
       // ── Upgrades ─────────────────────────────────────────────────────────
       upgrades: buildInitialUpgradeState(),
+      kernelNodes: [],         // IDs of unlocked Kernel Overrides
 
       // ── Narrative archive ─────────────────────────────────────────────────
       storyArchive:       [],
@@ -387,12 +391,39 @@ triggerFirstBoot: () => {
           heatGain *= 2.0; // Rig heats up twice as fast
         }
 
+        // KERNEL: The Ghost Tier 1 - Phantom Thread
+        let kernelTraceMod = 1.0;
+        if (s.kernelNodes.includes('GHOST_1')) kernelTraceMod -= 0.10;
+        // KERNEL: Void Walker (Capstone)
+        if (s.kernelNodes.includes('GHOST_CAP') && s.highestDarknetTier) {
+           const bonus = Math.floor(s.highestDarknetTier / 5) * 0.02;
+           kernelTraceMod -= bonus;
+        }
+        kernelTraceMod = Math.max(0.1, kernelTraceMod);
+
         const isTraceAccel    = s.currentNode?.specialDefense === 'TRACE_ACCELERATOR';
         const traceMultiplier = s.currentNode?.traceMultiplier ?? (isTraceAccel ? TRACE_ACCEL_MULTIPLIER : 1);
         let traceGain         = (s.digitalTrace >= TRACE_ACCEL_THRESHOLD ? BASE_TRACE_HIGH : BASE_TRACE_LOW)
-                                * traceMultiplier * (s.currentSafehouse?.traceMod ?? 1);
+                                * traceMultiplier * (s.currentSafehouse?.traceMod ?? 1) * kernelTraceMod;
 
         if (s.currentNode?.mutator?.id === 'SNIFFER') traceGain *= 1.5;
+
+        // KERNEL: Emergency Vent (Architect Tier 2)
+        if (s.kernelNodes.includes('ARCH_2') && s.physicalHeat + heatGain >= 95) {
+          const coolerIndex = s.inventory.findIndex(item => item.id === 'LIQUID_COOLER');
+          if (coolerIndex !== -1) {
+            heatGain = -s.physicalHeat; // instantly drop heat to 0
+            logMsg = '>> KERNEL OVERRIDE: EMERGENCY VENT INITIATED. LIQUID COOLER CONSUMED.';
+            const newInv = [...s.inventory];
+            if (newInv[coolerIndex].count > 1) {
+              newInv[coolerIndex].count -= 1;
+            } else {
+              newInv.splice(coolerIndex, 1);
+            }
+            set({ inventory: newInv });
+            if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
+          }
+        }
 
         const newTickCount = s.tickCount + 1;
 
@@ -594,8 +625,26 @@ triggerFirstBoot: () => {
         }
 
         let firewallDamage = tool.baseEffect.firewallDamage ?? 0;
-        const traceGain     = tool.baseEffect.traceGain       ?? 0;
-        const heatGain      = tool.baseEffect.heatGain ?? 0;
+        let traceGain      = tool.baseEffect.traceGain       ?? 0;
+        let heatGain       = tool.baseEffect.heatGain ?? 0;
+
+        // KERNEL: Wide-Band SCAN (Sledgehammer Tier 1)
+        if (toolId === 'SCAN' && s.kernelNodes.includes('SLEDGE_1')) {
+          firewallDamage += 10;
+          heatGain += 5;
+        }
+
+        // KERNEL: Thermal Overdrive (Sledgehammer Tier 3)
+        if (s.physicalHeat > 80 && s.kernelNodes.includes('SLEDGE_3')) {
+          firewallDamage = Math.floor(firewallDamage * 1.2);
+        }
+
+        // KERNEL: Ghost Protocol (Ghost Tier 3)
+        let didGhostRefresh = false;
+        if (toolId === 'PULSE' && s.kernelNodes.includes('GHOST_3') && Math.random() < 0.20) {
+          didGhostRefresh = true;
+          actualCooldown = 0; // Cooldown immediately resets
+        }
         
         let newExposedTicks = s.exposedTicks;
         let newFirewallRevealed = s.firewallRevealed;
@@ -612,6 +661,8 @@ triggerFirstBoot: () => {
             currentLog = appendLog(currentLog, `>> DAEMON '${s.activeDaemon}' KILLED.`);
             newActiveDaemon = null;
           }
+
+        // KERNEL: Cold Boot (Ghost Tier 2) is applied upon starting a session (startNewSession)
           const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
           if (isEncrypted && !s.firewallRevealed) {
             currentLog = appendLog(currentLog, `>> ENCRYPTED LOGS CRACKED — FW: ${s.firewallHealth}`);
@@ -646,6 +697,11 @@ triggerFirstBoot: () => {
           const bsLevel = s.upgrades['BYPASS_STRENGTH']?.level ?? 0;
           firewallDamage += bsLevel * 10;
 
+          // KERNEL: Juggernaut (Sledgehammer Capstone)
+          if (s.kernelNodes.includes('SLEDGE_CAP') && s.highestDarknetTier) {
+            firewallDamage += Math.floor(s.highestDarknetTier / 5) * 5;
+          }
+
           if (s.exposedTicks > 0) {
             if (isPerfectSequence) {
               firewallDamage *= 3.5;
@@ -671,6 +727,10 @@ triggerFirstBoot: () => {
             setTimeout(() => {
               useGameStore.setState({ isHitStopped: false });
             }, 120);
+          } else if (s.kernelNodes.includes('SLEDGE_2')) {
+            // KERNEL: Momentum Strike (Sledgehammer Tier 2)
+            firewallDamage = Math.floor(firewallDamage * 1.5);
+            currentLog = appendLog(currentLog, `>> KERNEL: MOMENTUM STRIKE APPLIED`);
           }
           if (s.currentNode?.specialDefense === 'ENCRYPTED_LOGS' && !s.firewallRevealed && !s.tutorialFlags.decryptWarning) {
             currentLog = appendLog(currentLog, '[!] DATA_OBFUSCATION: Target metrics encrypted. Blind strikes are inefficient. Recommend structural dissection.');
@@ -697,6 +757,10 @@ triggerFirstBoot: () => {
 
         if (isPerfectSync && s.settings?.hapticsEnabled) haptic([30, 50, 30]);
         let newHeat = Math.min(100, s.physicalHeat + heatGain);
+
+        if (didGhostRefresh) {
+           currentLog = appendLog(currentLog, `>> KERNEL: GHOST PROTOCOL FIRED. PULSE COOLDOWN RESET.`);
+        }
         if (s.gameMode === 'arcade' && toolId === 'PULSE') {
           newHeat = Math.max(0, s.physicalHeat - 20); // fully offset heatGain + deep vent
           currentLog = appendLog(currentLog, `>> ARCADE_VENT: Thermal load reduced -20%`);
@@ -747,25 +811,64 @@ triggerFirstBoot: () => {
 
           if (s.settings?.hapticsEnabled && typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate([100, 50, 150]);
           const isPerfect    = finalTrace >= 90;
-          const intelEarned  = isPerfect ? Math.floor(s.sessionPotentialIntel * 1.25) : s.sessionPotentialIntel;
+
+          let intelEarned = s.sessionPotentialIntel;
+          if (isPerfect) {
+             let bonusMult = 1.25;
+             if (s.kernelNodes.includes('ARCH_1')) bonusMult += 0.20; // KERNEL: Deep Siphon
+             intelEarned = Math.floor(s.sessionPotentialIntel * bonusMult);
+          }
           const isTartarus   = s.currentJobType === 'tartarus';
           const isDarknet    = s.currentJobType === 'darknet';
           const isPriority   = s.currentJobType === 'priority' || isTartarus;
 
           let newArchive = s.storyArchive;
           let fragmentIdx = null;
+          let rootKeysEarned = 0;
+
           if (isPriority && !s.isReplay && s.storyArchive.length < storyFragments.length) {
             fragmentIdx = s.storyArchive.length;
             newArchive = [...s.storyArchive, fragmentIdx];
+          }
+
+          // KERNEL: Grant 1 RAK for milestone/boss nodes (even if story is complete or in replay)
+          if ((s.currentNode?.id === 'ML_03' || s.currentNode?.id === 'ML_07' || isTartarus) && !s.isReplay) {
+            rootKeysEarned += 1;
+          }
+
+          if (isDarknet && ((s.darknetTier) % 5 === 0)) {
+            rootKeysEarned += 1;
+          }
+
+          let kernelLoot = null;
+          // KERNEL: Silicon Baron (Architect Capstone)
+          if (s.kernelNodes.includes('ARCH_CAP') && s.highestDarknetTier) {
+            const chance = Math.floor(s.highestDarknetTier / 5) * 0.02;
+            if (Math.random() < chance) {
+               kernelLoot = modifiersData[Math.floor(Math.random() * modifiersData.length)];
+            }
           }
 
           currentLog = appendLog(currentLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`);
           currentLog = appendLog(currentLog, `>> [ ACCESS GRANTED ]`);
           const mashaLine = getMashaReaction('breach', finalTrace);
           if (mashaLine) currentLog = appendLog(currentLog, mashaLine);
-          if (isPerfect) currentLog = appendLog(currentLog, '>> PERFECT BREACH: Tactical risk recognized. +25% Intel bonus applied.');
+          if (isPerfect) currentLog = appendLog(currentLog, '>> PERFECT BREACH: Tactical risk recognized. Bonus Intel applied.');
           currentLog = appendLog(currentLog, `>> NODE BREACHED. PAYLOAD SECURED: +${intelEarned} IF.`);
           if (fragmentIdx !== null) currentLog = appendLog(currentLog, `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
+          if (rootKeysEarned > 0) currentLog = appendLog(currentLog, `>> [!] ROOT ACCESS KEY ACQUIRED.`);
+
+          let nextInv = [...s.inventory];
+          if (kernelLoot) {
+             currentLog = appendLog(currentLog, `>> KERNEL BARON LOOT: ${kernelLoot.name} extracted.`);
+             const extIndex = nextInv.findIndex(i => i.id === kernelLoot.id);
+             if (extIndex >= 0) {
+                 nextInv[extIndex].count = (nextInv[extIndex].count || 1) + 1;
+             } else {
+                 nextInv.push({...kernelLoot, count: 1});
+             }
+          }
+
           currentLog = appendLog(currentLog, '// AWAITING MANUAL DISCONNECT...');
 
           set({
@@ -779,7 +882,9 @@ triggerFirstBoot: () => {
             digitalTrace:       finalTrace,
             physicalHeat:       newHeat,
             intelFragments:     s.intelFragments + intelEarned,
+            rootAccessKeys:     s.rootAccessKeys + rootKeysEarned,
             sessionIntelEarned: intelEarned,
+            inventory:          nextInv,
             storyArchive:       newArchive,
             hasBeatenGame:      s.hasBeatenGame || isTartarus,
             tartarusBeaten:     s.tartarusBeaten || isTartarus,
@@ -1045,6 +1150,13 @@ triggerFirstBoot: () => {
 
         initialLogs.push(`// SAFEHOUSE ${s.currentSafehouse?.id ?? 'ALPHA'} ACTIVE: ${(s.currentSafehouse?.trait ?? 'Standard').toUpperCase()} PROTOCOLS ENGAGED.`);
 
+        // KERNEL: Cold Boot (Ghost Tier 2)
+        let startingTrace = 0;
+        if (s.kernelNodes.includes('GHOST_2')) {
+          startingTrace = -10;
+          initialLogs.push(`// KERNEL: COLD BOOT ACTIVE. TRACE BUFFERED AT -10%.`);
+        }
+
         set({
           status:                'hacking',
           nextStatus:            'transit',
@@ -1054,7 +1166,7 @@ triggerFirstBoot: () => {
           gameMode:              'campaign',
           isTutorial:            false,
           tutorialStep:          null,
-          digitalTrace:          0,
+          digitalTrace:          startingTrace,
           activeDaemon:          null,
           exposedTicks:          0,
           physicalHeat:          0,
@@ -1366,12 +1478,15 @@ triggerFirstBoot: () => {
           [itemId]: s.consumables[itemId] - 1,
         };
 
+        let cd = 3;
+        if (s.kernelNodes.includes('ARCH_3')) cd = Math.max(1, Math.floor(cd * 0.5)); // KERNEL: Efficient Hardware
+
         if (itemId === 'ghost') {
           set({
             ghostTicks:  4, // 4 seconds of trace freeze
             consumables: newConsumables,
             terminalLog: appendLog(s.terminalLog, '>> GHOST.sys ACTIVATED. TRACE METRICS FROZEN.'),
-            globalConsumableCooldown: 3,
+            globalConsumableCooldown: cd,
           });
           return;
         }
@@ -1381,7 +1496,7 @@ triggerFirstBoot: () => {
             rabbitTicks: 5, // 5 seconds of DOT
             consumables: newConsumables,
             terminalLog: appendLog(s.terminalLog, '>> RABBIT VIRUS INJECTED — THEY ARE MULTIPLYING.'),
-            globalConsumableCooldown: 3,
+            globalConsumableCooldown: cd,
           });
           return;
         }
@@ -1526,11 +1641,27 @@ triggerFirstBoot: () => {
         if (s.settings?.hapticsEnabled) haptic(15);
         AudioManager.playSFX('thock');
 
+        let cd = 3;
+        if (s.kernelNodes.includes('ARCH_3')) cd = Math.max(1, Math.floor(cd * 0.5)); // KERNEL: Efficient Hardware
+
         set(state => ({
           ...update,
           terminalLog: appendLog(state.terminalLog, logMsg),
-          globalConsumableCooldown: 3,
+          globalConsumableCooldown: cd,
         }));
+      },
+
+      // ─── KERNEL PURCHASES ─────────────────────────────────────────────
+      purchaseKernelNode: (nodeId, cost) => {
+        const s = get();
+        if (s.rootAccessKeys >= cost && !s.kernelNodes.includes(nodeId)) {
+          if (s.settings?.hapticsEnabled) haptic([30, 60, 30]);
+          AudioManager.playSFX('success');
+          set({
+            rootAccessKeys: s.rootAccessKeys - cost,
+            kernelNodes: [...s.kernelNodes, nodeId],
+          });
+        }
       },
 
       // ─── PURCHASE UPGRADE ─────────────────────────────────────────────
@@ -1641,6 +1772,10 @@ triggerFirstBoot: () => {
 
         if (version < 10) {
           state = { ...state, decryptedFragments: [] };
+        }
+
+        if (version < 11) {
+          state = { ...state, kernelNodes: [], rootAccessKeys: 0 };
         }
 
         return state;

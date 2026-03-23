@@ -1,0 +1,122 @@
+{
+  "GHOST": {
+    "id": "GHOST",
+    "name": "The Ghost",
+    "description": "Stealth & Trace Control",
+    "color": "emerald",
+    "nodes": [
+      {
+        "id": "GHOST_1",
+        "name": "Phantom Thread",
+        "description": "Passive Trace generation rate is reduced by 10%.",
+        "cost": 1,
+        "tier": 1
+      },
+      {
+        "id": "GHOST_2",
+        "name": "Cold Boot",
+        "description": "When entering a new node, start with -10 Digital Trace (acting as a buffer).",
+        "cost": 1,
+        "tier": 2,
+        "requires": "GHOST_1"
+      },
+      {
+        "id": "GHOST_3",
+        "name": "Ghost Protocol",
+        "description": "Using PULSE has a 20% chance to immediately refresh its own cooldown.",
+        "cost": 1,
+        "tier": 3,
+        "requires": "GHOST_2"
+      },
+      {
+        "id": "GHOST_CAP",
+        "name": "Void Walker",
+        "description": "Endless Capstone: Every 5 Darknet Tiers beaten grants a flat -2% Trace generation rate.",
+        "cost": 1,
+        "tier": 4,
+        "isCapstone": true,
+        "requires": "GHOST_3"
+      }
+    ]
+  },
+  "SLEDGEHAMMER": {
+    "id": "SLEDGEHAMMER",
+    "name": "The Sledgehammer",
+    "description": "Aggression & Damage",
+    "color": "orange",
+    "nodes": [
+      {
+        "id": "SLEDGE_1",
+        "name": "Wide-Band SCAN",
+        "description": "SCAN deals +10 Firewall Damage, but generates +5 Physical Heat.",
+        "cost": 1,
+        "tier": 1
+      },
+      {
+        "id": "SLEDGE_2",
+        "name": "Momentum Strike",
+        "description": "Using BYPASS on an unexposed node (without DECRYPT) deals 1.5x damage.",
+        "cost": 1,
+        "tier": 2,
+        "requires": "SLEDGE_1"
+      },
+      {
+        "id": "SLEDGE_3",
+        "name": "Thermal Overdrive",
+        "description": "While Rig Heat is above 80%, all tools deal +20% damage.",
+        "cost": 1,
+        "tier": 3,
+        "requires": "SLEDGE_2"
+      },
+      {
+        "id": "SLEDGE_CAP",
+        "name": "Juggernaut",
+        "description": "Endless Capstone: Every 5 Darknet Tiers beaten adds +5 flat Firewall Damage to BYPASS.",
+        "cost": 1,
+        "tier": 4,
+        "isCapstone": true,
+        "requires": "SLEDGE_3"
+      }
+    ]
+  },
+  "ARCHITECT": {
+    "id": "ARCHITECT",
+    "name": "The Architect",
+    "description": "Utility & Survival",
+    "color": "fuchsia",
+    "nodes": [
+      {
+        "id": "ARCH_1",
+        "name": "Deep Siphon",
+        "description": "Intel Fragments earned from Perfect Breaches (Trace >= 90%) are increased by 20%.",
+        "cost": 1,
+        "tier": 1
+      },
+      {
+        "id": "ARCH_2",
+        "name": "Emergency Vent",
+        "description": "If Physical Heat reaches 95%, automatically consume 1 Liquid Cooler from inventory (if available) without spending an action.",
+        "cost": 1,
+        "tier": 2,
+        "requires": "ARCH_1"
+      },
+      {
+        "id": "ARCH_3",
+        "name": "Efficient Hardware",
+        "description": "All consumable/hardware global cooldowns are reduced by 50%.",
+        "cost": 1,
+        "tier": 3,
+        "requires": "ARCH_2"
+      },
+      {
+        "id": "ARCH_CAP",
+        "name": "Silicon Baron",
+        "description": "Endless Capstone: Every 5 Darknet Tiers beaten adds a 2% chance to automatically loot a rare hardware item upon node breach.",
+        "cost": 1,
+        "tier": 4,
+        "isCapstone": true,
+        "requires": "ARCH_3"
+      }
+    ]
+  }
+}
