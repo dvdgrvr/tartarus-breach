@@ -522,13 +522,28 @@ function BossCore({ trace, heat, fwHealth, maxFw, parsedLog }) {
   const act = getCurrentAct ? getCurrentAct() : 1;
   const gameMode    = useGameStore(s => s.gameMode);
   const arcadeScore = useGameStore(s => s.arcadeStats?.score ?? 0);
-  const hueShift = gameMode === 'arcade' ? arcadeScore * 15 : (act - 1) * 60;
   
-  const recentLogs = parsedLog.slice(-3);
-  
-  // Detection Logic
-  const isStaggered = recentLogs.some(l => l.includes('CRITICAL OVERRIDE') || l.includes('2.0x MULTIPLIER'));
-  const isTripleThreat = recentLogs.some(l => l.includes('TRIPLE_THREAT_DETONATION'));
+  const { hueShift, isStaggered, isTripleThreat } = useMemo(() => {
+    const shift = gameMode === 'arcade' ? arcadeScore * 15 : (act - 1) * 60;
+
+    let staggered = false;
+    let triple = false;
+    const len = parsedLog.length;
+    const startIdx = Math.max(0, len - 3);
+
+    for (let i = startIdx; i < len; i++) {
+      const l = parsedLog[i];
+      if (!staggered && (l.includes('CRITICAL OVERRIDE') || l.includes('2.0x MULTIPLIER'))) {
+        staggered = true;
+      }
+      if (!triple && l.includes('TRIPLE_THREAT_DETONATION')) {
+        triple = true;
+      }
+      if (staggered && triple) break;
+    }
+
+    return { hueShift: shift, isStaggered: staggered, isTripleThreat: triple };
+  }, [gameMode, arcadeScore, act, parsedLog]);
 
   const maxDanger = Math.max(trace, heat);
   const healthPercent = fwHealth / maxFw;
