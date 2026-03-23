@@ -56,8 +56,8 @@ export default function ToolButton({ tool, errorId, handlePointerDown }) {
   const fillPercent = maxCooldown > 0 ? ((maxCooldown - cooldown) / maxCooldown) * 100 : 100;
 
   let buttonClass = [
-    'flex-1 relative overflow-hidden min-h-[60px] sm:min-h-[74px] py-1.5 sm:py-3 px-2 rounded touch-none flex flex-col items-center justify-center',
-    'border-[2px] border-b-[6px] transition-all duration-150 ease-out active:duration-0 select-none',
+    'flex-1 relative overflow-hidden min-h-[60px] sm:min-h-[84px] py-1.5 sm:py-3 px-2 rounded touch-none flex flex-col items-center justify-center',
+    'border-[2px] border-b-[8px] transition-all duration-150 ease-out active:duration-0 select-none',
     isError ? 'danger-shake !bg-red-950/40 !border-red-900 !text-red-500' : '',
     (tool.id === 'BYPASS' && exposedTicks > 0 && !disabled)
       ? 'border-amber-400/80 border-b-amber-600 shadow-[inset_0_0_20px_rgba(251,191,36,0.25)] animate-pulse z-20'
@@ -75,7 +75,7 @@ export default function ToolButton({ tool, errorId, handlePointerDown }) {
     buttonClass.push(styles.disabled);
   } else {
     buttonClass.push(styles.active);
-    buttonClass.push('active:border-b-[2px] active:translate-y-[4px] active:shadow-[inset_0_8px_15px_rgba(0,0,0,0.8)]');
+    buttonClass.push('active:border-b-[2px] active:translate-y-[6px] active:scale-[0.98] active:shadow-[inset_0_10px_20px_rgba(0,0,0,0.9)] active:filter-brightness-[0.75]');
   }
 
   return (

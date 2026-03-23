@@ -354,8 +354,6 @@ export default function HackingScene() {
           </div>
         )}
 
-        <NodeStatusStrip onInspect={handleInspect} />
-
         {/* ── HUD SEPARATION: BOSS TOP / LOGS BOTTOM ── */}
         <div className="flex-1 relative overflow-hidden flex flex-col justify-end min-h-0 pointer-events-none">
           <div className="absolute inset-0 pointer-events-none">
@@ -372,7 +370,8 @@ export default function HackingScene() {
           </div>
         </div>
 
-        <div className="border-t-[2px] border-zinc-800 pt-2 pb-1 bg-zinc-950 backdrop-blur-sm shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-30 relative">
+        <div className="border-t-[2px] border-zinc-800 pt-0 pb-1 bg-zinc-950 backdrop-blur-sm shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-30 relative">
+          <NodeStatusStrip onInspect={handleInspect} />
           <ComboDisplay />
           <div className="space-y-1 mt-1">
             <FirewallRow parsedLog={parsedLog} />
@@ -384,15 +383,15 @@ export default function HackingScene() {
           <TutorialOverlay step={tutorialStep} />
         )}
 
-        <div className="shrink-0 bg-zinc-950 border-t border-zinc-800/50 pt-1 pb-1 z-30 relative">
-          <CommandBar />
-        </div>
-
         {status === 'hacking' && (
           <div className="bg-zinc-950 backdrop-blur-sm shrink-0 z-30 relative">
             <ConsumableBar />
           </div>
         )}
+
+        <div className="shrink-0 bg-zinc-950 border-t border-zinc-800/50 pt-1 pb-4 z-30 relative">
+          <CommandBar />
+        </div>
 
       </div>
 
