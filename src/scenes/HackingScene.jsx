@@ -115,7 +115,7 @@ export default function HackingScene() {
     if (gameMode !== 'arcade' || status !== 'hacking') return;
     const interval = setInterval(() => tickArcadeTimer(), 1000);
     return () => clearInterval(interval);
-  }, [gameMode, status]);
+  }, [gameMode, status, tickArcadeTimer]);
 
   const handleDismissPopup = () => {
     AudioManager.playSFX('thock');
@@ -363,32 +363,33 @@ export default function HackingScene() {
           </div>
 
           {/* The "RPG Chat Box" Constrained Terminal */}
-          {/* FIX: Swapped hard percentages for flex properties and a min-height */}
-          <div className="flex-[0.5] sm:flex-none sm:h-[40%] min-h-[70px] w-full relative pointer-events-auto border-t-[2px] border-zinc-800/80 bg-zinc-950/90 shadow-[0_-15px_40px_rgba(0,0,0,0.6)] flex flex-col transition-all duration-300">
+        <div className="flex-[0.5] sm:flex-none sm:h-[40%] min-h-[90px] w-full relative pointer-events-auto border-t-[2px] border-zinc-800 bg-zinc-950/95 shadow-[0_-20px_50px_rgba(0,0,0,0.8)] flex flex-col transition-all duration-300">
             {/* A sick little hardware tab label for the log box */}
-            <div className="absolute top-0 left-4 -translate-y-1/2 bg-zinc-950 px-3 py-0.5 border-[2px] border-zinc-800 text-xs font-mono text-cyan-500 font-bold tracking-widest uppercase shadow-[0_0_10px_rgba(0,0,0,1)] z-20">
+          <div className="absolute top-0 left-4 -translate-y-1/2 bg-zinc-950 px-3 py-0.5 border-[2px] border-zinc-700 text-xs font-mono text-cyan-400 font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(0,0,0,1)] z-20">
               Terminal_Uplink
             </div>
             <TerminalLog className={(isTraceDanger && !reducedMotion) ? 'digital-glitch' : ''} />
           </div>
         </div>
 
-        <div className="border-t border-zinc-800/60 pt-1 pb-0.5 bg-zinc-950/60 backdrop-blur-sm shrink-0">
+        <div className="border-t-[2px] border-zinc-800 pt-2 pb-1 bg-zinc-950 backdrop-blur-sm shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-30 relative">
           <ComboDisplay />
-          <FirewallRow parsedLog={parsedLog} />
-          <TraceRow parsedLog={parsedLog} />
+          <div className="space-y-1 mt-1">
+            <FirewallRow parsedLog={parsedLog} />
+            <TraceRow parsedLog={parsedLog} />
+          </div>
         </div>
 
         {isTutorial && tutorialStep && (
           <TutorialOverlay step={tutorialStep} />
         )}
 
-        <div className="shrink-0 bg-zinc-950">
+        <div className="shrink-0 bg-zinc-950 border-t border-zinc-800/50 pt-1 pb-1 z-30 relative">
           <CommandBar />
         </div>
 
         {status === 'hacking' && (
-          <div className="bg-zinc-950/60 backdrop-blur-sm shrink-0">
+          <div className="bg-zinc-950 backdrop-blur-sm shrink-0 z-30 relative">
             <ConsumableBar />
           </div>
         )}

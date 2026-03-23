@@ -1569,6 +1569,7 @@ triggerFirstBoot: () => {
         }
 
         if (version < 3) {
+          // eslint-disable-next-line no-unused-vars
           const { credits, sessionCreditsEarned, ...rest } = state;
           state = {
             ...rest,

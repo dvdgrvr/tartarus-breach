@@ -315,11 +315,11 @@
   .cyberdelia-vibe .text-zinc-100          { color: #39FF14 !important; }
   .cyberdelia-vibe .text-zinc-200,
   .cyberdelia-vibe .text-zinc-300          { color: #39FF14 !important; }
-  .cyberdelia-vibe .text-zinc-400          { color: rgba(57, 255, 20, 0.65) !important; }
-  .cyberdelia-vibe .text-zinc-500          { color: rgba(57, 255, 20, 0.55) !important; }
-  .cyberdelia-vibe .text-zinc-600          { color: rgba(57, 255, 20, 0.40) !important; }
-  .cyberdelia-vibe .text-zinc-700          { color: rgba(57, 255, 20, 0.28) !important; }
-  .cyberdelia-vibe .text-zinc-800          { color: rgba(57, 255, 20, 0.18) !important; }
+  .cyberdelia-vibe .text-zinc-400          { color: rgba(57, 255, 20, 0.85) !important; }
+  .cyberdelia-vibe .text-zinc-500          { color: rgba(57, 255, 20, 0.75) !important; }
+  .cyberdelia-vibe .text-zinc-600          { color: rgba(57, 255, 20, 0.50) !important; }
+  .cyberdelia-vibe .text-zinc-700          { color: rgba(57, 255, 20, 0.35) !important; }
+  .cyberdelia-vibe .text-zinc-800          { color: rgba(57, 255, 20, 0.25) !important; }
 
   /* ── Borders: cyan / green / violet / fuchsia → green tint */
   .cyberdelia-vibe [class*="border-cyan"],
@@ -520,8 +520,9 @@
 /* Danger shake — rapid micro-tremor on >80% bars */
 @keyframes danger-shake {
   0%, 100% { transform: translateX(0); }
-  25%       { transform: translateX(-1.5px); }
-  75%       { transform: translateX(1.5px); }
+    25%       { transform: translateX(-2.5px); filter: brightness(1.1); }
+    50%       { transform: translateX(1px); filter: brightness(0.9); }
+    75%       { transform: translateX(2.5px); filter: brightness(1.15); }
 }
 
 /* Transit header flicker — occasional dropout (Phase 1) */
@@ -758,13 +759,13 @@
 /* ─── CHUNKY DATA STRIKES (Hackers 1995 Style) ─── */
 @keyframes data-strike {
   /* Start lower, squeezed */
-  0% { transform: translateY(100px) scaleY(0.5); opacity: 0; }
+    0% { transform: translateY(150px) scaleY(0.4); opacity: 0; filter: blur(2px); }
   /* Snap up, stretch out, flash bright */
-  15% { transform: translateY(0px) scaleY(1.2); opacity: 1; filter: brightness(2); }
+    15% { transform: translateY(0px) scaleY(1.5); opacity: 1; filter: brightness(2.5) blur(0px); }
   /* Hang in the air as it hits the boss */
-  75% { transform: translateY(-150px) scaleY(1); opacity: 1; filter: brightness(1.2); }
+    75% { transform: translateY(-120px) scaleY(1.1); opacity: 1; filter: brightness(1.5); }
   /* Collapse into the core */
-  100% { transform: translateY(-250px) scaleY(0); opacity: 0; }
+    100% { transform: translateY(-300px) scaleY(0); opacity: 0; }
 }
 
 .animate-data-strike {

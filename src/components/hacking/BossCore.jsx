@@ -133,7 +133,7 @@ export default function BossCore({ trace, heat, fwHealth, maxFw, parsedLog }) {
              style={{ animationPlayState: playState }}>
           <div className={`w-1/2 h-1/2 rounded-full ${coreBg} ${isEnraged ? 'animate-pulse' : ''}`}
                style={{ animationPlayState: playState }} />
-          {(fwHealth < (prevFw ? prevFw.current : fwHealth)) && <div className="absolute inset-0 bg-white rounded-sm animate-ping" />}
+          {(particles.length > 0) && <div className="absolute inset-0 bg-white rounded-sm animate-ping" />}
         </div>
 
         {/* ─── DATA BEAMS ─── */}

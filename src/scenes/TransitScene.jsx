@@ -100,8 +100,6 @@ function SessionSummary() {
   const isPerfect = useGameStore(s => s.isPerfectBreach);
 
   const badge = OUTCOME_BADGE[outcome] ?? OUTCOME_BADGE.escaped;
-  
-  const safeLogs = terminal.map(log => typeof log === 'string' ? log : (log?.text || ''));
 
   const filteredLogs = terminal.filter(log => 
     !log.includes('SIPHONING...') && 
@@ -357,7 +355,7 @@ function ConsumableItem({ itemId, label, description, cost }) {
 function LootInventory() {
   const inventory = useGameStore(s => s.inventory || []);
   const activeModifiers = useGameStore(s => s.activeModifiers || []);
-  const useHardware = useGameStore(s => s.useHardware);
+  const performHardware = useGameStore(s => s.useHardware);
 
   return (
     <div className="mb-6">
@@ -408,7 +406,7 @@ function LootInventory() {
                   </span>
                 ) : (
                   <button
-                    onClick={() => useHardware(idx)}
+                    onClick={() => performHardware(idx)}
                     className={`shrink-0 px-4 py-2 rounded font-mono text-[10px] font-bold uppercase tracking-widest transition-all duration-150 border border-b-[2px] active:translate-y-[1px] active:border-b ${
                       item.id === 'RED_ONION' 
                         ? 'border-red-900 text-red-500 bg-red-950/30 hover:bg-red-900/50'
@@ -629,7 +627,6 @@ function DeckManual() {
           {toolsConfig.map(tool => {
              const actualCd  = getCooldown(tool.baseCooldown);
              const actualDmg = getDmg(tool.id, tool.baseEffect.firewallDamage);
-             const traceGain = tool.baseEffect.traceGain;
              const heatGain  = tool.baseEffect.heatGain;
              
              const cardStyle = TOOL_CARD_COLORS[tool.color] || "border-zinc-500/30 bg-zinc-500/10";

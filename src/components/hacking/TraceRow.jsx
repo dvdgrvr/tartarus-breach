@@ -16,9 +16,14 @@ export default function TraceRow({ parsedLog }) {
 
   useEffect(() => {
     if (log.length > 0 && log[log.length - 1].includes('PERFECT SYNC')) {
-      setSyncFlash(true);
+      const delaySync = setTimeout(() => {
+        setSyncFlash(true);
+      }, 0);
       const timer = setTimeout(() => setSyncFlash(false), 600);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(delaySync);
+        clearTimeout(timer);
+      };
     }
   }, [log]);
 
