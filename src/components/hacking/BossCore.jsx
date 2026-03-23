@@ -95,7 +95,7 @@ export default function BossCore({ trace, heat, fwHealth, maxFw, parsedLog }) {
       <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/10 via-zinc-950/40 to-zinc-950" />
 
       {/* MASSIVE CONTAINER (Filter Applied Here) */}
-      <div className={`absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-96 md:h-96 flex items-center justify-center opacity-90 mix-blend-screen transition-all duration-75 ease-out ${staggerEffect} ${finisherClass}`}
+      <div className={`absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 md:w-96 md:h-96 flex items-center justify-center opacity-90 mix-blend-screen transition-all duration-75 ease-out ${staggerEffect} ${finisherClass}`}
            style={{
              animationPlayState: playState,
              filter: `hue-rotate(${hueShift}deg)` // <--- This shifts the color!
