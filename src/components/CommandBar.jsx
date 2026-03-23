@@ -89,9 +89,7 @@ export default function CommandBar() {
 
   // ─── ACTIVE HACKING UI ───
   return (
-    <div className="relative px-4 py-2 grid grid-cols-2 gap-2 sm:gap-3"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
-    >
+    <div className="relative px-4 py-2 grid grid-cols-2 gap-2 sm:gap-3">
       {toolsConfig.map((tool) => (
         <ToolButton
           key={tool.id}
