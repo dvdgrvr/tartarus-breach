@@ -21,9 +21,12 @@ export default function MashaCodec({ parsedLog }) {
 
       const cleanText = latestMashaLog.replace(/^.*MASHA[^a-zA-Z0-9]*\s*/i, '').replace(/['"]/g, '');
 
-      setMessage(cleanText);
-      setIsVisible(true);
-      setDisplayKey(prev => prev + 1); // Increment key to reset timer logic
+      const delayMessage = setTimeout(() => {
+        setMessage(cleanText);
+        setIsVisible(true);
+        setDisplayKey(prev => prev + 1); // Increment key to reset timer logic
+      }, 0);
+      return () => clearTimeout(delayMessage);
     }
   }, [parsedLog]);
 

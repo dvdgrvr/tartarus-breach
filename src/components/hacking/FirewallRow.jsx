@@ -14,20 +14,26 @@ export default function FirewallRow({ parsedLog }) {
 
   useEffect(() => {
     if (firewallHealth < prevHP.current) {
-      setIsHit(true);
-
       // ADDED: Check the last 3 log entries to see if we triggered the 2.0x Multiplier safely
       const recentLogs = parsedLog.slice(-3);
       const wasCritical = recentLogs.some(l => l.includes('CRITICAL OVERRIDE'));
-      if (wasCritical) setIsCrit(true);
 
-      const timer = setTimeout(() => {
+      // Use a timeout to schedule the state update so it isn't completely synchronous during render cycle
+      const delayHit = setTimeout(() => {
+        setIsHit(true);
+        if (wasCritical) setIsCrit(true);
+      }, 0);
+
+      const clearHit = setTimeout(() => {
         setIsHit(false);
         setIsCrit(false);
       }, 300); // 300ms hold so the critical flash feels weighty
 
       prevHP.current = firewallHealth;
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(delayHit);
+        clearTimeout(clearHit);
+      };
     }
     prevHP.current = firewallHealth;
   }, [firewallHealth, parsedLog]);

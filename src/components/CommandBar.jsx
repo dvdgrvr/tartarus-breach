@@ -24,16 +24,28 @@ export default function CommandBar() {
 
   useEffect(() => {
     if (status === 'resolved') {
-      setDisconnectLocked(true);
+      const lockDelay = setTimeout(() => setDisconnectLocked(true), 0);
       const timer = setTimeout(() => setDisconnectLocked(false), 1200);
-      return () => clearTimeout(timer);
+      return () => {
+        clearTimeout(lockDelay);
+        clearTimeout(timer);
+      };
     }
   }, [status]);
 
   useEffect(() => {
     if (status !== 'resolved' || transitOutcome !== 'success') {
-      setIsSiphoning(false);
-      if (siphonInterval.current) clearInterval(siphonInterval.current);
+      const timer = setTimeout(() => {
+        setIsSiphoning(prev => {
+          if (prev) return false;
+          return prev;
+        });
+      }, 0);
+      if (siphonInterval.current) {
+        clearInterval(siphonInterval.current);
+        siphonInterval.current = null;
+      }
+      return () => clearTimeout(timer);
     }
     return () => {
       if (siphonInterval.current) clearInterval(siphonInterval.current);

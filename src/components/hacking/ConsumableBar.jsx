@@ -2,9 +2,9 @@ import useGameStore from '../../store/useGameStore';
 
 export default function ConsumableBar() {
   const consumables             = useGameStore(s => s.consumables);
-  const useConsumable           = useGameStore(s => s.useConsumable);
+  const performConsumable       = useGameStore(s => s.useConsumable);
   const inventory               = useGameStore(s => s.inventory || []);
-  const useHardware             = useGameStore(s => s.useHardware);
+  const performHardware         = useGameStore(s => s.useHardware);
   const hasBeatenGame           = useGameStore(s => s.hasBeatenGame);
   const getCurrentAct           = useGameStore(s => s.getCurrentAct);
   const globalConsumableCooldown = useGameStore(s => s.globalConsumableCooldown || 0);
@@ -22,12 +22,16 @@ export default function ConsumableBar() {
 
   const onGlobalCooldown = globalConsumableCooldown > 0;
 
+  const handleUseRabbit = () => performConsumable('rabbit');
+  const handleUseGhost = () => performConsumable('ghost');
+  const handleUseHardware = (idx) => performHardware(idx);
+
   return (
     <div className="flex flex-col gap-2 px-4 py-2 border-t border-zinc-800/40 pb-3">
       {(hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0) && (
         <div className="flex gap-2">
           <button
-            onClick={() => useConsumable('rabbit')}
+            onClick={handleUseRabbit}
             disabled={rabbit === 0 || onGlobalCooldown}
             className={[
               'flex-1 py-3 px-4 rounded-sm font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
@@ -39,7 +43,7 @@ export default function ConsumableBar() {
             RABBIT [×{rabbit}]{onGlobalCooldown ? ` — ${globalConsumableCooldown}s` : ''}
           </button>
           <button
-            onClick={() => useConsumable('ghost')}
+            onClick={handleUseGhost}
             disabled={ghost === 0 || onGlobalCooldown}
             className={[
               'flex-1 py-3 px-4 rounded-sm font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[4px] active:border-b active:translate-y-[2px]',
@@ -58,7 +62,7 @@ export default function ConsumableBar() {
           {activeHardware.map((item, i) => (
              <button
                key={`${item.id}-${i}`}
-               onClick={() => useHardware(item.originalIndex)}
+               onClick={() => handleUseHardware(item.originalIndex)}
                disabled={onGlobalCooldown}
                className={[
                  'shrink-0 flex-1 min-w-[120px] py-2.5 px-3 rounded-sm font-mono text-xs font-bold uppercase tracking-widest transition-all duration-75 border border-b-[3px] active:border-b active:translate-y-[2px] snap-center',
