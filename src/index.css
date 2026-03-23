@@ -215,17 +215,10 @@
     background: radial-gradient(
       ellipse at center,
       transparent 20%,
-      rgba(239, 68, 68, 0.35) 100%
+      rgba(239, 68, 68, 0.15) 100%
     );
-    animation: heartbeat 1.2s ease-in-out infinite, siren-glitch 4s infinite linear;
+    animation: heartbeat 1.2s ease-in-out infinite;
     z-index: 20;
-  }
-
-  @keyframes siren-glitch {
-    0%, 96%, 100% { filter: hue-rotate(0deg) contrast(1); }
-    97% { filter: hue-rotate(90deg) contrast(2); }
-    98% { filter: hue-rotate(-90deg) contrast(1.5); }
-    99% { filter: hue-rotate(180deg) contrast(3); }
   }
 
   /* ── Terminal glitch — chromatic aberration + horizontal tear ─────────── */
@@ -766,13 +759,13 @@
 /* ─── CHUNKY DATA STRIKES (Hackers 1995 Style) ─── */
 @keyframes data-strike {
   /* Start lower, squeezed */
-    0% { transform: translateY(150px) scaleY(0.4); opacity: 0; filter: blur(2px); }
+    0% { transform: translateY(100px) scaleY(0.5); opacity: 0; }
   /* Snap up, stretch out, flash bright */
-    15% { transform: translateY(0px) scaleY(1.5); opacity: 1; filter: brightness(2.5) blur(0px); }
+    15% { transform: translateY(0px) scaleY(1.2); opacity: 1; filter: brightness(2); }
   /* Hang in the air as it hits the boss */
-    75% { transform: translateY(-120px) scaleY(1.1); opacity: 1; filter: brightness(1.5); }
+    75% { transform: translateY(-150px) scaleY(1); opacity: 1; filter: brightness(1.2); }
   /* Collapse into the core */
-    100% { transform: translateY(-300px) scaleY(0); opacity: 0; }
+    100% { transform: translateY(-250px) scaleY(0); opacity: 0; }
 }
 
 .animate-data-strike {
