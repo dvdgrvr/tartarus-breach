@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { TopBorder, BottomBorder } from '../components/PeripheralBorder';
 import TerminalLog from '../components/TerminalLog';
 import CommandBar from '../components/CommandBar';
@@ -322,14 +322,18 @@ function TraceRow() {
 
   const [syncFlash, setSyncFlash] = useState(false);
 
+  const log = useMemo(() =>
+    (rawLog || []).map(entry => typeof entry === 'string' ? entry : (entry?.text || '')),
+    [rawLog]
+  );
+
   useEffect(() => {
-    const log = (rawLog || []).map(entry => typeof entry === 'string' ? entry : (entry?.text || ''));
     if (log.length > 0 && log[log.length - 1].includes('PERFECT SYNC')) {
       setSyncFlash(true);
       const timer = setTimeout(() => setSyncFlash(false), 600);
       return () => clearTimeout(timer);
     }
-  }, [rawLog]);
+  }, [log]);
   
   const shakeEnabled  = settings?.shakeEnabled ?? true;
   const glitchEnabled = settings?.glitchEnabled ?? true;
@@ -523,8 +527,10 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
   const arcadeScore = useGameStore(s => s.arcadeStats?.score ?? 0);
   const hueShift = gameMode === 'arcade' ? arcadeScore * 15 : (act - 1) * 60;
   
-  const safeLog = rawLog || [];
-  const recentLogs = safeLog.slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
+  const recentLogs = useMemo(() => {
+    const safeLog = rawLog || [];
+    return safeLog.slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
+  }, [rawLog]);
   
   // Detection Logic
   const isStaggered = recentLogs.some(l => l.includes('CRITICAL OVERRIDE') || l.includes('2.0x MULTIPLIER'));
