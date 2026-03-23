@@ -810,55 +810,6 @@ function DeckManual() {
         </div>
       )}
 
-      {/* ── HARDWARE PROTOCOLS ── */}
-      <div>
-        {renderSectionHeader(
-          "protocols",
-          "// Hardware Protocols",
-          "(High Risk)",
-          "text-orange-400"
-        )}
-        {activeSection === 'protocols' && (
-        <div className="glass-panel rounded-lg p-5 border border-orange-500/30 bg-orange-950/20 mt-3 animate-slide-down">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-xl">⚠️</span>
-            <span className="font-mono text-sm font-black text-orange-400 tracking-widest uppercase">
-              Protocol 0x42: Thermal Overdrive
-            </span>
-          </div>
-          
-          <p className="font-mono text-[11px] text-zinc-200 leading-relaxed mb-4">
-            Safety limiters can be forced to execute tools during signal recovery (cooldown). This "Overdrive" generates instantaneous friction in the processing core.
-          </p>
-
-          <div className="space-y-3">
-            <div className="flex gap-3">
-              <span className="font-mono text-[10px] font-bold text-orange-400 shrink-0">[50% RULE]</span>
-              <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-tighter">
-                Recovery must be at least 50% complete before a force-execution is possible.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <span className="font-mono text-[10px] font-bold text-orange-400 shrink-0">[HEAT SPIKE]</span>
-              <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-tighter">
-                Tactical tools (SCAN/BYPASS) spike up to <span className="text-orange-300">+30% HEAT</span>. Strategic tools (PULSE/DECRYPT) spike up to <span className="text-orange-300">+15% HEAT</span>.
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <span className="font-mono text-[10px] font-bold text-orange-400 shrink-0">[LOCKOUT]</span>
-              <p className="font-mono text-[10px] text-zinc-400 uppercase tracking-tighter">
-                A 0.5s hardware lockout is enforced immediately after standard execution to prevent thermal cascade.
-              </p>
-            </div>
-          </div>
-
-          <p className="mt-5 pt-3 border-t border-orange-900/30 font-mono text-[10px] italic text-zinc-500">
-            // MASHA: "Don't fry the rig for a simple SCAN unless the Trace is at your throat. It's an emergency save, not a standard rotation."
-          </p>
-        </div>
-        )}
-      </div>
-
     </div>
   );
 }
