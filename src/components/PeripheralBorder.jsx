@@ -24,10 +24,7 @@ export function TopBorder() {
   const labelClass = isDanger ? 'text-red-400' : isWarning ? 'text-orange-400' : 'text-zinc-400';
 
   return (
-    <div 
-      className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm flex items-center gap-4 shrink-0"
-      style={{ paddingTop: 'max(env(safe-area-inset-top), 12px)' }}
-    >
+    <div className="px-4 py-3 border-b border-zinc-800 bg-zinc-950/90 backdrop-blur-sm flex items-center gap-4 shrink-0">
       <span className={`font-mono text-xs uppercase tracking-widest w-14 shrink-0 font-bold ${labelClass} ${isDanger ? 'animate-pulse' : ''}`}>
         {isDanger ? '[!] HEAT' : 'HEAT'}
       </span>

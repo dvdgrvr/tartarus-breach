@@ -183,7 +183,7 @@ export default function App() {
   };
 
   const envId   = (status === 'hacking' || status === 'resolved') ? 'combat' : (currentSafehouse?.id?.toLowerCase() ?? 'alpha');
-  const roomClass = `h-[100svh] w-full flex justify-center items-center overflow-hidden room-environment env-${envId}`;
+  const roomClass = `flex-1 w-full flex justify-center items-center overflow-hidden room-environment env-${envId}`;
 
   useEffect(() => {
     const id = setInterval(tick, TICK_INTERVAL_MS);
@@ -211,7 +211,7 @@ export default function App() {
       {/* ── HARDWARE BEZEL (The physical device) ── */}
       {/* ON MOBILE: It spans 100% height/width. ON DESKTOP (sm:): It looks like a physical deck device. */}
       <div 
-        className="flex flex-col relative w-full h-[100dvh] bg-black sm:h-[95svh] sm:max-w-md sm:p-3 sm:bg-zinc-900 sm:border-t sm:border-zinc-700 sm:border-x sm:border-zinc-800 sm:border-b-[8px] sm:border-b-black sm:rounded-[32px]" 
+        className="flex flex-col relative w-full h-full bg-black sm:h-[95svh] sm:max-w-md sm:p-3 sm:bg-zinc-900 sm:border-t sm:border-zinc-700 sm:border-x sm:border-zinc-800 sm:border-b-[8px] sm:border-b-black sm:rounded-[32px]"
         style={deviceStyle}
       >
         

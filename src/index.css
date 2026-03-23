@@ -21,6 +21,9 @@
   padding-bottom: var(--sab);
   height: 100vh;
   height: 100dvh; /* Dynamic viewport height for mobile browsers */
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ─── Base Reset & Cyber Foundation ──────────────────────────────────────────── */
