@@ -808,37 +808,6 @@ function DeckManual() {
         </div>
       </div>
 
-      {/* ── LOCAL_ENVIRONMENT_DIAGNOSTIC ── */}
-      {(() => {
-        const diagLines = getSafehouseDiagnostic(safehouse);
-        return (
-          <div>
-            <p className="font-mono text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3 mt-4">
-              // Local_Environment_Diagnostic
-            </p>
-            <div className="glass-panel rounded-lg p-4 border border-fuchsia-900/40 bg-fuchsia-950/10">
-              <p className="font-mono text-[9px] uppercase tracking-widest text-fuchsia-400/50 mb-3">
-                SAFEHOUSE :: {safehouse?.id ?? 'ALPHA'} — {safehouse?.trait ?? 'Standard'}
-              </p>
-              {diagLines.length === 0 ? (
-                <p className="font-mono text-[11px] text-zinc-600 italic">No environmental modifiers active.</p>
-              ) : (
-                <div className="space-y-2">
-                  {diagLines.map((line, i) => (
-                    <div key={i} className="flex items-start gap-3">
-                      <span className={`font-mono text-[9px] font-bold uppercase tracking-widest shrink-0 w-28 ${line.color}`}>
-                        {line.label}
-                      </span>
-                      <span className="font-mono text-[10px] text-zinc-400 leading-snug">{line.desc}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
-
     </div>
   );
 }
@@ -898,7 +867,7 @@ function JobFooter({ isLocked, onJackIn }) {
   const lockClass = isLocked ? 'opacity-50 cursor-not-allowed pointer-events-none' : '';
 
   return (
-    <div className="px-4 pt-3 pb-6 border-t border-zinc-800 bg-zinc-950/90 backdrop-blur-sm shrink-0 flex flex-col gap-2" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}>
+    <div className="px-4 pt-4 pb-4 bg-transparent shrink-0 flex flex-col gap-2">
       
       {/* Top Row: Standard Missions (Side-by-Side) */}
       <div className="flex gap-2 w-full">
@@ -1096,26 +1065,31 @@ export default function TransitScene() {
         )}
       </div>
 
-      <div className="px-5 shrink-0 relative z-10 py-2">
+      <div className="px-4 sm:px-5 shrink-0 relative z-10 py-3 flex flex-col gap-3">
+        {/* Top Header Row */}
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-mono text-[12px] font-bold uppercase tracking-widest text-zinc-100">
-              Safe House // {currentSafehouse?.id ?? 'ALPHA'}
-            </h2>
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <h2 className="font-mono text-[14px] font-black uppercase tracking-widest text-zinc-100">
+                SAFE HOUSE // {currentSafehouse?.id ?? 'ALPHA'}
+              </h2>
+            </div>
             {hasBeatenGame && (
-              <p className="font-mono text-[11px] font-bold uppercase tracking-widest text-fuchsia-300 mt-1">
-                // Darknet Tier: {darknetTier} (Best: {highestDarknetTier})
+              <p className="font-mono text-[10px] font-bold uppercase tracking-widest text-fuchsia-400 mt-1">
+                Darknet Tier {darknetTier} <span className="text-fuchsia-400/50">(Best: {highestDarknetTier})</span>
               </p>
             )}
           </div>
           
-          <div className="flex items-center gap-4">
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-mono text-[11px] font-bold text-cyan-300 uppercase tracking-widest">Balance</span>
-              <p className="font-mono text-2xl font-bold text-cyan-400 tabular-nums">
-                <NumberScrambler value={intelFragments} />
-              </p>
-              <span className="font-mono text-[11px] font-bold text-cyan-300 uppercase">IF</span>
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-end justify-center">
+              <span className="font-mono text-[9px] font-bold text-cyan-400/60 uppercase tracking-widest mb-0.5">Balance</span>
+              <div className="flex items-baseline gap-1">
+                <p className="font-mono text-xl font-black text-cyan-400 tabular-nums leading-none">
+                  <NumberScrambler value={intelFragments} />
+                </p>
+                <span className="font-mono text-[10px] font-bold text-cyan-400/60 uppercase">IF</span>
+              </div>
             </div>
 
             <button
@@ -1123,40 +1097,42 @@ export default function TransitScene() {
                 toggleSettingsModal(true);
                 setPaused(true);
               }}
-              className="shrink-0 px-3 py-2 rounded bg-zinc-800/80 border border-zinc-600 border-b-[2px] active:border-b active:translate-y-[1px] text-zinc-300 hover:text-white hover:bg-zinc-700 transition-all flex items-center gap-1.5 select-none"
+              className="shrink-0 px-2 py-2 rounded bg-zinc-800/50 border border-zinc-700/80 hover:bg-zinc-700 transition-all flex flex-col items-center justify-center gap-1 select-none ml-2"
             >
-              <span className="text-sm leading-none">⚙</span>
-              <span className="font-mono text-[10px] font-bold uppercase tracking-widest">SYS</span>
+              <span className="text-sm leading-none text-zinc-400">⚙</span>
+              <span className="font-mono text-[8px] font-bold uppercase tracking-widest text-zinc-500">SYS</span>
             </button>
           </div>
         </div>
-      </div>
 
-      {/* ── SITE_ANALYSIS strip ── */}
-      {(() => {
-        const diagLines = getSafehouseDiagnostic(currentSafehouse);
-        const shColor   = currentSafehouse?.color ?? 'cyan';
-        const colorMap  = { cyan: 'text-cyan-400 border-cyan-700/50 bg-cyan-950/30', amber: 'text-amber-400 border-amber-700/50 bg-amber-950/30', emerald: 'text-emerald-400 border-emerald-700/50 bg-emerald-950/30', slate: 'text-slate-400 border-slate-700/50 bg-slate-950/30', fuchsia: 'text-fuchsia-400 border-fuchsia-700/50 bg-fuchsia-950/30' };
-        const cls = colorMap[shColor] ?? colorMap.cyan;
-        return (
-          <div className={`mx-4 mb-2 px-3 py-2 rounded border ${cls} shrink-0`}>
-            <p className="font-mono text-[9px] uppercase tracking-widest opacity-60 mb-1">
-              [ SITE_ANALYSIS ] — {currentSafehouse?.id ?? 'ALPHA'} · {currentSafehouse?.trait ?? 'Standard'}
-            </p>
-            {diagLines.length === 0 ? (
-              <p className="font-mono text-[10px] text-zinc-500">No environmental modifiers — clean operating conditions.</p>
-            ) : (
-              <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-                {diagLines.map((line, i) => (
-                  <span key={i} className={`font-mono text-[10px] font-bold ${line.color}`}>
-                    {line.label} <span className="font-normal text-zinc-500">{line.desc}</span>
-                  </span>
-                ))}
+        {/* ── SITE_ANALYSIS strip ── */}
+        {(() => {
+          const diagLines = getSafehouseDiagnostic(currentSafehouse);
+          const shColor   = currentSafehouse?.color ?? 'cyan';
+          const colorMap  = { cyan: 'border-cyan-500/20 bg-cyan-950/20', amber: 'border-amber-500/20 bg-amber-950/20', emerald: 'border-emerald-500/20 bg-emerald-950/20', slate: 'border-slate-500/20 bg-slate-950/20', fuchsia: 'border-fuchsia-500/20 bg-fuchsia-950/20' };
+          const cls = colorMap[shColor] ?? colorMap.cyan;
+          return (
+            <div className={`px-3 py-2 rounded-lg border ${cls} shrink-0 flex items-center justify-between`}>
+              <div className="flex-1">
+                {diagLines.length === 0 ? (
+                  <p className="font-mono text-[10px] text-zinc-500">No environmental modifiers active.</p>
+                ) : (
+                  <div className="flex flex-wrap gap-x-4 gap-y-0.5">
+                    {diagLines.map((line, i) => (
+                      <span key={i} className={`font-mono text-[10px] font-bold ${line.color}`}>
+                        {line.label} <span className="font-normal text-zinc-500 hidden sm:inline">{line.desc}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        );
-      })()}
+              <span className="font-mono text-[9px] uppercase tracking-widest text-zinc-600 font-bold shrink-0 ml-2">
+                {currentSafehouse?.trait ?? 'Standard'}
+              </span>
+            </div>
+          );
+        })()}
+      </div>
 
       <TabBar active={activeTab} onChange={setActiveTab} />
 
@@ -1166,28 +1142,6 @@ export default function TransitScene() {
           
           {activeTab === 'stash' && (
             <>
-              {/* ── ACTIVE_ENVIRONMENT strip ── */}
-              {(() => {
-                const diagLines = getSafehouseDiagnostic(currentSafehouse);
-                return (
-                  <div className="glass-panel rounded-lg px-3 py-2.5 mb-4 border border-fuchsia-900/40 bg-fuchsia-950/10">
-                    <p className="font-mono text-[9px] uppercase tracking-widest text-fuchsia-400/60 mb-1">
-                      [ ACTIVE_ENVIRONMENT ] — {currentSafehouse?.id ?? 'ALPHA'} · {currentSafehouse?.trait ?? 'Standard'}
-                    </p>
-                    {diagLines.length === 0 ? (
-                      <p className="font-mono text-[10px] text-zinc-600">No active modifiers.</p>
-                    ) : (
-                      <div className="flex flex-wrap gap-x-4 gap-y-0.5">
-                        {diagLines.map((line, i) => (
-                          <span key={i} className={`font-mono text-[10px] font-bold ${line.color}`}>
-                            {line.label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
               <LootInventory />
               <BlackMarket />
             </>
@@ -1204,10 +1158,10 @@ export default function TransitScene() {
       <div className="w-full bg-zinc-950/90 backdrop-blur-sm shrink-0 border-t border-zinc-800 flex justify-center">
         <div className="w-full max-w-md">
           <JobFooter isLocked={isLocked || isJackingIn} onJackIn={handleJackIn} />
-          <div className="flex justify-end px-4 pb-3">
+          <div className="flex justify-end px-4" style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)', marginTop: '-8px' }}>
             <button
               onClick={() => setStatus('main_menu')}
-              className="hardware-btn px-3 py-1.5 border border-zinc-800/80 border-b-zinc-900 text-zinc-600 font-mono text-[9px] font-bold uppercase tracking-widest bg-transparent hover:bg-zinc-900/60 hover:text-zinc-400 transition-all"
+              className="hardware-btn px-4 py-2 border border-zinc-800 border-b-zinc-900 text-zinc-500 font-mono text-[10px] font-bold uppercase tracking-widest bg-zinc-950 hover:bg-zinc-900 hover:text-zinc-300 transition-all shadow-none"
             >
               [ DISCONNECT_TO_MENU ]
             </button>
