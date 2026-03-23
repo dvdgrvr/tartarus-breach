@@ -115,6 +115,8 @@ function SessionSummary() {
   const mutatorBorder = hasMutator ? node.mutator.color.split(' ').find(c => c.startsWith('border-')) : 'border-zinc-800/80';
   const mutatorBg = hasMutator ? node.mutator.color.split(' ').find(c => c.startsWith('bg-')) : 'bg-zinc-900/30';
 
+  const [showLogs, setShowLogs] = useState(false);
+
   return (
     <div className="flex flex-col gap-4 mb-5">
       
@@ -190,21 +192,30 @@ function SessionSummary() {
         )}
       </div>
 
-      {/* 3. Black Box Recording (Terminal Snapshot) */}
-      <div className="glass-panel rounded-lg p-3 bg-black border border-zinc-800 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-green-900/10 pointer-events-none" />
-        <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-zinc-600 mb-2 relative z-10">
-          // BLACK_BOX_RECORDING.log
-        </p>
-        <div className="font-mono text-[10px] text-green-500/70 space-y-1 relative z-10">
-          {finalLogs.map((logLine, i) => (
-            <p key={i} className="leading-tight pl-2 -indent-2 break-words">
-              {logLine}
-            </p>
-          ))}
+      {/* 3. Black Box Recording (Terminal Snapshot) Toggle */}
+      <button
+        onClick={() => setShowLogs(!showLogs)}
+        className="w-full text-center py-2 font-mono text-[10px] text-zinc-500 font-bold uppercase tracking-widest hover:text-zinc-300 transition-colors bg-zinc-900/20 border border-zinc-800/50 rounded-lg"
+      >
+        {showLogs ? '[-] HIDE RAW LOGS' : '[+] SHOW RAW LOGS'}
+      </button>
+
+      {showLogs && (
+        <div className="glass-panel rounded-lg p-3 bg-black border border-zinc-800 relative overflow-hidden animate-slide-down">
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-green-900/10 pointer-events-none" />
+          <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-zinc-600 mb-2 relative z-10">
+            // BLACK_BOX_RECORDING.log
+          </p>
+          <div className="font-mono text-[10px] text-green-500/70 space-y-1 relative z-10">
+            {finalLogs.map((logLine, i) => (
+              <p key={i} className="leading-tight pl-2 -indent-2 break-words">
+                {logLine}
+              </p>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );
@@ -257,40 +268,40 @@ function UpgradeCard({ cfg }) {
         : 'border-zinc-700/50 bg-zinc-800/20';
 
   return (
-    <div className={`glass-panel rounded-lg p-4 border transition-all duration-150 ${cardClass}`}>
-      <div className="flex items-start justify-between gap-3 mb-2">
-        <div className="flex items-center gap-2.5">
+    <div className={`glass-panel rounded-lg p-3 border transition-all duration-150 ${cardClass}`}>
+      <div className="flex items-start justify-between gap-3 mb-1.5">
+        <div className="flex items-center gap-2">
           <span className="text-xl leading-none">{cfg.icon}</span>
           <div>
-            <p className="font-mono text-sm font-bold text-zinc-100 leading-tight">{cfg.label}</p>
-            <p className="font-mono text-xs text-zinc-300 mt-0.5">{cfg.effectSummary}</p>
+            <p className="font-mono text-[13px] font-bold text-zinc-100 leading-tight">{cfg.label}</p>
+            <p className="font-mono text-[11px] text-zinc-300 mt-0.5">{cfg.effectSummary}</p>
           </div>
         </div>
-        <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <div className="flex flex-col items-end gap-1 shrink-0">
           <LevelPips current={level} max={cfg.maxLevel} />
-          <span className="font-mono text-xs text-zinc-300">Lv {level}/{cfg.maxLevel}</span>
+          <span className="font-mono text-[10px] text-zinc-300">Lv {level}/{cfg.maxLevel}</span>
         </div>
       </div>
 
-      <p className="font-mono text-xs text-zinc-300 leading-relaxed mb-3">
+      <p className="font-mono text-[11px] text-zinc-400 leading-snug mb-2.5">
         {cfg.description}
       </p>
 
       <div className="flex items-center justify-between">
         {isMaxed ? (
-          <span className="font-mono text-sm font-bold text-green-400 uppercase tracking-widest">
+          <span className="font-mono text-[11px] font-bold text-green-400 uppercase tracking-widest">
             ✓ Max Level
           </span>
         ) : (
           <>
-            <span className={`font-mono text-base font-bold tabular-nums ${canAfford ? 'text-cyan-400' : 'text-zinc-400'}`}>
-              {cost} <span className={`text-xs ${canAfford ? 'text-cyan-400/90' : 'text-zinc-500'}`}>IF</span>
+            <span className={`font-mono text-[13px] font-bold tabular-nums ${canAfford ? 'text-cyan-400' : 'text-zinc-400'}`}>
+              {cost} <span className={`text-[10px] ${canAfford ? 'text-cyan-400/90' : 'text-zinc-500'}`}>IF</span>
             </span>
             <button
               onClick={handlePurchase}
               disabled={!canAfford}
               className={[
-                'hardware-btn px-6 py-2 rounded border-[2px] font-display text-xs font-bold uppercase tracking-widest', // <-- NEW CHUNKY STYLE
+                'hardware-btn px-5 py-1.5 rounded border-[2px] font-display text-[10px] font-bold uppercase tracking-widest', // <-- COMPRESSED BUTTON
                 canAfford
                   ? 'border-violet-500/50 border-b-violet-700/80 text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 glow-violet'
                   : 'border-zinc-700 border-b-zinc-800 text-zinc-500 bg-zinc-900',
@@ -324,21 +335,21 @@ function ConsumableItem({ itemId, label, description, cost }) {
   };
 
   return (
-    <div className={`glass-panel rounded-lg p-4 border flex items-center justify-between gap-3 transition-all duration-150 ${
+    <div className={`glass-panel rounded-lg p-3 border flex items-center justify-between gap-3 transition-all duration-150 ${
       isPurchasing ? 'animate-purchase border-white bg-white/20' : 'border-zinc-700/50 bg-zinc-800/10'
     }`}>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1">
-          <p className="font-mono text-sm font-bold text-zinc-100">{label}</p>
-          <span className="font-mono text-xs font-bold text-violet-300 tabular-nums shrink-0">×{count}</span>
+        <div className="flex items-center gap-2 mb-0.5">
+          <p className="font-mono text-[13px] font-bold text-zinc-100">{label}</p>
+          <span className="font-mono text-[10px] font-bold text-violet-300 tabular-nums shrink-0">×{count}</span>
         </div>
-        <p className="font-mono text-xs text-zinc-300 truncate">{description}</p>
+        <p className="font-mono text-[10px] text-zinc-400 truncate">{description}</p>
       </div>
       <button
         onClick={handlePurchase}
         disabled={!canAfford}
         className={[
-          'shrink-0 px-5 py-2 rounded border font-mono text-xs font-bold uppercase tracking-widest',
+          'shrink-0 px-4 py-1.5 rounded border font-mono text-[10px] font-bold uppercase tracking-widest',
           'transition-all duration-150 active:scale-95',
           canAfford
             ? 'border-violet-500/50 text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 hover:border-violet-400'
@@ -597,6 +608,25 @@ function DeckManual() {
   const archiveLen    = useGameStore(s => s.storyArchive.length);
   const hasBeatenGame = useGameStore(s => s.hasBeatenGame);
 
+  const [activeSection, setActiveSection] = useState('toolkit');
+
+  const toggleSection = (id) => {
+    setActiveSection(prev => prev === id ? null : id);
+  };
+
+  const renderSectionHeader = (id, title, subtitle, colorClass) => (
+    <button
+      onClick={() => toggleSection(id)}
+      className="w-full flex items-center justify-between font-mono text-xs font-bold uppercase tracking-widest bg-zinc-900/40 border border-zinc-800/50 rounded-lg px-4 py-3 mb-2 hover:bg-zinc-800/40 transition-colors"
+    >
+      <div className="flex flex-col items-start gap-1">
+        <span className={colorClass}>{title}</span>
+        {subtitle && <span className="text-[9px] text-zinc-500 normal-case">{subtitle}</span>}
+      </div>
+      <span className="text-zinc-500">{activeSection === id ? '▼' : '▶'}</span>
+    </button>
+  );
+
   const ramLevel      = upgrades['RAM']?.level ?? 0;
   const bypassLevel   = upgrades['BYPASS_STRENGTH']?.level ?? 0;
   
@@ -613,18 +643,19 @@ function DeckManual() {
   const showConsumables = hasBeatenGame || archiveLen >= 4;
 
   return (
-    <div className="space-y-6 pb-6">
+    <div className="space-y-4 pb-6">
       
       {/* ── CORE TOOLKIT ── */}
       <div>
-        <p className="font-mono text-xs font-bold uppercase tracking-widest text-violet-400 mb-3 flex items-center justify-between">
-          <span>// Core Toolkit</span>
-          {(ramLevel > 0 || bypassLevel > 0) && (
-            <span className="text-[9px] text-zinc-500 normal-case">Live stats w/ Black Market upgrades</span>
-          )}
-        </p>
+        {renderSectionHeader(
+          "toolkit",
+          "// Core Toolkit",
+          (ramLevel > 0 || bypassLevel > 0) ? "Live stats w/ Black Market upgrades" : null,
+          "text-violet-400"
+        )}
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {activeSection === 'toolkit' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3 animate-slide-down">
           {toolsConfig.map(tool => {
              const actualCd  = getCooldown(tool.baseCooldown);
              const actualDmg = getDmg(tool.id, tool.baseEffect.firewallDamage);
@@ -692,14 +723,19 @@ function DeckManual() {
              );
           })}
         </div>
+        )}
       </div>
 
       {/* ── TACTICS & SYNERGIES ── */}
       <div>
-        <p className="font-mono text-xs font-bold uppercase tracking-widest text-cyan-400 mb-3">
-          // Tactics & Synergies
-        </p>
-        <div className="space-y-3">
+        {renderSectionHeader(
+          "tactics",
+          "// Tactics & Synergies",
+          null,
+          "text-cyan-400"
+        )}
+        {activeSection === 'tactics' && (
+        <div className="space-y-3 mt-3 animate-slide-down">
           <div className="glass-panel rounded-lg p-4 border border-zinc-700/50 bg-zinc-800/10">
             <div className="flex items-center gap-2 mb-2">
               <span className="font-mono text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded">DECRYPT</span>
@@ -724,14 +760,19 @@ function DeckManual() {
             </p>
           </div>
         </div>
+        )}
       </div>
 
       {/* ── THREAT RESPONSE ── */}
       <div>
-        <p className="font-mono text-xs font-bold uppercase tracking-widest text-red-400 mb-3">
-          // Threat Response
-        </p>
-        <div className="space-y-3">
+        {renderSectionHeader(
+          "threat",
+          "// Threat Response",
+          null,
+          "text-red-400"
+        )}
+        {activeSection === 'threat' && (
+        <div className="space-y-3 mt-3 animate-slide-down">
           <div className="glass-panel rounded-lg p-4 border border-red-900/40 bg-red-950/20">
             <p className="font-mono text-[11px] text-red-400 font-bold mb-1">Active Daemons</p>
             <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
@@ -745,15 +786,20 @@ function DeckManual() {
             </p>
           </div>
         </div>
+        )}
       </div>
 
       {/* ── DIRTY TRICKS (CONSUMABLES) ── */}
       {showConsumables && (
         <div>
-          <p className="font-mono text-xs font-bold uppercase tracking-widest text-fuchsia-400 mb-3">
-            // Dirty Tricks
-          </p>
-          <div className="space-y-3">
+          {renderSectionHeader(
+            "dirtytricks",
+            "// Dirty Tricks",
+            null,
+            "text-fuchsia-400"
+          )}
+          {activeSection === 'dirtytricks' && (
+          <div className="space-y-3 mt-3 animate-slide-down">
             <div className="glass-panel rounded-lg p-4 border border-fuchsia-900/40 bg-fuchsia-950/20">
               <p className="font-mono text-[11px] text-fuchsia-400 font-bold mb-1">Consumable Execution</p>
               <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
@@ -761,15 +807,20 @@ function DeckManual() {
               </p>
             </div>
           </div>
+          )}
         </div>
       )}
 
       {/* ── HARDWARE PROTOCOLS ── */}
       <div>
-        <p className="font-mono text-xs font-bold uppercase tracking-widest text-orange-400 mb-3 mt-4">
-          // Hardware Protocols (High Risk)
-        </p>
-        <div className="glass-panel rounded-lg p-5 border border-orange-500/30 bg-orange-950/20">
+        {renderSectionHeader(
+          "protocols",
+          "// Hardware Protocols",
+          "(High Risk)",
+          "text-orange-400"
+        )}
+        {activeSection === 'protocols' && (
+        <div className="glass-panel rounded-lg p-5 border border-orange-500/30 bg-orange-950/20 mt-3 animate-slide-down">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-xl">⚠️</span>
             <span className="font-mono text-sm font-black text-orange-400 tracking-widest uppercase">
@@ -806,6 +857,7 @@ function DeckManual() {
             // MASHA: "Don't fry the rig for a simple SCAN unless the Trace is at your throat. It's an emergency save, not a standard rotation."
           </p>
         </div>
+        )}
       </div>
 
     </div>
