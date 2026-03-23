@@ -207,13 +207,13 @@ function NodeStatusStrip({ onInspect }) {
   );
 }
 
-function FirewallRow() {
+function FirewallRow({ parsedLog }) {
   const firewallHealth   = useGameStore(s => s.firewallHealth);
   const node             = useGameStore(s => s.currentNode);
   const firewallRevealed = useGameStore(s => s.firewallRevealed);
   const exposedTicks     = useGameStore(s => s.exposedTicks);
   const rabbitTicks      = useGameStore(s => s.rabbitTicks);
-  const log              = useGameStore(s => s.terminalLog); // ADDED: Pull the log state
+
 
   const [isHit, setIsHit] = useState(false);
   const [isCrit, setIsCrit] = useState(false); // ADDED: Track critical state
@@ -224,7 +224,7 @@ function FirewallRow() {
       setIsHit(true);
 
       // ADDED: Check the last 3 log entries to see if we triggered the 2.0x Multiplier safely
-      const recentLogs = (log || []).slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
+      const recentLogs = parsedLog.slice(-3);
       const wasCritical = recentLogs.some(l => l.includes('CRITICAL OVERRIDE'));
       if (wasCritical) setIsCrit(true);
 
@@ -237,7 +237,7 @@ function FirewallRow() {
       return () => clearTimeout(timer);
     }
     prevHP.current = firewallHealth;
-  }, [firewallHealth, log]);
+  }, [firewallHealth, parsedLog]);
 
   const isHidden = node?.specialDefense === 'ENCRYPTED_LOGS' && !firewallRevealed;
   const maxHP    = node?.firewallHP ?? 100;
@@ -311,21 +311,18 @@ function FirewallRow() {
   );
 }
 
-function TraceRow() {
+function TraceRow({ parsedLog }) {
   const trace         = useGameStore(s => s.digitalTrace);
   const node          = useGameStore(s => s.currentNode);
   const pulseActive   = useGameStore(s => s.pulseActive);
   const settings      = useGameStore(s => s.settings);
-  const rawLog        = useGameStore(s => s.terminalLog);
+
   const activeDaemon  = useGameStore(s => s.activeDaemon);
   const ghostTicks    = useGameStore(s => s.ghostTicks);
 
   const [syncFlash, setSyncFlash] = useState(false);
 
-  const log = useMemo(() =>
-    (rawLog || []).map(entry => typeof entry === 'string' ? entry : (entry?.text || '')),
-    [rawLog]
-  );
+  const log = parsedLog;
 
   useEffect(() => {
     if (log.length > 0 && log[log.length - 1].includes('PERFECT SYNC')) {
@@ -515,8 +512,8 @@ const MENACING_SKULL_FACE = `
 `;
 
 // ─── THE ENEMY: BOSS CORE ────────────────────────────────────────────────────
-function BossCore({ trace, heat, fwHealth, maxFw }) {
-  const rawLog = useGameStore(s => s.terminalLog); 
+function BossCore({ trace, heat, fwHealth, maxFw, parsedLog }) {
+
   const exposedTicks = useGameStore(s => s.exposedTicks);
   const isHitStopped = useGameStore(s => s.isHitStopped);
   
@@ -527,10 +524,7 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
   const arcadeScore = useGameStore(s => s.arcadeStats?.score ?? 0);
   const hueShift = gameMode === 'arcade' ? arcadeScore * 15 : (act - 1) * 60;
   
-  const recentLogs = useMemo(() => {
-    const safeLog = rawLog || [];
-    return safeLog.slice(-3).map(l => typeof l === 'string' ? l : (l?.text || ''));
-  }, [rawLog]);
+  const recentLogs = parsedLog.slice(-3);
   
   // Detection Logic
   const isStaggered = recentLogs.some(l => l.includes('CRITICAL OVERRIDE') || l.includes('2.0x MULTIPLIER'));
@@ -688,8 +682,8 @@ function BossCore({ trace, heat, fwHealth, maxFw }) {
 }
 
 // ─── MASHA COMMS OVERLAY (The Codec) ─────────────────────────────────────────
-function MashaCodec() {
-  const rawLog = useGameStore(s => s.terminalLog);
+function MashaCodec({ parsedLog }) {
+
   const [message, setMessage] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
   const [displayKey, setDisplayKey] = useState(0); // Forces effect reset
@@ -697,10 +691,10 @@ function MashaCodec() {
   const lastSeenRef = useRef(null);
 
   useEffect(() => {
-    const safeLog = rawLog || [];
-    if (safeLog.length === 0) return;
     
-    const recentLogs = safeLog.slice(-3).map(l => typeof l === 'string' ? l : l?.text).filter(Boolean);
+    if (parsedLog.length === 0) return;
+
+    const recentLogs = parsedLog.slice(-3).filter(Boolean);
     const latestMashaLog = [...recentLogs].reverse().find(l => l.includes('MASHA'));
     
     // Trigger if it's a new message
@@ -713,7 +707,7 @@ function MashaCodec() {
       setIsVisible(true);
       setDisplayKey(prev => prev + 1); // Increment key to reset timer logic
     }
-  }, [rawLog]);
+  }, [parsedLog]);
 
   // Dedicated timer effect that handles its own cleanup
   useEffect(() => {
@@ -822,7 +816,6 @@ export default function HackingScene() {
   const resolveOverride = useGameStore(s => s.resolveOverride);
   const getCurrentAct   = useGameStore(s => s.getCurrentAct);
 
-  const exposedTicks   = useGameStore(s => s.exposedTicks);
   const firewallHealth = useGameStore(s => s.firewallHealth);
   const activeDaemon   = useGameStore(s => s.activeDaemon); 
   const rabbitTicks    = useGameStore(s => s.rabbitTicks);
@@ -834,20 +827,19 @@ export default function HackingScene() {
   const setStatus              = useGameStore(s => s.setStatus);
 
   const isTutorial             = useGameStore(s => s.isTutorial);
+  const rawLog                 = useGameStore(s => s.terminalLog);
   const tutorialStep           = useGameStore(s => s.tutorialStep);
+
+  const parsedLog = useMemo(() =>
+    (rawLog || []).map(entry => typeof entry === 'string' ? entry : (entry?.text || '')),
+  [rawLog]);
 
   const [daemonFlash, setDaemonFlash] = useState(false);
   
-  const prevExposed = useRef(exposedTicks);
-  const prevFW = useRef(firewallHealth);
   const prevDaemon = useRef(activeDaemon);
 
   const hapticsEnabled = useGameStore(s => s.settings?.hapticsEnabled);
 
-  // This logic chooses the animation based on your settings
-  const transitionClass = (status === 'hacking') 
-    ? (reducedMotion ? "animate-fade-in" : "animate-rip-in") 
-    : "";
 
   // --- HANDLE INSPECT ---
   const handleInspect = (id) => {
@@ -1000,6 +992,7 @@ export default function HackingScene() {
           heat={heat} 
           fwHealth={firewallHealth} 
           maxFw={node?.maxFirewallHP || 100}
+          parsedLog={parsedLog}
         />
       )}
 
@@ -1019,7 +1012,7 @@ export default function HackingScene() {
       <TopBorder />
 
       {/* ── THE LIVE COMMS OVERLAY ── */}
-      <MashaCodec />
+      <MashaCodec parsedLog={parsedLog} />
 
       {/* ── ARCADE: COUNTDOWN TIMER ── */}
       {gameMode === 'arcade' && status === 'hacking' && (() => {
@@ -1161,8 +1154,8 @@ export default function HackingScene() {
 
         <div className="border-t border-zinc-800/60 pt-1 pb-0.5 bg-zinc-950/60 backdrop-blur-sm shrink-0">
           <ComboDisplay />
-          <FirewallRow />
-          <TraceRow />
+          <FirewallRow parsedLog={parsedLog} />
+          <TraceRow parsedLog={parsedLog} />
         </div>
 
         {isTutorial && tutorialStep && (
