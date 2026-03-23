@@ -5,6 +5,7 @@ import storyFragments from '../data/storyFragments.json';
 import toolsConfig from '../data/toolsConfig.json';
 import AudioManager from '../utils/audioManager';
 import { corruptText } from '../utils/textUtils';
+import KernelMenu from '../components/KernelMenu';
 
 // ─── Typewriter Text Effect ───────────────────────────────────────────────────
 function TypewriterText({ text, speed = 20 }) {
@@ -847,12 +848,14 @@ function DeckManual() {
 function TabBar({ active, onChange }) {
   const collected = useGameStore(s => s.storyArchive.length);
   const inventory = useGameStore(s => s.inventory || []);
+  const rootKeys  = useGameStore(s => s.rootAccessKeys || 0);
 
   const tabs = [
-    { id: 'logs',  label: 'LOGS' },
-    { id: 'stash', label: 'STASH', showDot: inventory.length > 0 }, 
-    { id: 'deck',  label: 'DECK' }, 
-    { id: 'data',  label: 'DATA',  showDot: collected > 0 },
+    { id: 'logs',   label: 'LOGS' },
+    { id: 'stash',  label: 'STASH', showDot: inventory.length > 0 },
+    { id: 'kernel', label: 'KERNEL', showDot: rootKeys > 0 },
+    { id: 'deck',   label: 'DECK' },
+    { id: 'data',   label: 'DATA',  showDot: collected > 0 },
   ];
 
   return (
@@ -1190,6 +1193,8 @@ export default function TransitScene() {
             </>
           )}
           
+          {activeTab === 'kernel' && <KernelMenu />}
+
           {activeTab === 'deck' && <DeckManual />}
           
           {activeTab === 'data' && <NarrativeArchive onJackIn={handleJackIn} />}
