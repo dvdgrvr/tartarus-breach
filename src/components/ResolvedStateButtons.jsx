@@ -28,7 +28,7 @@ export default function ResolvedStateButtons({
                 : 'bg-fuchsia-950/20 border-fuchsia-700/60 active:border-b-[2px] active:translate-y-[4px] hover:bg-fuchsia-900/30 cursor-pointer shadow-[0_0_15px_rgba(217,70,239,0.2)]'
           }`}
         >
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+          <div className="absolute inset-0 noise-bg opacity-10 pointer-events-none" />
           <div
             className="absolute bottom-0 left-0 w-full bg-fuchsia-500/30 border-t-2 border-fuchsia-400 transition-all ease-linear"
             style={{ height: isSiphoning ? '100%' : '0%', transitionDuration: isSiphoning ? '2000ms' : '200ms' }}
@@ -50,7 +50,7 @@ export default function ResolvedStateButtons({
             : 'bg-cyan-950/30 border-cyan-700/80 active:border-b-[2px] active:translate-y-[4px] hover:bg-cyan-900/50 hover:border-cyan-500 cursor-pointer'
         }`}
       >
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+        <div className="absolute inset-0 noise-bg opacity-10 pointer-events-none" />
         <span className="relative z-10 font-display text-[12px] sm:text-[14px] font-black uppercase tracking-[0.2em]">
           {disconnectLocked ? 'SECURING' : 'DISCONNECT'}
         </span>

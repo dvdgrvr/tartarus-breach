@@ -85,7 +85,7 @@ export default function TraceRow({ parsedLog }) {
         <div className={`flex-1 h-2.5 bg-black rounded-none overflow-hidden border shadow-inner relative transition-all duration-150 ${
           syncFlash ? 'animate-sync-pulse z-10' : pulseActive ? 'border-cyan-500/60 shadow-[0_0_6px_rgba(34,211,238,0.3)]' : 'border-zinc-800'
         }`}>
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+          <div className="absolute inset-0 noise-bg opacity-10 pointer-events-none" />
           <div
             className={`h-full rounded-none transition-all duration-300 ${barGradient} ${isAccelerated && !isDanger && !pulseActive && glitchEnabled && !ghostTicks ? 'opacity-80 animate-pulse' : ''}`}
             style={{ width: `${Math.min(100, trace)}%` }}

@@ -4,6 +4,7 @@ import toolsConfig    from '../data/toolsConfig.json';
 import upgradesConfig from '../data/upgradesConfig.json';
 import storyFragments from '../data/storyFragments.json';
 import modifiersData  from '../data/modifiers.json';
+import nodesConfig    from '../data/nodesConfig.json';
 import AudioManager   from '../utils/audioManager';
 import {
   BASE_HEAT_PER_TICK,
@@ -20,39 +21,12 @@ import {
   MAX_LOG_ENTRIES,
   PULSE_INTERVAL_TICKS,
   PULSE_WINDOW_TICKS,
+  SAVE_VERSION,
 } from '../config/constants';
 
-// Forcing a new SAVE_VERSION since we changed the schema
-const SAVE_VERSION = 11;
+// ─── Node Pools — imported from src/data/nodesConfig.json ───────────────────
 
-// ─── Node Pools ───────────────────────────────────────────────────────────────
-
-const SKIM_NODES = [
-  { id: 'DS_01', name: 'Municipal Cache Server',  specialDefense: null,                firewallHP: 60  },
-  { id: 'DS_02', name: 'Retail Payment Terminal', specialDefense: null,                firewallHP: 65  },
-  { id: 'DS_03', name: 'University Research Hub', specialDefense: null,                firewallHP: 70  },
-  { id: 'DS_04', name: 'ISP Backbone Node',        specialDefense: null,                firewallHP: 75  },
-  { id: 'DS_05', name: 'Legacy Banking Relay',     specialDefense: null,                firewallHP: 80  },
-];
-
-const PRIORITY_NODES = [
-  { id: 'PR_01', name: 'Meridian Corp. Relay', specialDefense: null,                firewallHP: 100 },
-  { id: 'PR_02', name: 'Axiom Financial Hub',  specialDefense: null,                firewallHP: 120 },
-  { id: 'PR_03', name: 'Vertex Sub-Grid Delta',specialDefense: 'ENCRYPTED_LOGS',    firewallHP: 100 },
-  { id: 'PR_04', name: 'The AI Predictor Core',specialDefense: 'ENCRYPTED_LOGS',    firewallHP: 110 },
-  { id: 'PR_05', name: 'Tartarus Perimeter Wall', specialDefense: 'TRACE_ACCELERATOR', firewallHP: 100 },
-  { id: 'PR_06', name: 'Tartarus Internal Routing', specialDefense: 'TRACE_ACCELERATOR', firewallHP: 130 },
-];
-
-// Milestone nodes keyed by storyArchive.length at time of job selection
-const MILESTONE_NODES = {
-  3: { id: 'ML_03', name: 'Omni-Corp Gateway', specialDefense: 'ENCRYPTED_LOGS',    firewallHP: 120 },
-  7: { id: 'ML_07', name: 'Helix Blacksite',   specialDefense: 'TRACE_ACCELERATOR', firewallHP: 200 },
-};
-
-const TARTARUS_NODE_DEF = {
-  id: 'TARTARUS', name: 'Tartarus Node', specialDefense: 'TRACE_ACCELERATOR', firewallHP: 400,
-};
+const { skim: SKIM_NODES, priority: PRIORITY_NODES, milestones: MILESTONE_NODES, tartarus: TARTARUS_NODE_DEF } = nodesConfig;
 
 // ─── Safehouse Roster ─────────────────────────────────────────────────────────
 // On HEAT_BUSTED the player is forced to a new location drawn randomly from
@@ -1776,6 +1750,10 @@ triggerFirstBoot: () => {
 
         if (version < 11) {
           state = { ...state, kernelNodes: [], rootAccessKeys: 0 };
+        }
+
+        if (version < 12) {
+          // v12: Phase 1 polish — schema placeholder for future migrations
         }
 
         return state;

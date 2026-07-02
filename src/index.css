@@ -640,7 +640,7 @@
 .animate-matrix {
   animation: matrix-descend 1.5s linear infinite;
   /* Mixes the noise texture with dark horizontal bars to simulate code blocks falling */
-  background-image: url("/noise.png"), repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,0.6) 2px, rgba(0,0,0,0.6) 4px) !important;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E"), repeating-linear-gradient(to bottom, transparent, transparent 2px, rgba(0,0,0,0.6) 2px, rgba(0,0,0,0.6) 4px) !important;
 }
 
 /* Add this right below your .animate-matrix block */
@@ -650,6 +650,11 @@
 }
 .animate-matrix-slide {
   animation: matrix-slide 0.5s linear infinite;
+}
+
+/* ─── Noise texture utility — replaces the missing noise.png asset ───── */
+.noise-bg {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.15'/%3E%3C/svg%3E");
 }
 
 /* ─── Hackers (1995) Cinematic Visuals ────────────────────────────────── */

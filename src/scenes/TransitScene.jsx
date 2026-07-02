@@ -202,7 +202,7 @@ function SessionSummary() {
 
       {showLogs && (
         <div className="glass-panel rounded-lg p-3 bg-black border border-zinc-800 relative overflow-hidden animate-slide-down">
-          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 pointer-events-none" />
+          <div className="absolute inset-0 noise-bg opacity-10 pointer-events-none" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent to-green-900/10 pointer-events-none" />
           <p className="font-mono text-[9px] font-bold uppercase tracking-widest text-zinc-600 mb-2 relative z-10">
             // BLACK_BOX_RECORDING.log

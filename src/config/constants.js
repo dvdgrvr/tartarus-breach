@@ -33,4 +33,4 @@ export const PULSE_INTERVAL_TICKS = 4; // ticks between pulse windows
 export const PULSE_WINDOW_TICKS   = 1; // how many ticks the pulse is active
 
 // Persist versioning — bump when adding new save-state fields
-export const SAVE_VERSION = 10; // v10: decryptedFragments for dynamic narrative decryption
+export const SAVE_VERSION = 12; // v12: Phase 1 polish — bump for later schema changes

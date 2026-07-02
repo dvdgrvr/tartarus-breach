@@ -216,7 +216,7 @@ export default function App() {
       >
         
         {/* Device Texture overlay - Hidden on mobile */}
-        <div className="hidden sm:block absolute inset-0 rounded-[32px] bg-[url('/noise.png')] opacity-10 pointer-events-none mix-blend-overlay" />
+        <div className="hidden sm:block absolute inset-0 rounded-[32px] noise-bg opacity-10 pointer-events-none mix-blend-overlay" />
 
         {/* Top Hardware Details (Sensors / Mic array) - Hidden on mobile */}
         <div className="hidden sm:flex absolute top-2.5 left-1/2 -translate-x-1/2 items-center gap-3 opacity-40 z-10">
