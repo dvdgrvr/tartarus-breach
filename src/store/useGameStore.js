@@ -21,6 +21,7 @@ import {
   MAX_LOG_ENTRIES,
   PULSE_INTERVAL_TICKS,
   PULSE_WINDOW_TICKS,
+  PULSE_WINDOW_DURATION_MS,
   SYNC_DMG_MULT,
   SYNC_COST_MULT,
   SAVE_VERSION,
@@ -132,6 +133,9 @@ const calcPotentialIntel = (jobType) => {
 };
 
 // ─── Store ────────────────────────────────────────────────────────────────────
+
+// Phase 3.1 — Track the setTimeout that auto-closes the pulse window
+let _pulseCloseTimer = null;
 
 const _initialNode = pickSkimNode();
 
@@ -464,7 +468,27 @@ triggerFirstBoot: () => {
         const newHeat      = Math.min(100, s.physicalHeat  + heatGain);
         const newTrace     = Math.min(100, s.digitalTrace + traceGain + spikeTrace + daemonTrace);
 
-        const isPulse      = (newTickCount % PULSE_INTERVAL_TICKS) < PULSE_WINDOW_TICKS;
+        // Phase 3.1 — Tightened pulse window.
+        // The window OPENS at the start of the 4th tick (tickCount % 4 === 0)
+        // and auto-closes after PULSE_WINDOW_DURATION_MS via setTimeout,
+        // independent of the 1000ms tick loop.
+        const pulseCyclePos = newTickCount % PULSE_INTERVAL_TICKS;
+        const isPulse      = s.pulseActive
+          // If already open from the open-tick, keep it open — the timeout will close it.
+          ? true
+          : pulseCyclePos === 0;
+
+        // Schedule auto-close when the window first opens this cycle
+        if (isPulse && !s.pulseActive) {
+          if (_pulseCloseTimer) clearTimeout(_pulseCloseTimer);
+          _pulseCloseTimer = setTimeout(() => {
+            _pulseCloseTimer = null;
+            // Only close if still hacking (don't close after packUp/breach)
+            if (get().status === 'hacking') {
+              useGameStore.setState({ pulseActive: false });
+            }
+          }, PULSE_WINDOW_DURATION_MS);
+        }
 
         let newLog = s.terminalLog;
         if (logMsg) newLog = appendLog(newLog, logMsg);

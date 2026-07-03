@@ -30,6 +30,7 @@ export default function HackingScene() {
   const transitOutcome     = useGameStore(s => s.transitOutcome);
   const isPerfectBreach    = useGameStore(s => s.isPerfectBreach);
   const reducedMotion      = useGameStore(s => s.settings?.reducedMotion);
+  const pulseActive        = useGameStore(s => s.pulseActive);
   const sessionIntelEarned = useGameStore(s => s.sessionIntelEarned);
   const settings           = useGameStore(s => s.settings);
   const setPaused          = useGameStore(s => s.setPaused);
@@ -371,7 +372,17 @@ export default function HackingScene() {
           </div>
         </div>
 
-        <div className="border-t-[2px] border-zinc-800 pt-0 pb-1 bg-zinc-950 backdrop-blur-sm shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-30 relative">
+        <div className="border-t-[2px] border-zinc-800 pt-0 pb-1 bg-zinc-950 backdrop-blur-sm shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-30 relative overflow-hidden">
+          {/* Pulse window flash strip — unmissable full-width beat behind the meter grid */}
+          {!reducedMotion && (
+            <div
+              className={`absolute inset-0 pointer-events-none transition-all duration-100 ${
+                pulseActive
+                  ? 'opacity-100 bg-cyan-500/15 shadow-[inset_0_0_80px_rgba(34,211,238,0.25)] border-y border-cyan-400/40'
+                  : 'opacity-0 bg-cyan-500/0 border-y border-transparent'
+              }`}
+            />
+          )}
           <NodeStatusStrip onInspect={handleInspect} />
           <ComboDisplay />
           <PulseIndicator />

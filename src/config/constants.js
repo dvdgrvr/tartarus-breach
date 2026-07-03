@@ -30,7 +30,8 @@ export const FIREWALL_INITIAL_HP = 100;
 
 // Pulse Mechanic — SCAN "perfect timing" window
 export const PULSE_INTERVAL_TICKS = 4; // ticks between pulse windows
-export const PULSE_WINDOW_TICKS   = 1; // how many ticks the pulse is active
+export const PULSE_WINDOW_TICKS   = 1; // how many ticks the pulse is active (legacy, replaced by PULSE_WINDOW_DURATION_MS)
+export const PULSE_WINDOW_DURATION_MS = 300; // ms the pulse window stays open (independent of tick rate)
 
 // Sync Hit — Phase 3.1: ANY tool during pulse window
 export const SYNC_DMG_MULT  = 1.5; // +50% firewall damage on damage tools
