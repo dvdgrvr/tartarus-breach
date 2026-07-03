@@ -91,16 +91,30 @@ const OUTCOME_BADGE = {
   heat_busted:  { label: 'SAFEHOUSE RAIDED. INTEL LOST.',className: 'text-red-400   border-red-500/40   bg-red-500/10 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.4)]' },
 };
 
+// Phase 3.4 — letter-style grade derived from trace/heat and sync-hit ratio 
+function calcGrade(trace, heat, syncHits, totalTools) {
+  const maxDanger = Math.max(trace, heat);
+  const syncRatio = totalTools > 0 ? syncHits / totalTools : 0;
+  // A "clean" run combines low danger with good sync discipline
+  if (maxDanger < 15 && syncRatio >= 0.5) return { label: 'GHOST', color: 'text-slate-300 border-slate-400/50', bg: 'bg-slate-500/10' };
+  if (maxDanger < 50) return { label: 'CLEAN', color: 'text-green-400 border-green-500/40', bg: 'bg-green-500/10' };
+  if (maxDanger < 85) return { label: 'LOUD', color: 'text-amber-400 border-amber-500/40', bg: 'bg-amber-500/10' };
+  return { label: 'RECKLESS', color: 'text-red-400 border-red-500/40', bg: 'bg-red-500/10' };
+}
+
 function SessionSummary() {
-  const earned    = useGameStore(s => s.sessionIntelEarned);
-  const heat      = useGameStore(s => s.packUpHeat);
-  const trace     = useGameStore(s => s.packUpTrace);
-  const outcome   = useGameStore(s => s.transitOutcome);
-  const node      = useGameStore(s => s.currentNode);
-  const terminal  = useGameStore(s => s.terminalLog || []);
-  const isPerfect = useGameStore(s => s.isPerfectBreach);
+  const earned      = useGameStore(s => s.sessionIntelEarned);
+  const heat        = useGameStore(s => s.packUpHeat);
+  const trace       = useGameStore(s => s.packUpTrace);
+  const outcome     = useGameStore(s => s.transitOutcome);
+  const node        = useGameStore(s => s.currentNode);
+  const terminal    = useGameStore(s => s.terminalLog || []);
+  const isPerfect   = useGameStore(s => s.isPerfectBreach);
+  const syncHits    = useGameStore(s => s.sessionSyncHits ?? 0);
+  const totalTools  = useGameStore(s => s.sessionToolCount ?? 0);
 
   const badge = OUTCOME_BADGE[outcome] ?? OUTCOME_BADGE.escaped;
+  const grade = calcGrade(trace, heat, syncHits, totalTools);
 
   const filteredLogs = terminal.filter(log => 
     !log.includes('SIPHONING...') && 
@@ -149,9 +163,15 @@ function SessionSummary() {
           <p className="font-mono text-xs font-bold uppercase tracking-widest text-cyan-300">
             // After-Action Report
           </p>
-          <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border ${badge.className}`}>
-            {badge.label}
-          </span>
+          <div className="flex items-center gap-2">
+            {/* Phase 3.4 — skill grade badge */}
+            <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border ${grade.color} ${grade.bg}`}>
+              {grade.label}
+            </span>
+            <span className={`font-mono text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded border ${badge.className}`}>
+              {badge.label}
+            </span>
+          </div>
         </div>
         
         <div className="space-y-3">
@@ -565,12 +585,6 @@ const TOOL_ACTION_LANGUAGE = {
   BYPASS:  "Executes a direct strike on the exposed firewall.",
 };
 
-const COMBO_SEQUENCE = {
-  SCAN:    { next: 'DECRYPT', color: 'text-amber-400', synergy: 'Part 1 of 3. Link with DECRYPT to build payload.' },
-  DECRYPT: { next: 'PULSE',   color: 'text-blue-400',  synergy: 'Part 2 of 3. Link with PULSE to finalize payload.' },
-  PULSE:   { next: 'BYPASS',  color: 'text-green-400', synergy: 'Final Stage. Completing SCAN → DECRYPT → PULSE grants 3.5× Damage to the next BYPASS.' },
-};
-
 const MAX_COOLDOWN = 20;
 const MAX_HEAT     = 25;
 const MAX_IMPACT   = 15;
@@ -667,7 +681,6 @@ function DeckManual() {
              const speedPct  = Math.round(((MAX_COOLDOWN - tool.baseCooldown) / MAX_COOLDOWN) * 100);
              const heatPct   = Math.round((heatGain / MAX_HEAT) * 100);
              const impactPct = Math.round((tool.baseEffect.firewallDamage / MAX_IMPACT) * 100);
-             const combo     = COMBO_SEQUENCE[tool.id];
              const actionDesc = TOOL_ACTION_LANGUAGE[tool.id] ?? tool.description;
 
              return (
@@ -711,14 +724,6 @@ function DeckManual() {
                    </div>
                  </div>
 
-                 {/* ── SYNERGY_PATH Footer ── */}
-                 {combo && (
-                   <div className="mt-auto pt-2.5 border-t border-zinc-800/50">
-                     <p className="font-mono text-[8px] uppercase tracking-widest text-zinc-600 mb-1">[ SYNERGY_PATH ]</p>
-                     <p className="font-mono text-[10px] text-zinc-400 leading-snug">{combo.synergy}</p>
-                   </div>
-                 )}
-
                </div>
              );
           })}
@@ -752,11 +757,11 @@ function DeckManual() {
             <div className="flex items-center gap-2 mb-2">
               <span className="font-mono text-[10px] font-bold text-cyan-300 animate-pulse">SYNC WINDOW</span>
               <span className="text-zinc-500 text-xs font-bold">»</span>
-              <span className="font-mono text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded">PULSE</span>
+              <span className="font-mono text-[10px] font-bold bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded">ANY TOOL</span>
             </div>
-            <p className="font-mono text-[11px] text-zinc-100 font-bold mb-1">Perfect Sync</p>
+            <p className="font-mono text-[11px] text-zinc-100 font-bold mb-1">Sync Hit</p>
             <p className="font-mono text-[11px] text-zinc-400 leading-relaxed">
-              When the Trace meter flashes <span className="text-cyan-300 font-bold">SYNC</span>, hitting <span className="text-cyan-400">PULSE</span> triggers a Perfect Sync, doubling the amount of Trace removed.
+              When the SYNC indicator is lit, <span className="text-cyan-300 font-bold">ANY tool</span> fired during the window deals +50% damage or saves −50% trace/heat. Chain consecutive Sync Hits to build a streak. The sync ring at the top of the screen shows the window.
             </p>
           </div>
         </div>
@@ -930,7 +935,7 @@ function JobFooter({ isLocked, onJackIn }) {
     </div>
   );
 }
-          
+           
 // ─── Transit Scene (main) ─────────────────────────────────────────────────────
 
 export default function TransitScene() {
@@ -995,13 +1000,13 @@ export default function TransitScene() {
     "// MASHA: The night shift logs are slower. Find a Priority Lead and work the gap.",
     "// MASHA: Ghost-Code? I knew it. They didn't build a new world. They built a cage around the old one.",
     "// MASHA: They aren't just watching what we do, they're learning why we do it. Creepy.",
-    "// MASHA: They’re profiling us. They aren't just tracing your IP... they're tracing you.",
-    "// MASHA: Jackpot. If the underground sees this, Vertex is finished. You’re becoming an Elite real fast, kid.",
+    "// MASHA: They're profiling us. They aren't just tracing your IP... they're tracing you.",
+    "// MASHA: Jackpot. If the underground sees this, Vertex is finished. You're becoming an Elite real fast, kid.",
     "// MASHA: He mentioned my name. How does he— [ERROR: SIGNAL_NOISE] —Operator, we need to move. Fast.",
     "// MASHA: They're trying to fry your Deck. I'm injecting some heat-sink code, but stay under that 95% limit!",
     "// MASHA: You weren't supposed to see that. Look, I have a plan to save you, okay? Just... trust me.",
     "// MASHA: They're going to shut down the whole world and blame us? Not on my watch.",
-    "// MASHA: Anarchy is better than a cage. We’re at the Core. This is it.",
+    "// MASHA: Anarchy is better than a cage. We're at the Core. This is it.",
     "// MASHA: Trace is at 98%! Push it! Redline the deck and upload the Key! DO IT NOW!",
     "// MASHA: HE'S LYING! Don't be a suit, be an ELITE! One. Last. Breach. Sync the world, Operator!",
   ];

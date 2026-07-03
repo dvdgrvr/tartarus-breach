@@ -1,43 +1,30 @@
 import useGameStore from '../../store/useGameStore';
 
+// Phase 3.3: Repurposed from the old SCAN→DECRYPT→PULSE combo chain
+// to display the Sync Hit streak counter (Phase 3.1).
 export default function ComboDisplay() {
-  const chain = useGameStore(s => s.comboChain) || [];
-  const exposed = useGameStore(s => s.exposedTicks > 0);
+  const streak      = useGameStore(s => s.syncStreak ?? 0);
+  const pulseActive = useGameStore(s => s.pulseActive);
 
-  // Detection for the "Break" visual
-  const isBroken = chain.length === 0 && !exposed;
+  if (streak < 1) return null;
 
-  const TARGET = [
-    { id: 'SCAN',    color: 'text-cyan-400',    icon: '📡' },
-    { id: 'DECRYPT', color: 'text-fuchsia-400', icon: '🔑' },
-    { id: 'PULSE',   color: 'text-emerald-400', icon: '⚡' }
-  ];
+  const isHot = streak >= 3;
 
   return (
-    <div className={`px-4 flex items-center gap-3 mb-1 mt-1 transition-all ${isBroken ? 'animate-combo-break' : ''}`}>
-      <span className="font-mono text-xs text-zinc-600 uppercase tracking-tighter">Chain_Buffer:</span>
-      <div className="flex gap-1">
-        {TARGET.map((step, i) => {
-          const isActive = chain[i] === step.id;
-
-          return (
-            <div
-              key={i}
-              className={`w-6 h-4 border flex items-center justify-center text-xs transition-all duration-200 ${
-                isActive
-                  ? `${step.color} border-current bg-current/5 shadow-[0_0_5px_currentColor]`
-                  : 'text-zinc-900 border-zinc-900 bg-transparent'
-              }`}
-            >
-              {isActive ? step.icon : ''}
-            </div>
-          );
-        })}
-      </div>
-
-      {chain.length === 3 && exposed && (
-        <span className="font-mono text-xs font-black text-amber-500/80 animate-pulse ml-auto tracking-tighter">
-          [!] PAYLOAD_READY
+    <div className="px-4 flex items-center gap-2 mb-1 mt-1">
+      <span className="font-mono text-xs text-cyan-400 uppercase tracking-tighter">
+        Sync_Streak:
+      </span>
+      <span className={`font-mono text-xs font-black tracking-widest ${
+        isHot
+          ? 'text-cyan-300 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.5)]'
+          : 'text-cyan-500'
+      }`}>
+        ×{streak}
+      </span>
+      {isHot && (
+        <span className="font-mono text-xs font-black text-cyan-400/80 uppercase tracking-widest">
+          IN_THE_RHYTHM
         </span>
       )}
     </div>

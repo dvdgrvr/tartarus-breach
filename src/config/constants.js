@@ -32,5 +32,9 @@ export const FIREWALL_INITIAL_HP = 100;
 export const PULSE_INTERVAL_TICKS = 4; // ticks between pulse windows
 export const PULSE_WINDOW_TICKS   = 1; // how many ticks the pulse is active
 
+// Sync Hit — Phase 3.1: ANY tool during pulse window
+export const SYNC_DMG_MULT  = 1.5; // +50% firewall damage on damage tools
+export const SYNC_COST_MULT = 0.5; // −50% trace/heat cost on utility tools
+
 // Persist versioning — bump when adding new save-state fields
 export const SAVE_VERSION = 12; // v12: Phase 1 polish — bump for later schema changes

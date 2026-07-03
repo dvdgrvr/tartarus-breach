@@ -21,6 +21,8 @@ import {
   MAX_LOG_ENTRIES,
   PULSE_INTERVAL_TICKS,
   PULSE_WINDOW_TICKS,
+  SYNC_DMG_MULT,
+  SYNC_COST_MULT,
   SAVE_VERSION,
 } from '../config/constants';
 
@@ -145,7 +147,10 @@ const useGameStore = create(
       inventory: [],           // <--- NEW: Holds looted hardware
       activeModifiers: [],     // <--- NEW: Holds active buffs like Admin Key
       lootAccumulator: 0,      // <--- NEW: Tracks how much data you've siphoned
-      comboChain:           [], // Stores the IDs of the last few tools used
+      comboChain:           [], // Stores the IDs of the last few tools used (Phase 3.3: deprecated, kept for compat)
+      syncStreak:           0,  // Phase 3.1: consecutive sync hits
+      sessionSyncHits:      0,  // Phase 3.1/3.4: total sync hits this session for grading
+      sessionToolCount:     0,  // Phase 3.4: total tool uses this session for grading
 
       // ── Upgrades ─────────────────────────────────────────────────────────
       upgrades: buildInitialUpgradeState(),
@@ -186,6 +191,7 @@ const useGameStore = create(
       sessionPotentialIntel: 0,
       packUpHeat:           0,
       packUpTrace:          0,
+      pendingBreachIntel:   0,  // Phase 3.2: intel held during Ghost-or-Greed choice
 
       // ── Safehouse ────────────────────────────────────────────────────────
       currentSafehouse: SAFEHOUSE_ROSTER[0],
@@ -571,27 +577,6 @@ triggerFirstBoot: () => {
 
         let currentLog = [...s.terminalLog];
 
-        // ─── COMBO CHAIN TRACKING ───
-        const sequenceOrder = ['SCAN', 'DECRYPT', 'PULSE'];
-        let newComboChain = [...s.comboChain];
-
-        // LOGIC: If the current tool matches the next step in the sequence, add it.
-        // If it breaks the sequence and isn't a BYPASS, reset the chain to the current tool.
-        const nextExpectedStep = sequenceOrder[newComboChain.length];
-        
-        if (toolId === nextExpectedStep) {
-          newComboChain.push(toolId);
-        } else if (toolId !== 'BYPASS') {
-          // If the chain was active and we just broke it
-          if (newComboChain.length > 0) {
-            if (s.settings?.hapticsEnabled) haptic(10); // A tiny, sharp 10ms 'click'
-            AudioManager.playSFX('thud'); // A low-freq muffled sound, not an error beep
-          }
-          newComboChain = toolId === 'SCAN' ? ['SCAN'] : [];
-        }
-
-        const isPerfectSequence = newComboChain.length === 3;
-
         // ─── COOLDOWN GATE ───
         const cooldownRemaining = s.toolState[toolId]?.cooldownRemaining ?? 0;
 
@@ -614,9 +599,29 @@ triggerFirstBoot: () => {
           else haptic(15);
         }
 
+        // Phase 3.1 — Sync Hit: ANY tool during pulse window
+        const isSyncHit = s.pulseActive;
+        // Track tool usage for grade
+        const newSyncHits   = s.sessionSyncHits + (isSyncHit ? 1 : 0);
+        const newToolCount  = s.sessionToolCount + 1;
+        const newStreak     = isSyncHit ? s.syncStreak + 1 : 0;
+
         let firewallDamage = tool.baseEffect.firewallDamage ?? 0;
         let traceGain      = tool.baseEffect.traceGain       ?? 0;
         let heatGain       = tool.baseEffect.heatGain ?? 0;
+
+        // Apply Sync Hit multipliers
+        if (isSyncHit) {
+          if (firewallDamage > 0) {
+            firewallDamage = Math.floor(firewallDamage * SYNC_DMG_MULT);
+          }
+          if (traceGain > 0) {
+            traceGain = Math.floor(traceGain * SYNC_COST_MULT);
+          }
+          if (heatGain > 0) {
+            heatGain = Math.floor(heatGain * SYNC_COST_MULT);
+          }
+        }
 
         // KERNEL: Wide-Band SCAN (Sledgehammer Tier 1)
         if (toolId === 'SCAN' && s.kernelNodes.includes('SLEDGE_1')) {
@@ -668,8 +673,10 @@ triggerFirstBoot: () => {
             activeDaemon:     newActiveDaemon,
             exposedTicks:     newExposedTicks,
             terminalLog:      currentLog,
-            comboChain:       newComboChain,
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
+            syncStreak:     newStreak,
+            sessionSyncHits: newSyncHits,
+            sessionToolCount: newToolCount,
             ...(s.isTutorial && s.tutorialStep === 'DECRYPT_INTRO' ? { tutorialStep: 'PULSE_INTRO' } : {}),
           });
           if (s.physicalHeat + heatGain >= 100 && s.gameMode !== 'arcade' && !s.isTutorial) get().packUp('heat_busted');
@@ -693,25 +700,10 @@ triggerFirstBoot: () => {
           }
 
           if (s.exposedTicks > 0) {
-            if (isPerfectSequence) {
-              firewallDamage *= 3.5;
-              currentLog = appendLog(currentLog, `>> [!!!] TRIPLE_THREAT_DETONATION [!!!] — 3.5x COMBO MAXIMIZED`);
-              if (s.gameMode === 'arcade') {
-                arcadeTimeDelta        += 2;
-                newArcadeMult           = Math.min(5, newArcadeMult + 1);
-                arcadeEliteCombosDelta += 1;
-                currentLog = appendLog(currentLog, `>> ARCADE BONUS: Triple Threat +2s`);
-                currentLog = appendLog(currentLog, `>> ARCADE: Multiplier increased to x${newArcadeMult}`);
-              }
-              if (s.settings?.hapticsEnabled) haptic([50, 50, 50, 50, 200]);
-              AudioManager.playSFX('error');
-            } else {
-              firewallDamage *= 2;
-              currentLog = appendLog(currentLog, `>> [!!] CRITICAL OVERRIDE [!!] — 2.0x MULTIPLIER APPLIED`);
-              if (s.settings?.hapticsEnabled) haptic([100, 100, 150]);
-            }
+            firewallDamage *= 2;
+            currentLog = appendLog(currentLog, `>> [!!] CRITICAL OVERRIDE [!!] — 2.0x MULTIPLIER APPLIED`);
+            if (s.settings?.hapticsEnabled) haptic([100, 100, 150]);
             newExposedTicks = 0; 
-            newComboChain = []; // Always reset on Bypass strike
 
             set({ isHitStopped: true });
             setTimeout(() => {
@@ -739,13 +731,12 @@ triggerFirstBoot: () => {
         const prevFirewall = s.firewallHealth;
         const newFirewall  = Math.max(0, prevFirewall - firewallDamage);
         
-        // ─── TOOL: PULSE / SYNC ───
-        const isPerfectSync = toolId === 'PULSE' && s.pulseActive;
-        const finalTrace    = isPerfectSync
+        // ─── TOOL: PULSE legacy sync ───
+        const finalTrace    = toolId === 'PULSE' && s.pulseActive
           ? Math.max(0, s.digitalTrace + (traceGain * 2))
           : Math.min(100, Math.max(0, s.digitalTrace + traceGain));
 
-        if (isPerfectSync && s.settings?.hapticsEnabled) haptic([30, 50, 30]);
+        if (isSyncHit && s.settings?.hapticsEnabled) haptic([30, 50, 30]);
         let newHeat = Math.min(100, s.physicalHeat + heatGain);
 
         if (didGhostRefresh) {
@@ -766,10 +757,12 @@ triggerFirstBoot: () => {
               digitalTrace:   finalTrace,
               physicalHeat:   newHeat,
               exposedTicks:   newExposedTicks,
-              comboChain:     [],
               terminalLog:    appendLog(currentLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`),
               toolState:      { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
               arcadeStats:    { ...s.arcadeStats, eliteCombos: (s.arcadeStats.eliteCombos ?? 0) + arcadeEliteCombosDelta, timeRemaining: Math.min(99, s.arcadeStats.timeRemaining + arcadeTimeDelta), multiplier: newArcadeMult },
+              syncStreak:     newStreak,
+              sessionSyncHits: newSyncHits,
+              sessionToolCount: newToolCount,
             });
             AudioManager.playSFX('success');
             get().nextArcadeNode();
@@ -790,11 +783,13 @@ triggerFirstBoot: () => {
               digitalTrace:   20,
               physicalHeat:   newHeat,
               exposedTicks:   newExposedTicks,
-              comboChain:     [],
               systemOverride: null,
               toolState:      { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
               hasFirstBypass: hasFirstBypass,
               terminalLog:    currentLog,
+              syncStreak:     newStreak,
+              sessionSyncHits: newSyncHits,
+              sessionToolCount: newToolCount,
             });
             return;
           }
@@ -859,10 +854,11 @@ triggerFirstBoot: () => {
              }
           }
 
-          currentLog = appendLog(currentLog, '// AWAITING MANUAL DISCONNECT...');
+          currentLog = appendLog(currentLog, `>> CHOOSE: [ GHOST OUT ] Bank ${intelEarned} IF safely, or [ SIPHON THE VAULT ] Risk it — trace is at ${Math.ceil(finalTrace)}%.`);
 
+          // Phase 3.2 — Ghost-or-Greed choice; don't auto-bank intel
           set({
-            status:             'resolved',
+            status:             'breached',
             nextStatus:         isTartarus ? 'victory' : 'transit',
             transitOutcome:     'success',
             packUpHeat:         newHeat, 
@@ -871,7 +867,7 @@ triggerFirstBoot: () => {
             firewallHealth:     0,
             digitalTrace:       finalTrace,
             physicalHeat:       newHeat,
-            intelFragments:     s.intelFragments + intelEarned,
+            pendingBreachIntel: intelEarned,
             rootAccessKeys:     s.rootAccessKeys + rootKeysEarned,
             sessionIntelEarned: intelEarned,
             inventory:          nextInv,
@@ -882,9 +878,11 @@ triggerFirstBoot: () => {
             highestDarknetTier: Math.max(s.highestDarknetTier, isDarknet ? s.darknetTier + 1 : s.darknetTier),
             pendingFragmentIdx: s.isReplay ? null : fragmentIdx,
             terminalLog:        currentLog,
-            comboChain:         [], 
             toolState: { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } },
             isPerfectBreach:    isPerfect,
+            syncStreak:         newStreak,
+            sessionSyncHits:    newSyncHits,
+            sessionToolCount:   newToolCount,
             isBreaching:        false,
             exposedTicks:       newExposedTicks,
             hasFirstBypass:     hasFirstBypass
@@ -897,8 +895,17 @@ triggerFirstBoot: () => {
         currentLog = appendLog(currentLog, `> ${toolId} // FW: ${fwDisplay} | TRACE: ${finalTrace.toFixed(0)}%`);
 
         let syncBonus = 0;
-        if (isPerfectSync) {
-          currentLog = appendLog(currentLog, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
+        if (isSyncHit) {
+          // Phase 3.1 — Sync Hit tag in terminal
+          const streakTag = newStreak >= 3 ? ` STREAK x${newStreak}` : '';
+          currentLog = appendLog(currentLog, `>> SYNC${streakTag}`);
+          if (newStreak === 3) {
+            currentLog = appendLog(currentLog, "// MASHA: 'You're in the rhythm. Keep it.'");
+          }
+          // Legacy Perfect Sync bonus for PULSE only
+          if (toolId === 'PULSE') {
+            currentLog = appendLog(currentLog, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
+          }
           if (s.gameMode === 'arcade') {
             arcadeTimeDelta        += 1;
             newArcadeMult           = Math.min(5, newArcadeMult + 1);
@@ -960,8 +967,10 @@ triggerFirstBoot: () => {
           sessionIntelEarned: s.sessionIntelEarned + syncBonus,
           exposedTicks:   newExposedTicks,
           hasFirstBypass: hasFirstBypass,
-          comboChain:     newComboChain,
           toolState:      finalToolState,
+          syncStreak:     newStreak,
+          sessionSyncHits: newSyncHits,
+          sessionToolCount: newToolCount,
           arcadeStats:    finalArcadeStats,
           ...tutorialPatch,
         });
@@ -1159,6 +1168,10 @@ triggerFirstBoot: () => {
           currentJobType:        jobType,
           currentReplayLevel:    replayLevel,
           isReplay,
+          syncStreak:            0,
+          sessionSyncHits:       0,
+          sessionToolCount:      0,
+          pendingBreachIntel:    0,
           gameMode:              'campaign',
           isTutorial:            false,
           tutorialStep:          null,
@@ -1503,7 +1516,38 @@ triggerFirstBoot: () => {
         }
       },
 
-    // ─── SIPHON VAULT / UPLOAD SKELETON KEY (Push Your Luck) ──────────
+      // Phase 3.2 — Ghost Out: bank intel and leave
+      ghostOut: () => {
+        const s = get();
+        if (s.status !== 'breached' || s.transitOutcome !== 'success') return;
+        const intel = s.pendingBreachIntel || 0;
+        set({
+          status:             'transit',
+          intelFragments:     s.intelFragments + intel,
+          sessionIntelEarned: intel,
+          pendingBreachIntel: 0,
+          physicalHeat:       0,
+          digitalTrace:       0,
+          isPerfectBreach:    false,
+          terminalLog:        appendLog(s.terminalLog, '>> GHOST OUT — INTEL BANKED. CONNECTION SEVERED.'),
+        });
+      },
+
+      // Phase 3.2 — Enter the siphon flow from breached state
+      enterSiphonFromBreach: () => {
+        const s = get();
+        if (s.status !== 'breached' || s.transitOutcome !== 'success') return;
+        // Bank the breach intel first, then enter resolved state for siphon
+        const intel = s.pendingBreachIntel || 0;
+        set({
+          status:             'resolved',
+          intelFragments:     s.intelFragments + intel,
+          pendingBreachIntel: 0,
+          terminalLog:        appendLog(s.terminalLog, '>> ENTERING SIPHON FLOW — HOLD TO DRAIN VAULT.'),
+        });
+      },
+
+      // ─── SIPHON VAULT / UPLOAD SKELETON KEY (Push Your Luck) ──────────
       siphonVault: () => {
         const s = get();
 
