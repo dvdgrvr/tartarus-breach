@@ -40,7 +40,7 @@ export default function MainMenuScene() {
           <div className="flex flex-col gap-4">
 
             <button
-              onClick={() => setStatus('transit')}
+              onClick={() => isNewGame ? startTutorial() : setStatus('transit')}
               className={`hardware-btn w-full py-5 border-2 transition-all shadow-[0_0_15px_rgba(217,70,239,0.2)] ${
                 tartarusBeaten
                   ? 'border-fuchsia-600/60 border-b-fuchsia-800 text-fuchsia-300 bg-fuchsia-900/20 hover:bg-fuchsia-800/40 hover:border-fuchsia-500'
@@ -57,14 +57,23 @@ export default function MainMenuScene() {
               </span>
             </button>
 
+            {storyArchive.length >= 1 && (
+              <button
+                onClick={() => startArcadeMode()}
+                className="hardware-btn w-full py-5 border-2 border-cyan-500/60 border-b-cyan-700 text-cyan-300 font-mono text-sm font-black uppercase tracking-widest bg-cyan-500/10 hover:bg-cyan-500/20 glow-cyan transition-all"
+              >
+                <span className="digital-glitch">[ 60-SEC SIMULATION ]</span>
+                <span className="block text-xs font-normal text-cyan-400/50 mt-1 normal-case tracking-normal">
+                  Breach as many nodes as possible in 60 seconds
+                </span>
+              </button>
+            )}
+
             <button
-              onClick={() => startArcadeMode()}
-              className="hardware-btn w-full py-5 border-2 border-cyan-500/60 border-b-cyan-700 text-cyan-300 font-mono text-sm font-black uppercase tracking-widest bg-cyan-500/10 hover:bg-cyan-500/20 glow-cyan transition-all"
+              onClick={() => toggleSettingsModal(true)}
+              className="hardware-btn w-full py-4 border border-zinc-800/60 border-b-zinc-900 text-zinc-500 font-mono text-xs font-bold uppercase tracking-widest bg-zinc-950/60 hover:bg-zinc-900/60 hover:text-zinc-400 transition-all"
             >
-              <span className="digital-glitch">[ 60-SEC SIMULATION ]</span>
-              <span className="block text-xs font-normal text-cyan-400/50 mt-1 normal-case tracking-normal">
-                Breach as many nodes as possible in 60 seconds
-              </span>
+              [ SYS_CONFIG ]
             </button>
 
             <button
@@ -73,15 +82,8 @@ export default function MainMenuScene() {
             >
               [ NEURAL_CALIBRATION ]
               <span className="block text-xs font-normal text-fuchsia-600/60 mt-1 normal-case tracking-normal">
-                Guided operator tutorial
+                Replay the guided tutorial.
               </span>
-            </button>
-
-            <button
-              onClick={() => toggleSettingsModal(true)}
-              className="hardware-btn w-full py-4 border border-zinc-800/60 border-b-zinc-900 text-zinc-500 font-mono text-xs font-bold uppercase tracking-widest bg-zinc-950/60 hover:bg-zinc-900/60 hover:text-zinc-400 transition-all"
-            >
-              [ SYS_CONFIG ]
             </button>
 
           </div>

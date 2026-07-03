@@ -825,7 +825,9 @@ function TabBar({ active, onChange }) {
   const tabs = [
     { id: 'logs',   label: 'LOGS' },
     { id: 'stash',  label: 'STASH', showDot: inventory.length > 0 },
-    { id: 'kernel', label: 'KERNEL', showDot: rootKeys > 0 },
+    ...(rootKeys > 0
+      ? [{ id: 'kernel', label: 'KERNEL', showDot: false }]
+      : []),
     { id: 'deck',   label: 'DECK' },
     { id: 'data',   label: 'DATA',  showDot: collected > 0 },
   ];

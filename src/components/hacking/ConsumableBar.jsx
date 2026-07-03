@@ -17,7 +17,8 @@ export default function ConsumableBar() {
   const activeHardware = inventory.map((item, idx) => ({ ...item, originalIndex: idx }))
     .filter(item => item.id === 'LIQUID_COOLER' || item.id === 'SIGNAL_BOOSTER');
 
-  const showBar = hasBeatenGame || getCurrentAct() >= 2 || rabbit > 0 || ghost > 0 || activeHardware.length > 0;
+  const storyArchive  = useGameStore(s => s.storyArchive);
+  const showBar = hasBeatenGame || storyArchive.length >= 3 || rabbit > 0 || ghost > 0 || activeHardware.length > 0;
   if (!showBar || gameMode === 'arcade' || isTutorial) return null;
 
   const onGlobalCooldown = globalConsumableCooldown > 0;

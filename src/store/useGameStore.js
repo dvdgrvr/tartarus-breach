@@ -234,6 +234,12 @@ const useGameStore = create(
         heatTutorial:   false,
         decryptPrompt:  false,
         pulsePrompt:    false,
+        // Phase 2.3 — progressive system gating one-shots
+        overrideFirst:    false,
+        bloodhoundFirst:  false,
+        mutatorFirst:     false,
+        consumableFirst:  false,
+        kernelFirst:      false,
       },
 
       // ── Narrative flags — one-shot story moments ──────────────────────────
@@ -332,9 +338,14 @@ triggerFirstBoot: () => {
             AudioManager.playSFX('error');
             if (s.settings?.hapticsEnabled) haptic([200, 50, 200]);
           }
-        } else if (s.digitalTrace > 30 && s.currentJobType !== 'skim' && Math.random() < 0.05) {
+        } else if (s.storyArchive.length >= 2 && s.digitalTrace > 30 && s.currentJobType !== 'skim' && Math.random() < 0.05) {
           currentOverride = 3;
-          logMsg = '[!] WARNING: ACTIVE COUNTER-MEASURE DETECTED. INTERCEPT REQUIRED.';
+          if (!s.tutorialFlags.overrideFirst) {
+            logMsg = "// MASHA: 'Heads up — active counter-measures are online. When the screen flashes red, tap it fast or you're fried.'";
+            set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, overrideFirst: true } }));
+          } else {
+            logMsg = '[!] WARNING: ACTIVE COUNTER-MEASURE DETECTED. INTERCEPT REQUIRED.';
+          }
           AudioManager.playSFX('error');
           if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
         }
@@ -347,9 +358,14 @@ triggerFirstBoot: () => {
 
         if (currentDaemon === 'BLOODHOUND') {
           daemonTrace = 2.0; 
-        } else if (!currentDaemon && s.digitalTrace > 20 && s.currentJobType !== 'skim' && Math.random() < 0.02) {
+        } else if (s.storyArchive.length >= 3 && !currentDaemon && s.digitalTrace > 20 && s.currentJobType !== 'skim' && Math.random() < 0.02) {
           currentDaemon = 'BLOODHOUND';
-          logMsg = '!! WARNING: BLOODHOUND DAEMON INJECTED. TRACE SPIKING. RUN DECRYPT TO KILL !!';
+          if (!s.tutorialFlags.bloodhoundFirst) {
+            logMsg = "// MASHA: 'Bloodhound daemon — trace spikes on its own. DECRYPT is the only way to kill it.'";
+            set(cur => ({ tutorialFlags: { ...cur.tutorialFlags, bloodhoundFirst: true } }));
+          } else {
+            logMsg = '!! WARNING: BLOODHOUND DAEMON INJECTED. TRACE SPIKING. RUN DECRYPT TO KILL !!';
+          }
           AudioManager.playSFX('error');
           if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
         }
@@ -1084,8 +1100,8 @@ triggerFirstBoot: () => {
         let mutator = null;
         let finalTraceMultiplier = nextNode.traceMultiplier || 1.0;
 
-        // --- HIGH-RISK MUTATOR LOGIC ---
-        if (jobType !== 'tartarus' && Math.random() < 0.40) {
+        // --- HIGH-RISK MUTATOR LOGIC (gated by storyArchive.length >= 4) ---
+        if (s.storyArchive.length >= 4 && jobType !== 'tartarus' && Math.random() < 0.40) {
           const MUTATORS = [
             { id: 'ARCHITECT', name: 'The Architect', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
             { id: 'SNIFFER',   name: 'The Sniffer',   color: 'text-fuchsia-400 border-fuchsia-500/30 bg-fuchsia-500/10' },
@@ -1120,6 +1136,12 @@ triggerFirstBoot: () => {
           initialLogs.push('// [!] WARNING: Target is actively pinging trace authorities. SPRINT REQUIRED.');
         } else if (mutator?.id === 'VOLATILE') {
           initialLogs.push('// [!] VOLATILE RELAY: Hardware instability detected. Expect severe physical heat spikes.');
+        }
+
+        // Phase 2.3 — one-shot Masha announcement for first mutator
+        if (mutator && !s.tutorialFlags.mutatorFirst) {
+          initialLogs.push("// MASHA: 'Target has an active modifier — read the node profile before you engage.'");
+          set({ tutorialFlags: { ...s.tutorialFlags, mutatorFirst: true } });
         }
 
         initialLogs.push(`// SAFEHOUSE ${s.currentSafehouse?.id ?? 'ALPHA'} ACTIVE: ${(s.currentSafehouse?.trait ?? 'Standard').toUpperCase()} PROTOCOLS ENGAGED.`);
@@ -1343,7 +1365,12 @@ triggerFirstBoot: () => {
             scanPrompt: false,
             heatTutorial: false,
             decryptPrompt: false,
-            pulsePrompt: false
+            pulsePrompt: false,
+            overrideFirst:    false,
+            bloodhoundFirst:  false,
+            mutatorFirst:     false,
+            consumableFirst:  false,
+            kernelFirst:      false,
           },
           isFirstBoot:           true,
           hasFirstBypass:        false,
@@ -1488,7 +1515,7 @@ triggerFirstBoot: () => {
           const isComplete  = newTrace >= 30;
           let newLog = appendLog(s.terminalLog, `>> SIPHON PULSE ${newIntel}: +3.5% TRACE EXPOSURE — INTEL EXTRACTED.`);
           if (isComplete) {
-            newLog = appendLog(newLog, '>> [!] CALIBRATION COMPLETE. SECURING CONNECTION AND RETURNING TO SAFEHOUSE.');
+            newLog = appendLog(newLog, '>> [!] CALIBRATION COMPLETE. LAUNCHING FIRST LIVE TARGET.');
           }
           set({
             digitalTrace:   newTrace,
@@ -1497,11 +1524,11 @@ triggerFirstBoot: () => {
             ...(isComplete ? {
               isTutorial:     false,
               tutorialStep:   null,
-              status:         'transit',
-              transitOutcome: 'success',
-              physicalHeat:   0,
             } : {}),
           });
+          if (isComplete) {
+            get().startNewSession('skim');
+          }
           return;
         }
 
