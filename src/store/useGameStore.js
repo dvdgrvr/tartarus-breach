@@ -1522,7 +1522,7 @@ triggerFirstBoot: () => {
         if (s.status !== 'breached' || s.transitOutcome !== 'success') return;
         const intel = s.pendingBreachIntel || 0;
         set({
-          status:             'transit',
+          status:             s.nextStatus || 'transit',
           intelFragments:     s.intelFragments + intel,
           sessionIntelEarned: intel,
           pendingBreachIntel: 0,
