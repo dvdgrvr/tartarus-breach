@@ -18,6 +18,7 @@ import VisualRabbits from '../components/hacking/VisualRabbits';
 import BossCore from '../components/hacking/BossCore';
 import MashaCodec from '../components/hacking/MashaCodec';
 import ComboDisplay from '../components/hacking/ComboDisplay';
+import PulseIndicator from '../components/hacking/PulseIndicator';
 
 export default function HackingScene() {
   const [inspectingModifier, setInspectingModifier] = useState(null);
@@ -373,6 +374,7 @@ export default function HackingScene() {
         <div className="border-t-[2px] border-zinc-800 pt-0 pb-1 bg-zinc-950 backdrop-blur-sm shrink-0 shadow-[0_-10px_30px_rgba(0,0,0,0.8)] z-30 relative">
           <NodeStatusStrip onInspect={handleInspect} />
           <ComboDisplay />
+          <PulseIndicator />
           <div className="space-y-1 mt-1">
             <FirewallRow parsedLog={parsedLog} />
             <TraceRow parsedLog={parsedLog} />
