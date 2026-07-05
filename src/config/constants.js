@@ -38,4 +38,4 @@ export const SYNC_DMG_MULT  = 1.5; // +50% firewall damage on damage tools
 export const SYNC_COST_MULT = 0.5; // −50% trace/heat cost on utility tools
 
 // Persist versioning — bump when adding new save-state fields
-export const SAVE_VERSION = 12; // v12: Phase 1 polish — bump for later schema changes
+export const SAVE_VERSION = 13; // v13: Phase 4 simplification — kernel trim, safehouse simplification, upgrade rescale

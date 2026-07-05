@@ -1,10 +1,10 @@
 export const DIAGNOSTIC_MAP = {
   // Safehouse Traits
   Standard:    { icon: '⚪', label: 'STANDARD',    desc: 'Default operational parameters.' },
-  Shielded:    { icon: '🛡️', label: 'SHIELDED',    desc: '-20% Heat generation, +10% RAM cooldowns.' },
-  Ghost:       { icon: '👻', label: 'GHOST_SYS',   desc: '-20% Trace generation, -10% FW damage.' },
-  Efficient:   { icon: '♻️', label: 'EFFICIENT',   desc: '+20% Intel earned, +15% Heat generation.' },
-  Overclocked: { icon: '⚡', label: 'OVERCLOCKED', desc: '+20% FW damage, +15% Trace generation.' },
+  Shielded:    { icon: '🛡️', label: 'SHIELDED',    desc: '-20% Heat generation.' },
+  Ghost:       { icon: '👻', label: 'GHOST_SYS',   desc: '-20% Trace generation.' },
+  Efficient:   { icon: '♻️', label: 'EFFICIENT',   desc: '+20% Intel earned.' },
+  Overclocked: { icon: '⚡', label: 'OVERCLOCKED', desc: '+20% FW damage.' },
   // Node Defenses
   ENCRYPTED_LOGS:    { icon: '🔑', label: 'ENCRYPTED',  desc: 'Firewall metrics obfuscated. Run DECRYPT to reveal.' },
   TRACE_ACCELERATOR: { icon: '📡', label: 'TRACE_X2',    desc: 'Advanced tracking. Passive Trace rate x2.' },

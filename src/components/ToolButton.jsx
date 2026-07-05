@@ -29,7 +29,6 @@ export default function ToolButton({ tool, errorId, handlePointerDown }) {
   const exposedTicks      = useGameStore(s => s.exposedTicks);
   const systemOverride    = useGameStore(s => s.systemOverride);
   const upgrades          = useGameStore(s => s.upgrades);
-  const safehouse         = useGameStore(s => s.currentSafehouse);
   const isTutorial        = useGameStore(s => s.isTutorial);
   const tutorialStep      = useGameStore(s => s.tutorialStep);
   const settings          = useGameStore(s => s.settings);
@@ -46,7 +45,7 @@ export default function ToolButton({ tool, errorId, handlePointerDown }) {
   const toolInfo    = toolState[tool.id];
   const isLockedTool = toolInfo?.isLocked;
   const cooldown    = toolInfo?.cooldownRemaining ?? 0;
-  const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (safehouse?.ramMod ?? 1)));
+  const maxCooldown = Math.max(1, Math.floor(tool.baseCooldown * (1 - ramLevel * 0.13)));
   const onCooldown  = cooldown > 0;
   const disabled    = onCooldown || isLockedTool || status !== 'hacking' || systemOverride !== null;
 

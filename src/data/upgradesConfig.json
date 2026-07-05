@@ -2,31 +2,31 @@
   {
     "id": "RAM",
     "label": "RAM Overclock",
-    "description": "Overclocks system RAM to reduce all tool cooldowns. Each level cuts cooldown time by a further 8%.",
+    "description": "Overclocks system RAM to reduce all tool cooldowns. Each level cuts cooldown time by a further 13%.",
     "icon": "⚡",
     "baseCost": 100,
     "costScaling": 1.55,
-    "maxLevel": 5,
-    "effectSummary": "-8% Cooldown / Level"
+    "maxLevel": 3,
+    "effectSummary": "-13% Cooldown / Level"
   },
   {
     "id": "SIGNAL",
     "label": "Signal Scrambler",
-    "description": "Masks your physical location signal, making you harder to trace in the real world. Each level reduces heat generation by 8%.",
+    "description": "Masks your physical location signal, making you harder to trace in the real world. Each level reduces heat generation by 13%.",
     "icon": "📡",
     "baseCost": 150,
     "costScaling": 1.6,
-    "maxLevel": 5,
-    "effectSummary": "-8% Heat Rate / Level"
+    "maxLevel": 3,
+    "effectSummary": "-13% Heat Rate / Level"
   },
   {
     "id": "BYPASS_STRENGTH",
     "label": "Bypass Amplifier",
-    "description": "Augments the BYPASS tool's intrusion payload. Each level adds +4 firewall damage to every BYPASS command.",
+    "description": "Augments the BYPASS tool's intrusion payload. Each level adds +17 firewall damage to every BYPASS command.",
     "icon": "🔩",
     "baseCost": 120,
     "costScaling": 1.55,
-    "maxLevel": 5,
-    "effectSummary": "+4 BYPASS Damage / Level"
+    "maxLevel": 3,
+    "effectSummary": "+17 BYPASS Damage / Level"
   }
 ]

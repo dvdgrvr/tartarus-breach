@@ -597,10 +597,6 @@ function getSafehouseDiagnostic(safehouse) {
     const good = safehouse.heatMod < 1;
     lines.push({ label: pct(safehouse.heatMod) + ' HEAT GEN',    desc: good ? 'Reduced thermal load on hardware.'              : 'Elevated thermal load on hardware.',            color: good ? 'text-cyan-400' : 'text-red-400' });
   }
-  if (safehouse.ramMod !== undefined && safehouse.ramMod !== 1) {
-    const good = safehouse.ramMod < 1;
-    lines.push({ label: pct(safehouse.ramMod) + ' COOLDOWN',     desc: good ? 'Optimized RAM reduces tool recovery time.'      : 'Degraded RAM extends tool recovery time.',      color: good ? 'text-cyan-400' : 'text-red-400' });
-  }
   if (safehouse.traceMod !== undefined && safehouse.traceMod !== 1) {
     const good = safehouse.traceMod < 1;
     lines.push({ label: pct(safehouse.traceMod) + ' TRACE GEN',  desc: good ? 'Local jammers reduce your digital footprint.'   : 'Poor signal isolation increases exposure.',     color: good ? 'text-cyan-400' : 'text-red-400' });
@@ -644,13 +640,12 @@ function DeckManual() {
   const ramLevel      = upgrades['RAM']?.level ?? 0;
   const bypassLevel   = upgrades['BYPASS_STRENGTH']?.level ?? 0;
   
-  const ramMod = safehouse?.ramMod ?? 1;
   const dmgMod = safehouse?.dmgMod ?? 1;
 
-  const getCooldown = (base) => Math.max(1, Math.floor(base * (1 - ramLevel * 0.10) * ramMod));
+  const getCooldown = (base) => Math.max(1, Math.floor(base * (1 - ramLevel * 0.13)));
   const getDmg = (toolId, base) => {
     let dmg = base;
-    if (toolId === 'BYPASS') dmg += bypassLevel * 10;
+    if (toolId === 'BYPASS') dmg += bypassLevel * 17;
     return Math.floor(dmg * dmgMod);
   };
 

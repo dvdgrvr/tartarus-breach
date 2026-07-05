@@ -37,10 +37,10 @@ const { skim: SKIM_NODES, priority: PRIORITY_NODES, milestones: MILESTONE_NODES,
 
 const SAFEHOUSE_ROSTER = [
   { id: 'ALPHA',  color: 'cyan',    trait: 'Standard',    desc: 'No buffs or debuffs.'                                       },
-  { id: 'TANGO',  color: 'amber',   trait: 'Shielded',    desc: '-20% Heat generation, +10% RAM cooldowns.', heatMod: 0.8,  ramMod: 1.1  },
-  { id: 'ECHO',   color: 'emerald', trait: 'Ghost',       desc: '-20% Trace generation, -10% FW damage.',    traceMod: 0.8, dmgMod: 0.9  },
-  { id: 'GHOST',  color: 'slate',   trait: 'Efficient',   desc: '+20% Intel earned, +15% Heat generation.',  intelMod: 1.2, heatMod: 1.15 },
-  { id: 'WRAITH', color: 'fuchsia', trait: 'Overclocked', desc: '+20% FW damage, +15% Trace generation.',    dmgMod: 1.2,   traceMod: 1.15 },
+  { id: 'TANGO',  color: 'amber',   trait: 'Shielded',    desc: '-20% Heat generation.',                                      heatMod: 0.8  },
+  { id: 'ECHO',   color: 'emerald', trait: 'Ghost',       desc: '-20% Trace generation.',                                     traceMod: 0.8 },
+  { id: 'GHOST',  color: 'slate',   trait: 'Efficient',   desc: '+20% Intel earned.',                                         intelMod: 1.2 },
+  { id: 'WRAITH', color: 'fuchsia', trait: 'Overclocked', desc: '+20% FW damage.',                                            dmgMod: 1.2   },
 ];
 
 // ─── Haptics ──────────────────────────────────────────────────────────────────
@@ -76,10 +76,6 @@ const appendLog = (log, entry) =>
 // Dynamic FW scaling — 1.15× curve from the base 100 HP.
 // level is 1-based (fragment 1 = level 1 = FW 100).
 // Formula: Math.floor(FIREWALL_INITIAL_HP * 1.15^(level-1))
-//   Level 1  →  100 HP   Level 5  →  175 HP   Level  9  →  305 HP
-//   Level 2  →  115 HP   Level 6  →  201 HP   Level 10  →  351 HP
-//   Level 3  →  132 HP   Level 7  →  231 HP   Level 11  →  404 HP
-//   Level 4  →  152 HP   Level 8  →  266 HP   Level 12  →  465 HP
 const calcScaledFW = (level) =>
   Math.floor(FIREWALL_INITIAL_HP * Math.pow(1.15, level - 1));
 
@@ -147,47 +143,47 @@ const useGameStore = create(
 
       // ── Player resources ─────────────────────────────────────────────────
       intelFragments: 0,
-      rootAccessKeys: 0,       // Deep skill tree currency
-      inventory: [],           // <--- NEW: Holds looted hardware
-      activeModifiers: [],     // <--- NEW: Holds active buffs like Admin Key
-      lootAccumulator: 0,      // <--- NEW: Tracks how much data you've siphoned
+      rootAccessKeys: 0,
+      inventory: [],
+      activeModifiers: [],
+      lootAccumulator: 0,
       comboChain:           [], // Stores the IDs of the last few tools used (Phase 3.3: deprecated, kept for compat)
-      syncStreak:           0,  // Phase 3.1: consecutive sync hits
-      sessionSyncHits:      0,  // Phase 3.1/3.4: total sync hits this session for grading
-      sessionToolCount:     0,  // Phase 3.4: total tool uses this session for grading
+      syncStreak:           0,
+      sessionSyncHits:      0,
+      sessionToolCount:     0,
 
       // ── Upgrades ─────────────────────────────────────────────────────────
       upgrades: buildInitialUpgradeState(),
-      kernelNodes: [],         // IDs of unlocked Kernel Overrides
+      kernelNodes: [],
 
       // ── Narrative archive ─────────────────────────────────────────────────
       storyArchive:       [],
       decryptedFragments: [],
 
       // ── Pulse mechanic ───────────────────────────────────────────────────
-      tickCount:            0,         // persistent counter driving the pulse window
+      tickCount:            0,
 
       // ── Narrative State ──────────────────────────────────────────────────
       getCurrentAct: () => {
         const fragments = get().storyArchive.length;
-        if (fragments < 4) return 1;       // Act I: Neon Underground
-        if (fragments < 8) return 2;       // Act II: The Deep Trace
-        return 3;                          // Act III: The Zero-Day Event
+        if (fragments < 4) return 1;
+        if (fragments < 8) return 2;
+        return 3;
       },
 
       // ── Session state ────────────────────────────────────────────────────
-      status:               'transit',  // 'loading' | 'hacking' | 'transit' | 'victory' | 'game_over'
-      nextStatus:           'transit',  // Tracks where the Disconnect button should go
+      status:               'transit',
+      nextStatus:           'transit',
       isBreaching:          false,
       isPerfectBreach:      false,
       isPaused:             false,
       isHitStopped:         false,
       pulseActive:          false,
-      systemOverride:       null,       // ── PHASE 4: Override State
-      activeDaemon:         null,       // 'BLOODHOUND' | null
-      exposedTicks:         0,          // How long the node remains exposed
-      transitOutcome:       'initial',  // 'initial' | 'success' | 'escaped' | 'trace_busted' | 'heat_busted'
-      currentJobType:       'skim',     // 'skim' | 'priority' | 'tartarus'
+      systemOverride:       null,
+      activeDaemon:         null,
+      exposedTicks:         0,
+      transitOutcome:       'initial',
+      currentJobType:       'skim',
       digitalTrace:         0,
       physicalHeat:         0,
       firewallHealth:       _initialNode.firewallHP,
@@ -195,7 +191,7 @@ const useGameStore = create(
       sessionPotentialIntel: 0,
       packUpHeat:           0,
       packUpTrace:          0,
-      pendingBreachIntel:   0,  // Phase 3.2: intel held during Ghost-or-Greed choice
+      pendingBreachIntel:   0,
 
       // ── Safehouse ────────────────────────────────────────────────────────
       currentSafehouse: SAFEHOUSE_ROSTER[0],
@@ -203,17 +199,17 @@ const useGameStore = create(
       // ── Game mode ─────────────────────────────────────────────────────────
       gameMode:   'campaign',
       arcadeStats: { timeRemaining: 60, score: 0, keystrokes: 0, eliteCombos: 0, multiplier: 1, toolUsage: {} },
-      arcadeHighScore: 0,        // all-time best — never wiped by resetGame
+      arcadeHighScore: 0,
 
       // ── Tutorial ──────────────────────────────────────────────────────────
       isTutorial:   false,
-      tutorialStep: null,  // 'SCAN_INTRO' | 'DECRYPT_INTRO' | 'PULSE_INTRO' | 'BYPASS_INTRO' | 'TRACE_HEAT_INTRO' | 'FINISH_NODE' | 'SIPHON_INTRO'
+      tutorialStep: null,
 
       // ── Endless mode ──────────────────────────────────────────────────────
-      hasBeatenGame:     false,  // global unlock — never wiped by resetGame
-      tartarusBeaten:    false,  // per-run flag, reset on new campaign
+      hasBeatenGame:     false,
+      tartarusBeaten:    false,
       darknetTier:       1,
-      highestDarknetTier: 1,     // all-time best — never wiped by resetGame
+      highestDarknetTier: 1,
       consumables:       { rabbit: 0, ghost: 0 },
       globalConsumableCooldown: 0,
 
@@ -225,15 +221,14 @@ const useGameStore = create(
         hapticsEnabled:  true,
         shakeEnabled:    true,
         crtEnabled:      true,
-        cyberdeliaMode:  false,  // global 1995 Cyberdelia visual override
-        reducedMotion:   false,  // NEW: Ocular protection protocol
+        cyberdeliaMode:  false,
+        reducedMotion:   false,
       },
 
       isSettingsModalOpen: false,
       toggleSettingsModal: (isOpen) => set({ isSettingsModalOpen: isOpen }),
 
       // ── Tutorial flags — one-shot hardware alerts ─────────────────────────
-      // Each flag fires once and is then persisted so it never repeats.
       tutorialFlags: {
         traceWarning:   false,
         heatWarning:    false,
@@ -244,7 +239,6 @@ const useGameStore = create(
         heatTutorial:   false,
         decryptPrompt:  false,
         pulsePrompt:    false,
-        // Phase 2.3 — progressive system gating one-shots
         overrideFirst:    false,
         bloodhoundFirst:  false,
         mutatorFirst:     false,
@@ -253,12 +247,10 @@ const useGameStore = create(
       },
 
       // ── Narrative flags — one-shot story moments ──────────────────────────
-      isFirstBoot:    true,   // triggers the intro transmission on first load
-      hasFirstBypass: false,  // triggers operator flavor line on first BYPASS use
+      isFirstBoot:    true,
+      hasFirstBypass: false,
 
       // ── Narrative modal ───────────────────────────────────────────────────
-      // Set to the fragment index when a new fragment is first unlocked; null otherwise.
-      // isReplay suppresses the modal entirely for grind runs.
       pendingFragmentIdx: null,
       isReplay:           false,
 
@@ -279,7 +271,6 @@ const useGameStore = create(
       setPaused: (paused) => set({ isPaused: paused }),
 
       // ── THE DISCONNECT ACTION ──
-      // Fired when the player is ready to leave the frozen 'resolved' state
       leaveNode: () => set(s => ({
         status: s.nextStatus || 'transit',
         physicalHeat: 0,
@@ -288,23 +279,17 @@ const useGameStore = create(
       })),
 
       // ── THE REPLAY ACTION ──
-      // Instantly resets the current run and launches a new one of the exact same type
       retrySession: () => {
         const s = get();
-        // If it's the end of the game, route them to the proper ending screen instead
         if (s.nextStatus === 'game_over' || s.nextStatus === 'victory') {
           set({ status: s.nextStatus });
           return;
         }
-        
-        // Clear out lingering physical heat/trace states before rebooting
         set({
           physicalHeat: 0,
           digitalTrace: 0,
           isPerfectBreach: false
         });
-        
-        // Instantly launch the same job type
         get().startNewSession(s.currentJobType, s.isReplay, s.currentReplayLevel);
       },
 
@@ -380,15 +365,15 @@ triggerFirstBoot: () => {
           if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
         }
 
+        // Phase 4.3 rescale: SIGNAL now -13%/level (was -10%/level), capped at level 3
         const signalLevel    = s.upgrades['SIGNAL']?.level ?? 0;
-        const heatMultiplier = Math.max(0, 1 - signalLevel * 0.10);
+        const heatMultiplier = Math.max(0, 1 - signalLevel * 0.13);
         
-        // Changed to 'let' so we can modify it for the Volatile mutator
         let heatGain = BASE_HEAT_PER_TICK * heatMultiplier * (s.currentSafehouse?.heatMod ?? 1);
 
         // --- NEW: Volatile Heat Spike ---
         if (s.currentNode?.mutator?.id === 'VOLATILE') {
-          heatGain *= 2.0; // Rig heats up twice as fast
+          heatGain *= 2.0;
         }
 
         // KERNEL: The Ghost Tier 1 - Phantom Thread
@@ -407,23 +392,6 @@ triggerFirstBoot: () => {
                                 * traceMultiplier * (s.currentSafehouse?.traceMod ?? 1) * kernelTraceMod;
 
         if (s.currentNode?.mutator?.id === 'SNIFFER') traceGain *= 1.5;
-
-        // KERNEL: Emergency Vent (Architect Tier 2)
-        if (s.kernelNodes.includes('ARCH_2') && s.physicalHeat + heatGain >= 95) {
-          const coolerIndex = s.inventory.findIndex(item => item.id === 'LIQUID_COOLER');
-          if (coolerIndex !== -1) {
-            heatGain = -s.physicalHeat; // instantly drop heat to 0
-            logMsg = '>> KERNEL OVERRIDE: EMERGENCY VENT INITIATED. LIQUID COOLER CONSUMED.';
-            const newInv = [...s.inventory];
-            if (newInv[coolerIndex].count > 1) {
-              newInv[coolerIndex].count -= 1;
-            } else {
-              newInv.splice(coolerIndex, 1);
-            }
-            set({ inventory: newInv });
-            if (s.settings?.hapticsEnabled) haptic([50, 100, 50]);
-          }
-        }
 
         const newTickCount = s.tickCount + 1;
 
@@ -469,21 +437,15 @@ triggerFirstBoot: () => {
         const newTrace     = Math.min(100, s.digitalTrace + traceGain + spikeTrace + daemonTrace);
 
         // Phase 3.1 — Tightened pulse window.
-        // The window OPENS at the start of the 4th tick (tickCount % 4 === 0)
-        // and auto-closes after PULSE_WINDOW_DURATION_MS via setTimeout,
-        // independent of the 1000ms tick loop.
         const pulseCyclePos = newTickCount % PULSE_INTERVAL_TICKS;
         const isPulse      = s.pulseActive
-          // If already open from the open-tick, keep it open — the timeout will close it.
           ? true
           : pulseCyclePos === 0;
 
-        // Schedule auto-close when the window first opens this cycle
         if (isPulse && !s.pulseActive) {
           if (_pulseCloseTimer) clearTimeout(_pulseCloseTimer);
           _pulseCloseTimer = setTimeout(() => {
             _pulseCloseTimer = null;
-            // Only close if still hacking (don't close after packUp/breach)
             if (get().status === 'hacking') {
               useGameStore.setState({ pulseActive: false });
             }
@@ -579,7 +541,7 @@ triggerFirstBoot: () => {
         const s = get();
         if (s.status !== 'hacking' || s.isPaused) return;
 
-        // ── TUTORIAL GATE: only allow the specific tool for this step ──────
+        // ── TUTORIAL GATE ──────
         if (s.isTutorial && s.tutorialStep !== 'FINISH_NODE') {
           const TUTORIAL_ALLOWED = {
             SCAN_INTRO:       'SCAN',
@@ -603,14 +565,13 @@ triggerFirstBoot: () => {
 
         // ─── COOLDOWN GATE ───
         const cooldownRemaining = s.toolState[toolId]?.cooldownRemaining ?? 0;
-
-        // Block execution if tool is still recovering
         if (cooldownRemaining > 0) return;
 
+        // Phase 4.3 rescale: RAM now -13%/level (was -10%/level), capped at level 3
         const ramLevel = s.upgrades['RAM']?.level ?? 0;
         let actualCooldown = Math.max(
           1,
-          Math.floor(tool.baseCooldown * (1 - ramLevel * 0.10) * (s.currentSafehouse?.ramMod ?? 1))
+          Math.floor(tool.baseCooldown * (1 - ramLevel * 0.13))
         );
 
         // ─── HAPTICS & AUDIO ───
@@ -625,7 +586,6 @@ triggerFirstBoot: () => {
 
         // Phase 3.1 — Sync Hit: ANY tool during pulse window
         const isSyncHit = s.pulseActive;
-        // Track tool usage for grade
         const newSyncHits   = s.sessionSyncHits + (isSyncHit ? 1 : 0);
         const newToolCount  = s.sessionToolCount + 1;
         const newStreak     = isSyncHit ? s.syncStreak + 1 : 0;
@@ -662,7 +622,7 @@ triggerFirstBoot: () => {
         let didGhostRefresh = false;
         if (toolId === 'PULSE' && s.kernelNodes.includes('GHOST_3') && Math.random() < 0.20) {
           didGhostRefresh = true;
-          actualCooldown = 0; // Cooldown immediately resets
+          actualCooldown = 0;
         }
         
         let newExposedTicks = s.exposedTicks;
@@ -681,7 +641,6 @@ triggerFirstBoot: () => {
             newActiveDaemon = null;
           }
 
-        // KERNEL: Cold Boot (Ghost Tier 2) is applied upon starting a session (startNewSession)
           const isEncrypted = s.currentNode?.specialDefense === 'ENCRYPTED_LOGS';
           if (isEncrypted && !s.firewallRevealed) {
             currentLog = appendLog(currentLog, `>> ENCRYPTED LOGS CRACKED — FW: ${s.firewallHealth}`);
@@ -707,7 +666,7 @@ triggerFirstBoot: () => {
           return;
         }
 
-        // Arcade-specific stat deltas — collected here and applied in the final set
+        // Arcade-specific stat deltas
         let arcadeTimeDelta        = 0;
         let newArcadeMult          = s.arcadeStats?.multiplier ?? 1;
         let arcadeEliteCombosDelta = 0;
@@ -715,8 +674,9 @@ triggerFirstBoot: () => {
         // ─── TOOL: BYPASS ───
         let hasFirstBypass = s.hasFirstBypass;
         if (toolId === 'BYPASS') {
+          // Phase 4.3 rescale: BYPASS_STRENGTH now +17/level (was +10/level), capped at level 3
           const bsLevel = s.upgrades['BYPASS_STRENGTH']?.level ?? 0;
-          firewallDamage += bsLevel * 10;
+          firewallDamage += bsLevel * 17;
 
           // KERNEL: Juggernaut (Sledgehammer Capstone)
           if (s.kernelNodes.includes('SLEDGE_CAP') && s.highestDarknetTier) {
@@ -767,15 +727,13 @@ triggerFirstBoot: () => {
            currentLog = appendLog(currentLog, `>> KERNEL: GHOST PROTOCOL FIRED. PULSE COOLDOWN RESET.`);
         }
         if (s.gameMode === 'arcade' && toolId === 'PULSE') {
-          newHeat = Math.max(0, s.physicalHeat - 20); // fully offset heatGain + deep vent
+          newHeat = Math.max(0, s.physicalHeat - 20);
           currentLog = appendLog(currentLog, `>> ARCADE_VENT: Thermal load reduced -20%`);
         }
 
         // ─── WIN STATE ───
         if (newFirewall <= 0 && prevFirewall > 0) {
-          // In arcade mode, advance to the next node directly from the store
           if (s.gameMode === 'arcade') {
-            // NOTE: arcade block handled below, before tutorial check
             set({
               firewallHealth: 0,
               digitalTrace:   finalTrace,
@@ -823,9 +781,7 @@ triggerFirstBoot: () => {
 
           let intelEarned = s.sessionPotentialIntel;
           if (isPerfect) {
-             let bonusMult = 1.25;
-             if (s.kernelNodes.includes('ARCH_1')) bonusMult += 0.20; // KERNEL: Deep Siphon
-             intelEarned = Math.floor(s.sessionPotentialIntel * bonusMult);
+             intelEarned = Math.floor(s.sessionPotentialIntel * 1.25);
           }
           const isTartarus   = s.currentJobType === 'tartarus';
           const isDarknet    = s.currentJobType === 'darknet';
@@ -840,22 +796,12 @@ triggerFirstBoot: () => {
             newArchive = [...s.storyArchive, fragmentIdx];
           }
 
-          // KERNEL: Grant 1 RAK for milestone/boss nodes (even if story is complete or in replay)
           if ((s.currentNode?.id === 'ML_03' || s.currentNode?.id === 'ML_07' || isTartarus) && !s.isReplay) {
             rootKeysEarned += 1;
           }
 
           if (isDarknet && ((s.darknetTier) % 5 === 0)) {
             rootKeysEarned += 1;
-          }
-
-          let kernelLoot = null;
-          // KERNEL: Silicon Baron (Architect Capstone)
-          if (s.kernelNodes.includes('ARCH_CAP') && s.highestDarknetTier) {
-            const chance = Math.floor(s.highestDarknetTier / 5) * 0.02;
-            if (Math.random() < chance) {
-               kernelLoot = modifiersData[Math.floor(Math.random() * modifiersData.length)];
-            }
           }
 
           currentLog = appendLog(currentLog, `> ${toolId} // FW: 0 | TRACE: ${finalTrace.toFixed(0)}%`);
@@ -867,20 +813,8 @@ triggerFirstBoot: () => {
           if (fragmentIdx !== null) currentLog = appendLog(currentLog, `>> FRAGMENT #${String(fragmentIdx + 1).padStart(3, '0')} DECODED — CHECK ARCHIVE.`);
           if (rootKeysEarned > 0) currentLog = appendLog(currentLog, `>> [!] ROOT ACCESS KEY ACQUIRED.`);
 
-          let nextInv = [...s.inventory];
-          if (kernelLoot) {
-             currentLog = appendLog(currentLog, `>> KERNEL BARON LOOT: ${kernelLoot.name} extracted.`);
-             const extIndex = nextInv.findIndex(i => i.id === kernelLoot.id);
-             if (extIndex >= 0) {
-                 nextInv[extIndex].count = (nextInv[extIndex].count || 1) + 1;
-             } else {
-                 nextInv.push({...kernelLoot, count: 1});
-             }
-          }
-
           currentLog = appendLog(currentLog, `>> CHOOSE: [ GHOST OUT ] Bank ${intelEarned} IF safely, or [ SIPHON THE VAULT ] Risk it — trace is at ${Math.ceil(finalTrace)}%.`);
 
-          // Phase 3.2 — Ghost-or-Greed choice; don't auto-bank intel
           set({
             status:             'breached',
             nextStatus:         isTartarus ? 'victory' : 'transit',
@@ -894,7 +828,7 @@ triggerFirstBoot: () => {
             pendingBreachIntel: intelEarned,
             rootAccessKeys:     s.rootAccessKeys + rootKeysEarned,
             sessionIntelEarned: intelEarned,
-            inventory:          nextInv,
+            inventory:          s.inventory,
             storyArchive:       newArchive,
             hasBeatenGame:      s.hasBeatenGame || isTartarus,
             tartarusBeaten:     s.tartarusBeaten || isTartarus,
@@ -920,13 +854,11 @@ triggerFirstBoot: () => {
 
         let syncBonus = 0;
         if (isSyncHit) {
-          // Phase 3.1 — Sync Hit tag in terminal
           const streakTag = newStreak >= 3 ? ` STREAK x${newStreak}` : '';
           currentLog = appendLog(currentLog, `>> SYNC${streakTag}`);
           if (newStreak === 3) {
             currentLog = appendLog(currentLog, "// MASHA: 'You're in the rhythm. Keep it.'");
           }
-          // Legacy Perfect Sync bonus for PULSE only
           if (toolId === 'PULSE') {
             currentLog = appendLog(currentLog, '>> PERFECT SYNC: Trace reduction efficiency doubled.');
           }
@@ -943,7 +875,6 @@ triggerFirstBoot: () => {
           }
         }
 
-        // ── ADRENALINE: Every tool use reduces all other tools' cooldowns (universal) ──
         let finalToolState = { ...s.toolState, [toolId]: { cooldownRemaining: actualCooldown } };
         const adrenalineReduction = toolId === 'BYPASS' ? 1.5 : 0.5;
         finalToolState = Object.fromEntries(
@@ -958,7 +889,6 @@ triggerFirstBoot: () => {
           ? { ...s.arcadeStats, eliteCombos: (s.arcadeStats.eliteCombos ?? 0) + arcadeEliteCombosDelta, timeRemaining: Math.min(99, s.arcadeStats.timeRemaining + arcadeTimeDelta), multiplier: newArcadeMult }
           : s.arcadeStats;
 
-        // ── TUTORIAL: compute step advance patch ──────────────────────────
         let tutorialPatch = {};
         if (s.isTutorial && s.tutorialStep !== 'FINISH_NODE') {
           const TUTORIAL_ADVANCE = {
@@ -970,7 +900,6 @@ triggerFirstBoot: () => {
           const nextStep = TUTORIAL_ADVANCE[s.tutorialStep];
           if (nextStep) {
             tutorialPatch.tutorialStep = nextStep;
-            // BYPASS_INTRO → wipe all cooldowns & heat so PULSE is ready, then spike trace
             if (s.tutorialStep === 'BYPASS_INTRO') {
               tutorialPatch.physicalHeat = 0;
               tutorialPatch.toolState   = Object.fromEntries(
@@ -1011,7 +940,6 @@ triggerFirstBoot: () => {
         let newBank     = s.intelFragments;
         let isGhostExit = false;
 
-        // --- PROGRESS CALCULATION ---
         const maxHP = s.currentNode?.maxFirewallHP || 100;
         const progress = Math.max(0, 1 - (s.firewallHealth / maxHP));
 
@@ -1027,9 +955,8 @@ triggerFirstBoot: () => {
         } else if (cause === 'heat_busted') {
           newBank = 0; 
         } else if (cause === 'trace_busted') {
-          // NEW: You dropped the payload! Remove what you earned this session from your bank.
           newBank = Math.max(0, s.intelFragments - s.sessionIntelEarned);
-          intelEarned = 0; // Ensures the summary screen accurately reflects the loss
+          intelEarned = 0;
         }
 
         if (cause !== 'escaped' && s.settings?.hapticsEnabled) haptic([200, 100, 300]);
@@ -1069,16 +996,16 @@ triggerFirstBoot: () => {
         }
 
         set({
-          status:             'resolved', // ALWAYS pause the UI here
-          nextStatus:         nextStatus, // Save where we go when they hit DISCONNECT
+          status:             'resolved',
+          nextStatus:         nextStatus,
           transitOutcome:     cause,
           systemOverride:     null,
           packUpHeat:         s.physicalHeat, 
           packUpTrace:        s.digitalTrace,
-          activeDaemon:       null,       // 'BLOODHOUND' | null
-          exposedTicks:       0,          // How long the node remains exposed
-          rabbitTicks:        0,          // Duration of the Rabbit virus DOT
-          ghostTicks:         0,          // Duration of the Ghost.sys trace freeze
+          activeDaemon:       null,
+          exposedTicks:       0,
+          rabbitTicks:        0,
+          ghostTicks:         0,
           intelFragments:     newBank,
           sessionIntelEarned: intelEarned,
           currentSafehouse:   nextSafehouse,
@@ -1090,7 +1017,7 @@ triggerFirstBoot: () => {
       // ─── START NEW SESSION ────────────────────────────────────────────
       startNewSession: (jobType = 'skim', isReplay = false, replayLevel = null) => {
         const s = get();
-        const archiveLen = s.storyArchive.length; // Current progress
+        const archiveLen = s.storyArchive.length;
         const frontierLevel = archiveLen + 1;
 
         let nextNode;
@@ -1133,7 +1060,6 @@ triggerFirstBoot: () => {
         let mutator = null;
         let finalTraceMultiplier = nextNode.traceMultiplier || 1.0;
 
-        // --- HIGH-RISK MUTATOR LOGIC (gated by storyArchive.length >= 4) ---
         if (s.storyArchive.length >= 4 && jobType !== 'tartarus' && Math.random() < 0.40) {
           const MUTATORS = [
             { id: 'ARCHITECT', name: 'The Architect', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
@@ -1161,7 +1087,6 @@ triggerFirstBoot: () => {
           traceMultiplier: finalTraceMultiplier 
         };
 
-        // --- CUSTOM BOOT LOGS ---
         let initialLogs = nodeBootLog(sessionNode);
 
         if (mutator?.id === 'GOLD_CACHE') {
@@ -1171,7 +1096,6 @@ triggerFirstBoot: () => {
           initialLogs.push('// [!] VOLATILE RELAY: Hardware instability detected. Expect severe physical heat spikes.');
         }
 
-        // Phase 2.3 — one-shot Masha announcement for first mutator
         if (mutator && !s.tutorialFlags.mutatorFirst) {
           initialLogs.push("// MASHA: 'Target has an active modifier — read the node profile before you engage.'");
           set({ tutorialFlags: { ...s.tutorialFlags, mutatorFirst: true } });
@@ -1360,7 +1284,6 @@ triggerFirstBoot: () => {
       },
 
       // ─── RESET GAME ───────────────────────────────────────────────────
-      // Full reset — called from VICTORY and GAME_OVER overlays.
       resetGame: () => {
         const freshNode = pickSkimNode();
         set({
@@ -1385,11 +1308,11 @@ triggerFirstBoot: () => {
           sessionPotentialIntel: 0,
           packUpHeat:            0,
           packUpTrace:           0,
-          activeDaemon:          null,       // 'BLOODHOUND' | null
-          exposedTicks:          0,          // How long the node remains exposed
-          systemOverride:        null, // Reset Phase 4
-          tartarusBeaten:        false,      // per-run flag — reset each campaign
-          darknetTier:           1,          // streak resets; highestDarknetTier + hasBeatenGame persist
+          activeDaemon:          null,
+          exposedTicks:          0,
+          systemOverride:        null,
+          tartarusBeaten:        false,
+          darknetTier:           1,
           consumables:           { zeroDay: 0, coolant: 0 },
           pendingFragmentIdx:    null,
           isReplay:              false,
@@ -1413,15 +1336,12 @@ triggerFirstBoot: () => {
           hasFirstBypass:        false,
           isTutorial:            false,
           tutorialStep:          null,
-          // NOTE: hasBeatenGame / highestDarknetTier / settings intentionally omitted — preserved via shallow merge
           terminalLog:           nodeBootLog(freshNode),
           toolState:             buildInitialToolState(),
         });
       },
 
       // ─── ENTER DARKNET ────────────────────────────────────────────────
-      // Transitions from the victory screen directly into the transit hub
-      // so the player can access the Darknet Router without a full reset.
       enterDarknet: () => {
         const freshNode = pickSkimNode();
         set({
@@ -1466,7 +1386,6 @@ triggerFirstBoot: () => {
       // ─── INITIALIZE DECK ─────────────────────────────────────────────
       initializeDeck: (isReduced) => {
         set((s) => ({
-          // REMOVED the status line from here!
           settings: { 
             ...s.settings, 
             reducedMotion: isReduced,
@@ -1488,7 +1407,6 @@ triggerFirstBoot: () => {
       })),
 
       // ─── BUY CONSUMABLE ───────────────────────────────────────────────
-      // itemId: 'zeroDay' | 'coolant'
       buyConsumable: (itemId, cost) => {
         const s = get();
         if (s.intelFragments < cost) return;
@@ -1516,12 +1434,11 @@ triggerFirstBoot: () => {
           [itemId]: s.consumables[itemId] - 1,
         };
 
-        let cd = 3;
-        if (s.kernelNodes.includes('ARCH_3')) cd = Math.max(1, Math.floor(cd * 0.5)); // KERNEL: Efficient Hardware
+        const cd = 3;
 
         if (itemId === 'ghost') {
           set({
-            ghostTicks:  4, // 4 seconds of trace freeze
+            ghostTicks:  4,
             consumables: newConsumables,
             terminalLog: appendLog(s.terminalLog, '>> GHOST.sys ACTIVATED. TRACE METRICS FROZEN.'),
             globalConsumableCooldown: cd,
@@ -1531,7 +1448,7 @@ triggerFirstBoot: () => {
 
         if (itemId === 'rabbit') {
           set({
-            rabbitTicks: 5, // 5 seconds of DOT
+            rabbitTicks: 5,
             consumables: newConsumables,
             terminalLog: appendLog(s.terminalLog, '>> RABBIT VIRUS INJECTED — THEY ARE MULTIPLYING.'),
             globalConsumableCooldown: cd,
@@ -1561,7 +1478,6 @@ triggerFirstBoot: () => {
       enterSiphonFromBreach: () => {
         const s = get();
         if (s.status !== 'breached' || s.transitOutcome !== 'success') return;
-        // Bank the breach intel first, then enter resolved state for siphon
         const intel = s.pendingBreachIntel || 0;
         set({
           status:             'resolved',
@@ -1575,7 +1491,6 @@ triggerFirstBoot: () => {
       siphonVault: () => {
         const s = get();
 
-        // Tutorial SIPHON — run normal math; complete when trace reaches 30%
         if (s.isTutorial && s.tutorialStep === 'SIPHON_INTRO') {
           AudioManager.playSFX('thock');
           const newTrace    = s.digitalTrace + 3.5;
@@ -1629,7 +1544,6 @@ triggerFirstBoot: () => {
 
         if (s.settings?.hapticsEnabled) haptic(isTartarus ? [50, 50] : 10); 
 
-        // --- FIXED LOOT ROLL LOGIC ---
         let foundItem = null;
         let newAccumulator = s.lootAccumulator + intelReward;
         let lootLog = null;
@@ -1652,7 +1566,6 @@ triggerFirstBoot: () => {
 
         if (lootLog) newLog = appendLog(newLog, lootLog);
 
-        // --- NEW: Stacking Logic ---
         let nextInventory = [...s.inventory];
         if (foundItem) {
           const existingIndex = nextInventory.findIndex(item => item.id === foundItem.id);
@@ -1684,12 +1597,11 @@ triggerFirstBoot: () => {
         const item = s.inventory[inventoryIndex];
         const newInventory = [...s.inventory];
         
-        // --- NEW: Count Decrement Logic ---
         const currentCount = item.count || 1;
         if (currentCount > 1) {
           newInventory[inventoryIndex] = { ...item, count: currentCount - 1 };
         } else {
-          newInventory.splice(inventoryIndex, 1); // Remove if it was the last one
+          newInventory.splice(inventoryIndex, 1);
         }
 
         let update = { inventory: newInventory };
@@ -1710,8 +1622,7 @@ triggerFirstBoot: () => {
         if (s.settings?.hapticsEnabled) haptic(15);
         AudioManager.playSFX('thock');
 
-        let cd = 3;
-        if (s.kernelNodes.includes('ARCH_3')) cd = Math.max(1, Math.floor(cd * 0.5)); // KERNEL: Efficient Hardware
+        const cd = 3;
 
         set(state => ({
           ...update,
@@ -1804,7 +1715,6 @@ triggerFirstBoot: () => {
         }
 
         if (version < 6) {
-          // Rename cyberdeliaEnabled → cyberdeliaMode; add isReplay
           const { cyberdeliaEnabled, ...otherSettings } = state.settings ?? {};
           state = {
             ...state,
@@ -1830,8 +1740,8 @@ triggerFirstBoot: () => {
         if (version < 8) {
           state = {
             ...state,
-            isFirstBoot:    false,  // existing players skip the intro
-            hasFirstBypass: true,   // existing players skip the first-BYPASS flavor
+            isFirstBoot:    false,
+            hasFirstBypass: true,
           };
         }
 
@@ -1848,7 +1758,29 @@ triggerFirstBoot: () => {
         }
 
         if (version < 12) {
-          // v12: Phase 1 polish — schema placeholder for future migrations
+          // v12: Phase 1 polish — schema placeholder
+        }
+
+        if (version < 13) {
+          // v13: Phase 4 simplification
+          // 4.1 — Delete ARCHITECT kernel tree: refund RAK for any ARCH_ nodes owned
+          const ARCH_NODE_IDS = ['ARCH_1', 'ARCH_2', 'ARCH_3', 'ARCH_CAP'];
+          const ownedArchNodes = (state.kernelNodes || []).filter(id => ARCH_NODE_IDS.includes(id));
+          const archRefund = ownedArchNodes.length; // each cost 1 RAK
+          state = {
+            ...state,
+            kernelNodes: (state.kernelNodes || []).filter(id => !ARCH_NODE_IDS.includes(id)),
+            rootAccessKeys: (state.rootAccessKeys ?? 0) + archRefund,
+          };
+
+          // 4.3 — Clamp upgrade levels to new max of 3
+          if (state.upgrades) {
+            const clampedUpgrades = {};
+            for (const [id, val] of Object.entries(state.upgrades)) {
+              clampedUpgrades[id] = { level: Math.min(val?.level ?? 0, 3) };
+            }
+            state = { ...state, upgrades: clampedUpgrades };
+          }
         }
 
         return state;

@@ -78,45 +78,5 @@
         "requires": "SLEDGE_3"
       }
     ]
-  },
-  "ARCHITECT": {
-    "id": "ARCHITECT",
-    "name": "The Architect",
-    "description": "Utility & Survival",
-    "color": "fuchsia",
-    "nodes": [
-      {
-        "id": "ARCH_1",
-        "name": "Deep Siphon",
-        "description": "Intel Fragments earned from Perfect Breaches (Trace >= 90%) are increased by 20%.",
-        "cost": 1,
-        "tier": 1
-      },
-      {
-        "id": "ARCH_2",
-        "name": "Emergency Vent",
-        "description": "If Physical Heat reaches 95%, automatically consume 1 Liquid Cooler from inventory (if available) without spending an action.",
-        "cost": 1,
-        "tier": 2,
-        "requires": "ARCH_1"
-      },
-      {
-        "id": "ARCH_3",
-        "name": "Efficient Hardware",
-        "description": "All consumable/hardware global cooldowns are reduced by 50%.",
-        "cost": 1,
-        "tier": 3,
-        "requires": "ARCH_2"
-      },
-      {
-        "id": "ARCH_CAP",
-        "name": "Silicon Baron",
-        "description": "Endless Capstone: Every 5 Darknet Tiers beaten adds a 2% chance to automatically loot a rare hardware item upon node breach.",
-        "cost": 1,
-        "tier": 4,
-        "isCapstone": true,
-        "requires": "ARCH_3"
-      }
-    ]
   }
 }
